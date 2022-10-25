@@ -2,17 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Monitoring;
 using System;
+using Microsoft.AspNetCore.Builder;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
     internal sealed class AddressListenResultsStartupFilter :
         IStartupFilter
     {
-        private readonly AddressListenResults _listenResults;
+                 private readonly AddressListenResults _listenResults;
 
         public AddressListenResultsStartupFilter(AddressListenResults listenResults)
         {
