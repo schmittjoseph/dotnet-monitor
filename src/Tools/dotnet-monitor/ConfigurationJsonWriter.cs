@@ -5,14 +5,14 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
+
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
     /// <summary>
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
     /// </summary>
     internal sealed class ConfigurationJsonWriter : IDisposable
     {
-        private readonly Utf8JsonWriter _writer;
+              private readonly Utf8JsonWriter _writer;
         private IConfiguration _configuration;
         public ConfigurationJsonWriter(Stream outputStream)
         {
