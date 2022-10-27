@@ -73,17 +73,20 @@ async function generateChangelog(octokit, branchName, additionalBranch, repoOwne
     // Resolve the backport PRs to their origin PRs
     const maxRecursion = 3;
     const backportPrs = await getPRs(octokit, branchName, additionalBranch, repoOwner, repoName, minMergeDate, BackportLabel);
-    for (const pr of backportPrs) {
-        const originPr = await resolveBackportPrToReleaseNotePr(octokit, pr, repoOwner, repoName, minMergeDate, maxRecursion);
-        if (originPr !== undefined) {
-            // Patch the origin PR information to have the backport PR number and URL
-            // so that the release notes links to the backport, but grabs the rest of
-            // the information from the origin PR.
-            originPr.number = pr.number;
-            originPr.html_url = pr.html_url;
-            prs.push(originPr);
+    if (backportPrs !== undefined) {
+        for (const pr of backportPrs) {
+            const originPr = await resolveBackportPrToReleaseNotePr(octokit, pr, repoOwner, repoName, minMergeDate, maxRecursion);
+            if (originPr !== undefined) {
+                // Patch the origin PR information to have the backport PR number and URL
+                // so that the release notes links to the backport, but grabs the rest of
+                // the information from the origin PR.
+                originPr.number = pr.number;
+                originPr.html_url = pr.html_url;
+                prs.push(originPr);
+            }
         }
     }
+
 
     let changelog = [];
     for (const pr of prs) {
