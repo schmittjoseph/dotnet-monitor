@@ -35,7 +35,7 @@ async function run() {
                 moniker: "⚠️",
                 labelName: "breaking-change",
                 description: "indicates a breaking change",
-                inChangelog: false
+                inChangelog: true
             },
             {
                 moniker: "🔬",
@@ -61,7 +61,7 @@ function generateMonikerDescriptions(significantLabels) {
             continue;
         }
 
-        entry += `\\*${label.moniker} **_${label.description}_**`;
+        descriptions.push(`\\*${label.moniker} **_${label.description}_**`);
     }
 
     return descriptions.join(" \\\n");
