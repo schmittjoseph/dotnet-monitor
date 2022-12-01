@@ -35,7 +35,7 @@ async function run() {
                 moniker: "⚠️",
                 labelName: "breaking-change",
                 description: "indicates a breaking change",
-                inChangelog: true
+                inChangelog: false
             },
             {
                 moniker: "🔬",
