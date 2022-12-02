@@ -22,9 +22,8 @@ async function run() {
 
     const output = core.getInput("output", { required: true });
     const buildDescription = core.getInput("build_description", { required: true });
-    const lastReleaseDate = core.getInput("last_release_date", { required: true });
+    const prsToConsider = core.getInput("prs_to_consider", { required: true });
     const branch = core.getInput("branch_name", { required: true });
-    const additional_branch = core.getInput("additional_branch", { required: false });
 
     const repoOwner = github.context.payload.repository.owner.login;
     const repoName = github.context.payload.repository.name;
@@ -44,7 +43,7 @@ async function run() {
                 inChangelog: false
             }
         ];
-        const changelog = await generateChangelog(octokit, branch, additional_branch, repoOwner, repoName, lastReleaseDate, significantLabels);
+        const changelog = await generateChangelog(octokit, repoOwner, repoName, prsToConsider, significantLabels);
         const monikerDescriptions = generateMonikerDescriptions(significantLabels);
 
         const releaseNotes = await generateReleaseNotes(path.join(__dirname, "releaseNotes.template.md"), buildDescription, changelog, monikerDescriptions);
@@ -67,23 +66,8 @@ function generateMonikerDescriptions(significantLabels) {
     return descriptions.join(" \\\n");
 }
 
-async function generateChangelog(octokit, branchName, additionalBranch, repoOwner, repoName, minMergeDate, significantLabels) {
-    let prs = await getPRs(octokit, branchName, additionalBranch, repoOwner, repoName, minMergeDate, UpdateReleaseNotesLabel);
-
-    // Resolve the backport PRs to their origin PRs
-    const maxRecursion = 3;
-    const backportPrs = await getPRs(octokit, branchName, additionalBranch, repoOwner, repoName, minMergeDate, BackportLabel);
-    for (const pr of backportPrs) {
-        const originPr = await resolveBackportPrToReleaseNotePr(octokit, pr, repoOwner, repoName, minMergeDate, maxRecursion);
-        if (originPr !== undefined) {
-            // Patch the origin PR information to have the backport PR number and URL
-            // so that the release notes links to the backport, but grabs the rest of
-            // the information from the origin PR.
-            originPr.number = pr.number;
-            originPr.html_url = pr.html_url;
-            prs.push(originPr);
-        }
-    }
+async function generateChangelog(octokit, repoOwner, repoName, prsToConsider, significantLabels) {
+    const prs = await findPrsToInclude(octokit, repoOwner, repoName, prsToConsider);
 
     let changelog = [];
     for (const pr of prs) {
@@ -121,6 +105,61 @@ async function generateChangelog(octokit, branchName, additionalBranch, repoOwne
     return changelog.join("\n");
 }
 
+async function findPrsToInclude(octokit, repoOwner, repoName, prsToConsider) {
+    const prNumbersToConsider = prsToConsider.split(",")
+    let prs = [];
+    let backportPrs = [];
+    for (const prNumber of prNumbersToConsider) {
+        console.log (`Checking PR #${prNumber}`)
+        const pr = (await octokit.rest.pulls.get({
+            owner: repoOwner,
+            repo: repoName,
+            pull_number: prNumber
+        }))?.data;
+
+        if (pr === undefined) {
+            console.log(`Unable to find PR for: ${prNumber}`);
+            continue;
+        }
+
+        let isBackport = false;
+        let mentionInReleaseNotes = false;
+        for (const label of originPr.labels) {
+            if (label.name === UpdateReleaseNotesLabel) {
+                console.log(`--> Mentioning in release notes`)
+                mentionInReleaseNotes = true;
+                break;
+            }
+
+            if (label.name === BackportLabel) {
+                isBackport = true;
+            }
+        }
+
+        if (mentionInReleaseNotes) {
+            prs.push(pr);
+        } else if (isBackport) {
+            backportPrs.push(pr);
+        }
+    }
+
+    // Resolve the backport PRs to their origin PRs
+    const maxRecursion = 3;
+    for (const pr of backportPrs) {
+        const originPr = await resolveBackportPrToReleaseNotePr(octokit, pr, repoOwner, repoName, minMergeDate, maxRecursion);
+        if (originPr !== undefined) {
+            // Patch the origin PR information to have the backport PR number and URL
+            // so that the release notes links to the backport, but grabs the rest of
+            // the information from the origin PR.
+            originPr.number = pr.number;
+            originPr.html_url = pr.html_url;
+            prs.push(originPr);
+        }
+    }
+
+    return prs;
+}
+
 async function generateReleaseNotes(templatePath, buildDescription, changelog, monikerDescriptions) {
     let releaseNotes = await readFile(templatePath);
     releaseNotes = releaseNotes.replace("${buildDescription}", buildDescription);
@@ -128,20 +167,6 @@ async function generateReleaseNotes(templatePath, buildDescription, changelog, m
     releaseNotes = releaseNotes.replace("${monikerDescriptions}", monikerDescriptions);
 
     return releaseNotes.trim();
-}
-
-async function getPRs(octokit, branchName, additionalBranch, repoOwner, repoName, minMergeDate, labelFilter) {
-    let searchQuery = `is:pr is:merged label:${labelFilter} repo:${repoOwner}/${repoName} base:${branchName} merged:>=${minMergeDate}`;
-    if (additionalBranch !== undefined) {
-        searchQuery += ` base:${additionalBranch}`
-    }
-    console.log(searchQuery);
-
-    return await octokit.paginate(octokit.rest.search.issuesAndPullRequests, {
-        q: searchQuery,
-        sort: "created",
-        order: "desc"
-    });
 }
 
 async function resolveBackportPrToReleaseNotePr(octokit, pr, repoOwner, repoName, minMergeDate, maxRecursion) {

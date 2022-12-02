@@ -10,15 +10,12 @@ inputs:
   build_description:
     description: 'Build description.'
     required: true
-  last_release_date:
-    description: 'Last release date in ISO 8601 format.'
+  prs_to_consider:
+    description: 'A comma-separated list of PRs to consider including in the changelog.'
     required: true
   branch_name:
     description: 'The branch to generate release notes for.'
     required: true
-  additional_branch:
-    description: "Include PRs from an additional branch"
-    required: false
 
 runs:
   using: 'node16'
