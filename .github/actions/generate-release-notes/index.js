@@ -106,7 +106,7 @@ async function generateChangelog(octokit, branchName, additionalBranch, repoOwne
         }
 
         const changelogRegex=/^###### Release Notes Entry\r?\n(?<releaseNotesEntry>.*)/m
-        const userDefinedChangelogEntry = pr.body?.match(changelogRegex)?.groups?.releaseNotesEntry.trim();
+        const userDefinedChangelogEntry = pr.body?.match(changelogRegex)?.groups?.releaseNotesEntry?.trim();
         if (userDefinedChangelogEntry !== undefined && userDefinedChangelogEntry.length !== 0) {
             entry += ` ${userDefinedChangelogEntry}`
         } else {
