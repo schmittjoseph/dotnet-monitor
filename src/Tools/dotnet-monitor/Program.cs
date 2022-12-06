@@ -16,13 +16,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         private static Command GenerateApiKeyCommand()
         {
             Command command = new Command(
-                name: "generatekey",
+                                    name: "generatekey",
                 description: Strings.HelpDescription_CommandGenerateKey)
             {
                 OutputOption
             };
 
-            command.SetHandler(async context =>
+                 command.SetHandler(async context =>
             {
                 context.ExitCode = await GenerateApiKeyCommandHandler.Invoke(
                     context.GetCancellationToken(),
