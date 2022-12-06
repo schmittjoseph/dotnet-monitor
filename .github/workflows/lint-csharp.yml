@@ -30,9 +30,6 @@ jobs:
           echo "Files to validate: '${changed_source_files}'"
           echo "updated_files=$(echo ${changed_source_files})" >> $GITHUB_ENV
 
-      - name: Run dotnet restore
-        run: ./dotnet.sh restore
-
       - name: Run dotnet format
         run: ./dotnet.sh format --include ${{ env.updated_files }}
 
