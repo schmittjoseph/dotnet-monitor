@@ -30,8 +30,11 @@ jobs:
           echo "Files to validate: '${changed_source_files}'"
           echo "updated_files=$(echo ${changed_source_files})" >> $GITHUB_ENV
 
-      - name: Run dotnet format
-        run: ./dotnet.sh format style --include ${{ env.updated_files }} && ./dotnet.sh format whitespace --include ${{ env.updated_files }}
+      - name: Run dotnet format (whitespace)
+        run: ./dotnet.sh format whitespace --include ${{ env.updated_files }}
+
+      - name: Run dotnet format (style)
+        run: ./dotnet.sh format style --include ${{ env.updated_files }}
 
       - name: Generate artifacts
         run: |
