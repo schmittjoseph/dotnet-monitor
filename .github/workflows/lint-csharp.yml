@@ -30,19 +30,11 @@ jobs:
           echo "Files to validate: '${changed_source_files}'"
           echo "updated_files=$(echo ${changed_source_files})" >> $GITHUB_ENV
 
-      - name: Get dotnet version
-        run: echo 'dotnet_version='$(jq -r '.tools.dotnet' global.json) >> $GITHUB_ENV
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v3.0.3
-        with:
-          dotnet-version: ${{ env.dotnet_version }}
-
       - name: Run dotnet restore
-        run: dotnet restore
+        run: ./dotnet.sh restore
 
       - name: Run dotnet format
-        run: dotnet format --no-restore --include ${{ env.updated_files }}
+        run: ./dotnet.sh format --include ${{ env.updated_files }}
 
       - name: Generate artifacts
         run: |
