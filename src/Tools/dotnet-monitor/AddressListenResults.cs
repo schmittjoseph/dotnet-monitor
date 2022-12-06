@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         public IList<AddressListenResult> Errors { get; }
             = new List<AddressListenResult>();
 
-        public bool AnyAddresses => (_defaultAddressCount + _metricsAddressCount) > 0;
+                         public bool AnyAddresses =>          (_defaultAddressCount + _metricsAddressCount) > 0;
 
         public bool HasInsecureAuthentication { get; private set; }
 
