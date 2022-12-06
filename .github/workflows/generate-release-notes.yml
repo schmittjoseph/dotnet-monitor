@@ -26,6 +26,7 @@ jobs:
           # Grab the latest tag from the current branch. If it doesn't exist, grab the latest tag across all branches.
           last_release_tag=$(git describe --tags --abbrev=0 || git describe --tags $(git rev-list --tags --max-count=1))
           echo "Using tag: $last_release_tag"
+          echo "last_release_date=$(git log -1 --format=%aI ${last_release_tag})" >> $GITHUB_ENV
 
           versionFile="./eng/Versions.props"
           release_version=$(perl -ne '/<VersionPrefix>([^<]*)/ && print $1' $versionFile)
@@ -37,7 +38,7 @@ jobs:
           # Check if the aka.ms url existed
           if [[ "$qualified_release_version" =~ "<html" || -z "$qualified_release_version" ]]; then
             echo "Could not determine qualified release version, $version_url did not contain the expected information"
-            qualified_release_version="unknown"
+            exit 1
           fi
 
           # trim the return carriage
@@ -53,28 +54,20 @@ jobs:
             friendly_release_name="next official preview version"
           fi
 
-          prs_to_consider=$(\
-              git log --no-merges "${{ github.ref_name }}" --not "$last_release_tag" --format="%aE %s" --extended-regexp --grep="\(#[[:digit:]]+\)$" \
-              | grep -v "dotnet-maestro\[bot\]" \
-              | grep -oP '(?<=\(#)[[:digit:]]+(?=\)$)' \
-              | xargs \
-              | tr ' ' ',')
-
           echo "release_note_path=$(echo ./documentation/releaseNotes/releaseNotes.v${qualified_release_version}.md)" >> $GITHUB_ENV
           echo "friendly_release_name=$(echo ${friendly_release_name})" >> $GITHUB_ENV
           echo "qualified_release_version=$(echo ${qualified_release_version})" >> $GITHUB_ENV
-          echo "prs_to_consider=$(echo ${prs_to_consider})" >> $GITHUB_ENV
 
       - name: Checkout main
         uses: actions/checkout@v3
         with:
-          ref: better-changelog-generation
+          ref: main
 
       - name: Generate release notes
         uses: ./.github/actions/generate-release-notes
         with:
           output: ${{ env.release_note_path }}
-          prs_to_consider:  ${{ env.prs_to_consider }}
+          last_release_date:  ${{ env.last_release_date }}
           build_description: ${{ env.friendly_release_name }}
           auth_token: ${{ secrets.GITHUB_TOKEN }}
           branch_name: ${{ github.ref_name }}
