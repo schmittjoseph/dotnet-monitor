@@ -6,7 +6,7 @@
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\artifacts\\obj\\Windows_NT.arm64.Debug\\crossgen",
       "installRoot": "${projectDir}\\artifacts\\bin\\Windows_NT.arm64.Debug",
-      "cmakeCommandArgs": "",
+      "cmakeCommandArgs": "", test
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_arm64" ],
