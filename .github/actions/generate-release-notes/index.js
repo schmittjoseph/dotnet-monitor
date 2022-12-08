@@ -16,12 +16,15 @@ async function run() {
     console.log("Finished installing npm dependencies");
 
     const github = require('@actions/github');
+
+    console.log(github);
+
     const retry = require('@octokit/plugin-retry');
     const core = require('@actions/core');
 
     const token = core.getInput('auth_token', {required: true});
-    const octokitSetupWithPlugin = github.plugin(retry)
-    const octokit = new octokitSetupWithPlugin({ auth: token });
+    const octokitSetupWithPlugin = github.utils.plugin(retry)
+    const octokit = new octokitSetupWithPlugin(github.utils.getOctokitOptions({ auth: token }));
 
     const output = core.getInput("output", { required: true });
     const buildDescription = core.getInput("build_description", { required: true });
