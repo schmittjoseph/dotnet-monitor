@@ -86,6 +86,7 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
         }
     }
 
+    // Create a lookup table for every commit hash this release includes.
     const commitObjects = await octokit.paginate(octokit.rest.repos.listCommits, {
         owner: repoOwner,
         repo: repoName,
@@ -93,16 +94,15 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
         since: minMergeDate
     });
 
-    // Create a lookup table for every commit hash this release includes.
     let commitHashesInRelease = new Set();
     for (const commit of commitObjects) {
         commitHashesInRelease.add(commit.sha);
     }
 
-    console.log(commitHashesInRelease);
-    console.log(candidatePrs);
     let prs = [];
     for (const pr of candidatePrs) {
+        // Get a fully-qualified version of the pr that has all of the relevant information,
+        // including the merge/squash/rebase commit.
         const fqPr = (await octokit.rest.pulls.get({
             owner: repoOwner,
             repo: repoName,
