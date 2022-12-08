@@ -10,21 +10,15 @@ const BackportLabel = "backport";
 
 async function run() {
     console.log("Installing npm dependencies");
-    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github @octokit/plugin-retry");
+    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github");
     console.log("npm-install stderr:\n\n" + stderr);
     console.log("npm-install stdout:\n\n" + stdout);
     console.log("Finished installing npm dependencies");
 
     const github = require('@actions/github');
-
-    console.log(github);
-
-    const retry = require('@octokit/plugin-retry');
     const core = require('@actions/core');
 
-    const token = core.getInput('auth_token', {required: true});
-    const octokitSetupWithPlugin = github.utils.plugin(retry)
-    const octokit = new octokitSetupWithPlugin(github.utils.getOctokitOptions({ auth: token }));
+    const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
 
     const output = core.getInput("output", { required: true });
     const buildDescription = core.getInput("build_description", { required: true });
