@@ -103,10 +103,10 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
     let prs = [];
     for (const pr of candidatePrs) {
         if (commitHashesInRelease.has(pr.merge_commit_sha)) {
-            console.log(`Including: #${number}`);
+            console.log(`Including: #${pr.number}`);
             candidatePrs.push(pr);
         } else {
-            console.log(`Skipping: #${number}`);
+            console.log(`Skipping: #${pr.number}`);
         }
     }
 
