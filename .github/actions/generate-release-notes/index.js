@@ -10,15 +10,18 @@ const BackportLabel = "backport";
 
 async function run() {
     console.log("Installing npm dependencies");
-    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github");
+    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github @octokit/plugin-retry");
     console.log("npm-install stderr:\n\n" + stderr);
     console.log("npm-install stdout:\n\n" + stdout);
     console.log("Finished installing npm dependencies");
 
     const github = require('@actions/github');
+    const retry = require('@octokit/plugin-retry');
     const core = require('@actions/core');
 
-    const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
+    const token = core.getInput('auth_token', {required: true});
+    const octokitSetupWithPlugin = github.plugin(retry)
+    const octokit = new octokitSetupWithPlugin({ auth: token });
 
     const output = core.getInput("output", { required: true });
     const buildDescription = core.getInput("build_description", { required: true });
@@ -81,7 +84,6 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
             // the information from the origin PR.
             originPr.number = pr.number;
             originPr.html_url = pr.html_url;
-            originPr.merge_commit_sha = pr.merge_commit_sha;
 
             candidatePrs.push(originPr);
         }
@@ -104,11 +106,17 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
     console.log(candidatePrs);
     let prs = [];
     for (const pr of candidatePrs) {
-        if (commitHashesInRelease.has(pr.merge_commit_sha)) {
-            console.log(`Including: #${pr.number}`);
+        const fqPr = (await octokit.rest.pulls.get({
+            owner: repoOwner,
+            repo: repoName,
+            pull_number: pr.number
+        }))?.data;
+
+        if (commitHashesInRelease.has(fqPr.merge_commit_sha)) {
+            console.log(`Including: #${fqPr.number}`);
             candidatePrs.push(pr);
         } else {
-            console.log(`Skipping: #${pr.number} --- ${pr.merge_commit_sha}`);
+            console.log(`Skipping: #${fqPr.number} --- ${fqPr.merge_commit_sha}`);
         }
     }
 
