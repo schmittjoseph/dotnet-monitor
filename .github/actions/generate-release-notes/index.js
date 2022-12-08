@@ -66,19 +66,9 @@ function generateMonikerDescriptions(significantLabels) {
     return descriptions.join(" \\\n");
 }
 
-async function generateChangelog(octokit, branch, repoOwner, repoName, minMergeDate, significantLabels) {
-    const commits = await octokit.paginate(octokit.rest.repos.listCommits, {
-        owner: repoOwner,
-        repo: repoName,
-        sha: branch,
-        since: minMergeDate
-    });
-    // for (const commit of commits){
-        // commit.sha
-    // }
-
-
-    let prs = await getPRs(octokit, repoOwner, repoName, minMergeDate, UpdateReleaseNotesLabel);
+async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDate) {
+    // Identify potential PRs to mention the release notes.
+    let candidatePrs = await getPRs(octokit, repoOwner, repoName, minMergeDate, UpdateReleaseNotesLabel);
 
     // Resolve the backport PRs to their origin PRs
     const maxRecursion = 3;
@@ -91,9 +81,40 @@ async function generateChangelog(octokit, branch, repoOwner, repoName, minMergeD
             // the information from the origin PR.
             originPr.number = pr.number;
             originPr.html_url = pr.html_url;
-            prs.push(originPr);
+            originPr.merge_commit_sha = pr.merge_commit_sha;
+
+            candidatePrs.push(originPr);
         }
     }
+
+    const commitObjects = await octokit.paginate(octokit.rest.repos.listCommits, {
+        owner: repoOwner,
+        repo: repoName,
+        sha: branch,
+        since: minMergeDate
+    });
+
+    // Create a lookup table for every commit hash this release includes.
+    let commitHashesInRelease = new Set();
+    for (const commit of commitObjects) {
+        commitHashesInRelease.add(commit.sha);
+    }
+
+    let prs = [];
+    for (const pr of candidatePrs) {
+        if (commitHashesInRelease.has(pr.merge_commit_sha)) {
+            console.log(`Including: #${number}`);
+            candidatePrs.push(pr);
+        } else {
+            console.log(`Skipping: #${number}`);
+        }
+    }
+
+    return prs;
+}
+
+async function generateChangelog(octokit, branch, repoOwner, repoName, minMergeDate, significantLabels) {
+    const prs = await getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDate);
 
     let changelog = [];
     for (const pr of prs) {
