@@ -61,7 +61,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v3
         with:
-          ref: main
+          ref: better-changelog-generation
 
       - name: Generate release notes
         uses: ./.github/actions/generate-release-notes
