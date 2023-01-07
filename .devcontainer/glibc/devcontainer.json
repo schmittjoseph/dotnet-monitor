@@ -1,15 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json.
 {
     "name": "Development (glibc)",
-    "build": {
-        "dockerfile": "Dockerfile",
-        "args": {
-            "VARIANT": "6.0-bullseye",
-            "INSTALL_NODE": "true",
-            "INSTALL_AZURITE": "true",
-            "NODE_VERSION": "lts/*"
-        }
-    },
+    "image": "mcr.microsoft.com/devcontainers/base:alpine",
     "hostRequirements": {
         "cpus": 4
     },
