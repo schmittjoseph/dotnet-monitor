@@ -1,0 +1,4 @@
+# syntax = edrevo/dockerfile-plus
+INCLUDE+ Dockerfile.common
+
+LABEL devcontainer.metadata="{\"id\":\"baseFeature\"}"
