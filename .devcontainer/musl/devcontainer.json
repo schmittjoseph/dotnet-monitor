@@ -8,21 +8,21 @@
     "postCreateCommand": "bash -i ${containerWorkspaceFolder}/.devcontainer/shared/scripts/container-creation.sh",
     "remoteUser": "vscode",
     "features": {
-        "ghcr.io/devcontainers/features/github-cli:1": {
-            "version": "latest"
-        },
+        // "ghcr.io/devcontainers/features/github-cli:1": {
+        //     "version": "latest"
+        // },
         // "ghcr.io/devcontainers/features/azure-cli:1": {
         //     "version": "latest"
         // },
-        "ghcr.io/devcontainers/features/powershell:1": {
-            "version": "latest"
-        },
+        // "ghcr.io/devcontainers/features/powershell:1": {
+        //     "version": "latest"
+        // },
         // "ghcr.io/devcontainers/features/docker-in-docker:1": {
         //     "version": "latest"
         // },
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-            "version": "latest"
-        }
+        // "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+        //     "version": "latest"
+        // }
     },
     "remoteEnv": {
         "PATH": "${containerWorkspaceFolder}/.dotnet:${containerEnv:PATH}",
