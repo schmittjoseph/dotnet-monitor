@@ -7,17 +7,6 @@
         "*.resx": "xml"
     },
 
-    "github.codespaces.defaultExtensions": [
-        "GitHub.codespaces",
-        "GitHub.vscode-pull-request-github",
-        "ms-vscode.cpptools",
-        "ms-dotnettools.csharp",
-        "EditorConfig.EditorConfig",
-        "ms-vscode.powershell",
-        "tintoy.msbuild-project-tools",
-        "streetsidesoftware.code-spell-checker"
-    ],
-
     "remote.portsAttributes": {
         "52323": {
             "label": "dotnet-monitor"

@@ -16,6 +16,15 @@
                 ".devcontainer/musl/Alpine-DevContainer.md",
                 "README.md"
             ]
+        },
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-dotnettools.csharp",
+                "EditorConfig.EditorConfig",
+                "tintoy.msbuild-project-tools",
+                "streetsidesoftware.code-spell-checker"
+            ]
         }
     },
     "postCreateCommand": "bash -i ${containerWorkspaceFolder}/.devcontainer/shared/scripts/container-creation.sh",
