@@ -6,6 +6,5 @@ The current codespace is using an Alpine dev container, which is only recommende
 - docker-in-docker
 - az cli
 - nodejs
-- github cli
 - kubectl-helm-minikube
 - powershell
