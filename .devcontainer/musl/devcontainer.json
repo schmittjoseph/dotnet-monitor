@@ -1,29 +1,25 @@
 // For format details, see https://aka.ms/devcontainer.json.
 {
-    "name": "Development (musl)",
-    "image": "mcr.microsoft.com/devcontainers/base:alpine",
+    "name": "Development (Alpine)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "VARIANT": "3.17"
+        }
+    },
     "hostRequirements": {
         "cpus": 4
     },
+    "customizations": {
+        "codespaces": {
+            "openFiles": [
+                "README.md",
+                ".devcontainer/musl/Alpine-DevContainer.md"
+            ]
+        }
+    },
     "postCreateCommand": "bash -i ${containerWorkspaceFolder}/.devcontainer/shared/scripts/container-creation.sh",
     "remoteUser": "vscode",
-    "features": {
-        // "ghcr.io/devcontainers/features/github-cli:1": {
-        //     "version": "latest"
-        // },
-        // "ghcr.io/devcontainers/features/azure-cli:1": {
-        //     "version": "latest"
-        // },
-        // "ghcr.io/devcontainers/features/powershell:1": {
-        //     "version": "latest"
-        // },
-        // "ghcr.io/devcontainers/features/docker-in-docker:1": {
-        //     "version": "latest"
-        // },
-        // "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-        //     "version": "latest"
-        // }
-    },
     "remoteEnv": {
         "PATH": "${containerWorkspaceFolder}/.dotnet:${containerEnv:PATH}",
         "DOTNET_ROOT": "${containerWorkspaceFolder}/.dotnet",
