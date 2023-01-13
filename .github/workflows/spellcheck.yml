@@ -1,4 +1,4 @@
-name: 'Source code spellcheck'
+name: 'Spellcheck'
 on:
   pull_request:
     paths: ['src/**', '**/*.md']
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   spellcheck:
-    name: 'Spellcheck'
+    name: Spellcheck
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +31,6 @@ jobs:
             files: 'src/**/*.resx'
             inline: error
             incremental_files_only: true
-            strict: true
 
       - uses: streetsidesoftware/cspell-action@v2
         name: Source code spellcheck
