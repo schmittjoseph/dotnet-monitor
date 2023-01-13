@@ -22,7 +22,7 @@ jobs:
             inline: warning
             incremental_files_only: true
             # Do not cause the gate to fail if potential typos in source code are found.
-            # The signal-to-noise ratio here needs to be better understood first.
+            # The signal-to-noise ratio here needas to be better understood first.
             strict: false
 
       - uses: streetsidesoftware/cspell-action@v2
