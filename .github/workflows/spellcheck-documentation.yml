@@ -19,5 +19,5 @@ jobs:
         name: Spellcheck
         with:
             files: '**/*.md'
-            inline: warning
+            inline: error
             incremental_files_only: true
