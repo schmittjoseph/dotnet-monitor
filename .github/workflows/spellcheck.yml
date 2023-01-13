@@ -13,11 +13,12 @@ jobs:
 
     steps:
       - name: Checkout
+        id: checkout
         uses: actions/checkout@v3
 
       - uses: streetsidesoftware/cspell-action@v2
         name: 'Documentation spellcheck'
-        continue-on-error: true
+        if: ${{ steps.checkout.conclusion == 'success' }}
         with:
             files: '**/*.md'
             inline: error
@@ -25,7 +26,7 @@ jobs:
 
       - uses: streetsidesoftware/cspell-action@v2
         name: Resx spellcheck
-        continue-on-error: true
+        if: ${{ steps.checkout.conclusion == 'success' }}
         with:
             files: 'src/**/*.resx'
             inline: error
@@ -34,7 +35,7 @@ jobs:
 
       - uses: streetsidesoftware/cspell-action@v2
         name: Source code spellcheck
-        continue-on-error: true
+        if: ${{ steps.checkout.conclusion == 'success' }}
         with:
             files: 'src/**/*{.cs,.cpp,.h}'
             inline: warning
