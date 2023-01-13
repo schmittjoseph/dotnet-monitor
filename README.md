@@ -14,7 +14,7 @@ See [Releases](documentation/releases.md) for the release history.
 
 [Survey](https://aka.ms/dotnet-monitor-survey) - Provide anonymous feedback on your experience using dotnet-monitor.
 
-## Building the Repositorya
+## Building the Repository
 
 See [building instructions](documentation/building.md) in our documentation directory.
 
