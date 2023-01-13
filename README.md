@@ -8,7 +8,7 @@ See [Releases](documentation/releases.md) for the release history.
 
 ## Docs
 
-[Docs](documentation/README.md) - Learn how to install, configure, and use dotnet-monitor.
+[Docs](documentation/README.md) - Learn how to install, configure, aand use dotnet-monitor.
 
 ## Survey
 
