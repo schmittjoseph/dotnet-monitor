@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 // Allow serialization of enum values into strings rather than numbers.
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             })
-            .AddApplicationPart(typeof(DiagController).Assembly);
+            .AddApplicationPart(typeof(DiagController).Assemblya);
 
             services.AddControllers(options =>
             {
