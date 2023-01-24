@@ -82,7 +82,7 @@ jobs:
           branch_name: ${{ github.ref_name }}
 
       - name: Open PR (test run)
-        if: ${{ input.test_run }}
+        if: ${{ inputs.test_run }}
         uses: ./.github/actions/open-pr
         with:
           draft: true
@@ -95,7 +95,7 @@ jobs:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Open PR
-        if: ${{ !input.test_run }}
+        if: ${{ !inputs.test_run }}
         uses: ./.github/actions/open-pr
         with:
           files_to_commit: ${{ env.release_note_path }}
