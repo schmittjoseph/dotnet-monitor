@@ -85,6 +85,7 @@ jobs:
         if: ${{ input.test_run }}
         uses: ./.github/actions/open-pr
         with:
+          draft: true
           files_to_commit: ${{ env.release_note_path }}
           title: "[test] Add ${{ env.qualified_release_version }} release notes"
           commit_message: generate release notes
