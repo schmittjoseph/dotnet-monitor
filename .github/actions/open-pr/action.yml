@@ -57,7 +57,7 @@ runs:
         git push --force --set-upstream origin "HEAD:$pr_branch_name"
 
         extraArgs=""
-        if [[ -z "${{ inputs.labels }}" ]]; then
+        if [[ ! -z "${{ inputs.labels }}" ]]; then
           extraArgs="${extraArgs} --label \"${{ inputs.labels }}\""
         fi
 
@@ -65,7 +65,7 @@ runs:
           extraArgs="${extraArgs} --draft"
         fi
 
-        gh pr create --repo "${{ github.repository }}" --base "$current_branch_name" -t "${{ inputs.title }}" -b  "${{ inputs.body }}" $extraArgs
+        gh pr create --repo "${{ github.repository }}" --base "$current_branch_name" -t "${{ inputs.title }}" -b "${{ inputs.body }}" $extraArgs
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.auth_token }}
