@@ -81,11 +81,24 @@ jobs:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
           branch_name: ${{ github.ref_name }}
 
-      - name: Open PR
+      - name: Open PR (test run)
+        if: ${{ input.test_run }}
         uses: ./.github/actions/open-pr
         with:
           files_to_commit: ${{ env.release_note_path }}
-          title: Add ${{ env.qualified_release_version }} release notes
+          title: "[test] Add ${{ env.qualified_release_version }} release notes"
+          commit_message: generate release notes
+          body: This is a test PR. Add ${{ env.qualified_release_version }} release notes. This PR was auto generated and will not be automatically merged in.
+          branch_name: releaseNotes/test/${{ env.qualified_release_version }}
+          fail_if_files_unchanged: true
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open PR
+        if: ${{ !input.test_run }}
+        uses: ./.github/actions/open-pr
+        with:
+          files_to_commit: ${{ env.release_note_path }}
+          title: "Add ${{ env.qualified_release_version }} release notes"
           commit_message: generate release notes
           body: Add ${{ env.qualified_release_version }} release notes. This PR was auto generated and will not be automatically merged in.
           branch_name: releaseNotes/${{ env.qualified_release_version }}
