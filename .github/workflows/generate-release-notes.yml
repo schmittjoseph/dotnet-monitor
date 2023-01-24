@@ -1,8 +1,5 @@
 name: 'Generate release notes'
-if:  ${{ inputs.test_run }}
-  run-name: '[test] [${{ github.ref_name }}] Generate release notes'
-if:  ${{ !inputs.test_run }}
-  run-name: '[${{ github.ref_name }}] Generate release notes'
+run-name: '[${{ github.ref_name }}] Generate release notes (test: ${{ inputs.test_run }})'
 
 on:
   workflow_dispatch:
