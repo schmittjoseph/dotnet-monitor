@@ -3,6 +3,11 @@ run-name: '[${{ github.ref_name }}] Generate release notes'
 
 on:
   workflow_dispatch:
+    inputs:
+      test_run:
+        description: 'Test run?'
+        required: true
+        type: boolean
 
 permissions:
   contents: write
@@ -33,16 +38,20 @@ jobs:
           release_version_label=$(perl -ne '/<PreReleaseVersionLabel>([^<]*)/ && print $1' $versionFile)
           major_minor_version=${release_version%.*}
 
-          version_url="https://aka.ms/dotnet/diagnostics/monitor${major_minor_version}/release/dotnet-monitor.nupkg.version"
-          qualified_release_version=$(curl -sL $version_url)
-          # Check if the aka.ms url existed
-          if [[ "$qualified_release_version" =~ "<html" || -z "$qualified_release_version" ]]; then
-            echo "Could not determine qualified release version, $version_url did not contain the expected information"
-            exit 1
-          fi
+          if [[ "${{ inputs.test_run }}" == "true" ]]
+            qualified_release_version="test-$release_version"
+          else
+            version_url="https://aka.ms/dotnet/diagnostics/monitor${major_minor_version}/release/dotnet-monitor.nupkg.version"
+            qualified_release_version=$(curl -sL $version_url)
+            # Check if the aka.ms url existed
+            if [[ "$qualified_release_version" =~ "<html" || -z "$qualified_release_version" ]]; then
+              echo "Could not determine qualified release version, $version_url did not contain the expected information"
+              exit 1
+            fi
 
-          # trim the return carriage
-          qualified_release_version=$(echo $qualified_release_version | tr -d '\r')
+            # trim the return carriage
+            qualified_release_version=$(echo $qualified_release_version | tr -d '\r')
+          fi
 
           friendly_release_name=""
 
