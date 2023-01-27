@@ -17,7 +17,7 @@
 
     <!-- Third-party references -->
     <NewtonsoftJsonVersion>12.0.2</NewtonsoftJsonVersion>
-    <NJsonSchemaVersion>10.7.0</NJsonSchemaVersion>
+    <NJsonSchemaVersion>10.8.0</NJsonSchemaVersion>
     <SwashbuckleAspNetCoreVersion>6.4.0</SwashbuckleAspNetCoreVersion>
     <AwsSdkS3Version>3.4.8.1</AwsSdkS3Version>
 
