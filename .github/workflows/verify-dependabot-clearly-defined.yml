@@ -26,7 +26,6 @@ jobs:
       - name: Check if Harvested
         if: ${{steps.metadata.outputs.package-ecosystem == 'nuget'}}
         run: |
-          set -x
           set -e
           blockPr=""
           echo '${{steps.metadata.outputs.updated-dependencies-json}}' | jq -r '.[] | .dependencyName + "/" + .newVersion' |
@@ -36,11 +35,11 @@ jobs:
               if [ "$license" == "null" ]; then
                 echo "--> Not harvested, submitting request."
                 curl -sX POST "https://api.clearlydefined.io/harvest" -H "accept: */*" -H "Content-Type: application/json" -d "[{\"tool\":\"package\",\"coordinates\":\"nuget/nuget/-/$dependency\"}]"
-                if [[ "$dependency" != "Microsoft.*" ]] && [ "$dependency" != "Azure.*" ]] && [ "$dependency" != "System.*" ]]; then
+                if [[ "$dependency" == "Microsoft.*" ]] || [[ "$dependency" == "Azure.*" ]] || [[ "$dependency" == "System.*" ]]; then
+                  echo "--> 1P dependency, not blocking PR"
+                else
                   echo "--> 3P dependency, blocking PR"
                   blockPr="true"
-                else
-                  echo "--> 1P dependency, not blocking PR"
                 fi
               fi
             done
