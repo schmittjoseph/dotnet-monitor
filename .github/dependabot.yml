@@ -4,12 +4,12 @@ updates:
   directory: /
   schedule:
     interval: daily
-  target-branch: main
+  target-branch: dependabot-cd
 - package-ecosystem: nuget
   directory: /eng/dependabot
   schedule:
     interval: daily
-  target-branch: main
+  target-branch: dependabot-cd
   ignore:
   - dependency-name: Microsoft.Extensions.*
     update-types:
