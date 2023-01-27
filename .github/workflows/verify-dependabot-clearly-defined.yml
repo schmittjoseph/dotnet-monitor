@@ -1,0 +1,37 @@
+name: Dependabot Verify ClearlyDefined
+on: pull_request
+
+permissions:
+  pull-requests: read
+
+jobs:
+  dependabotVerify:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1
+      steps.dependabot-metadata.outputs.package-ecosystem == "nuget"
+      # For each dependency:
+      # Query if it has been harvested in ClearlyDefined
+      # If not:
+      # 1: Submit a request
+      # 2: Block the PR if it is a 3rd party package
+
+      # The following properties are now available:
+      #  - steps.metadata.outputs.dependency-names
+      #  - steps.metadata.outputs.dependency-type
+      #  - steps.metadata.outputs.update-type
+      # steps.dependabot-metadata.outputs.updated-dependencies-json
+      - name: Check if Harvested
+        if: ${{steps.dependabot-metadata.outputs.package-ecosystem == 'nuget'}}
+        run: |
+          echo $(steps.dependabot-metadata.outputs.updated-dependencies-json)
+      #!     license=$(curl -sX GET "https://api.clearlydefined.io/definitions/nuget/nuget/-/Microsoft.IdentityModel.Tokens/6.26.0" -H "accept: */*" | jq -r .licensed.declared)
+
+
+
+      #! - name: Submit Harvest request (steps.metadata.outputs.dependency-names)
+      #!   run: |
+      #!     curl -sX POST "https://api.clearlydefined.io/harvest" -H "accept: */*" -H "Content-Type: application/json" -d "[{\"tool\":\"package\",\"coordinates\":\"nuget/nuget/-/Microsoft.IdentityModel.Tokens/6.25.1\"}]"
