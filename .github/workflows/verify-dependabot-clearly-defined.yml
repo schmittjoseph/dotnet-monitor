@@ -26,7 +26,7 @@ jobs:
       - name: Check if Harvested
         if: ${{steps.metadata.outputs.package-ecosystem == 'nuget'}}
         run: |
-          echo $(steps.dependabot-metadata.outputs.updated-dependencies-json)
+          echo ${{steps.metadata.outputs.updated-dependencies-json}}
       #!     license=$(curl -sX GET "https://api.clearlydefined.io/definitions/nuget/nuget/-/Microsoft.IdentityModel.Tokens/6.26.0" -H "accept: */*" | jq -r .licensed.declared)
 
 
