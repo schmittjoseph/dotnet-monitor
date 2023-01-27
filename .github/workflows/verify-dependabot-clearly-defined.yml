@@ -12,7 +12,6 @@ jobs:
       - name: Fetch Dependabot metadata
         id: metadata
         uses: dependabot/fetch-metadata@v1
-      steps.dependabot-metadata.outputs.package-ecosystem == "nuget"
       # For each dependency:
       # Query if it has been harvested in ClearlyDefined
       # If not:
