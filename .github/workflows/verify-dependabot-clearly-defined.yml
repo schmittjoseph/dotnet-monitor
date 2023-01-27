@@ -26,6 +26,7 @@ jobs:
       - name: Check if Harvested
         if: ${{steps.metadata.outputs.package-ecosystem == 'nuget'}}
         run: |
+          set -x
           set -e
           blockPr=""
           echo '${{steps.metadata.outputs.updated-dependencies-json}}' | jq -r '.[] | .dependencyName + "/" + .newVersion' |
