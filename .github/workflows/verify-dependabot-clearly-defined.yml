@@ -38,6 +38,8 @@ jobs:
                 if [[ "$dependency" != "Microsoft.*" ]] && [ "$dependency" != "Azure.*" ]] && [ "$dependency" != "System.*" ]]; then
                   echo "--> 3P dependency, blocking PR"
                   blockPr="true"
+                else
+                  echo "--> 1P dependency, not blocking PR"
                 fi
               fi
             done
