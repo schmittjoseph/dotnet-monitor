@@ -31,17 +31,17 @@ jobs:
             while IFS=%'\t' read -r dependency; do
               echo "Checking $dependency"
               license=$(curl -sX GET "https://api.clearlydefined.io/definitions/nuget/nuget/-/$dependency" -H "accept: */*" | jq -r '.licensed.declared')
-              if ["$license" == "null"]; then
-                echo "--> Not harvested"
+              if [ "$license" == "null" ]; then
+                echo "--> Not harvested, submitting request."
                 curl -sX POST "https://api.clearlydefined.io/harvest" -H "accept: */*" -H "Content-Type: application/json" -d "[{\"tool\":\"package\",\"coordinates\":\"nuget/nuget/-/$dependency\"}]"
-                if [["$dependency" != "Microsoft.*" ]] && ["$dependency" != "Azure.*" ]] && ["$dependency" != "System.*" ]]; then
+                if [[ "$dependency" != "Microsoft.*" ]] && [ "$dependency" != "Azure.*" ]] && [ "$dependency" != "System.*" ]]; then
                   echo "--> 3P dependency, blocking PR"
                   blockPr="true"
                 fi
               fi
             done
 
-          if ["$blockPr" == "true"]; then
+          if [ "$blockPr" == "true" ]; then
             exit 1
           fi
 
