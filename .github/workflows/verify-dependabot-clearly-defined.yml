@@ -12,42 +12,31 @@ jobs:
       - name: Fetch Dependabot metadata
         id: metadata
         uses: dependabot/fetch-metadata@v1
-      # For each dependency:
-      # Query if it has been harvested in ClearlyDefined
-      # If not:
-      # 1: Submit a request
-      # 2: Block the PR if it is a 3rd party package
 
-      # The following properties are now available:
-      #  - steps.metadata.outputs.dependency-names
-      #  - steps.metadata.outputs.dependency-type
-      #  - steps.metadata.outputs.update-type
-      # steps.dependabot-metadata.outputs.updated-dependencies-json
-      - name: Check if Harvested
+      - name: Check ClearlyDefined
         if: ${{steps.metadata.outputs.package-ecosystem == 'nuget'}}
         run: |
           set -e
           blockPr=""
           echo '${{steps.metadata.outputs.updated-dependencies-json}}' | jq -r '.[] | .dependencyName + "/" + .newVersion' |
             while IFS=%'\t' read -r dependency; do
-              echo "Checking $dependency"
-              license=$(curl -sX GET "https://api.clearlydefined.io/definitions/nuget/nuget/-/$dependency" -H "accept: */*" | jq -r '.licensed.declared')
+              url="https://api.clearlydefined.io/definitions/nuget/nuget/-/$dependency"
+              echo "Checking $dependency at $url"
+              license=$(curl -sX GET "$url" -H "accept: */*" | jq -r '.licensed.declared')
               if [ "$license" == "null" ]; then
                 echo "--> Not harvested, submitting request."
                 curl -sX POST "https://api.clearlydefined.io/harvest" -H "accept: */*" -H "Content-Type: application/json" -d "[{\"tool\":\"package\",\"coordinates\":\"nuget/nuget/-/$dependency\"}]"
-                if [[ "$dependency" == "Microsoft.*" ]] || [[ "$dependency" == "Azure.*" ]] || [[ "$dependency" == "System.*" ]]; then
-                  echo "--> 1P dependency, not blocking PR"
+                echo
+                if [[ "$dependency" == Microsoft.* ]] || [[ "$dependency" == Azure.* ]] || [[ "$dependency" == System.* ]]; then
+                  echo "--> 1P dependency"
                 else
-                  echo "--> 3P dependency, blocking PR"
+                  echo "--> 3P dependency"
                   blockPr="true"
                 fi
               fi
             done
 
           if [ "$blockPr" == "true" ]; then
+            echo "Blocking PR"
             exit 1
           fi
-
-      #! - name: Submit Harvest request (steps.metadata.outputs.dependency-names)
-      #!   run: |
-      #!     curl -sX POST "https://api.clearlydefined.io/harvest" -H "accept: */*" -H "Content-Type: application/json" -d "[{\"tool\":\"package\",\"coordinates\":\"nuget/nuget/-/Microsoft.IdentityModel.Tokens/6.25.1\"}]"
