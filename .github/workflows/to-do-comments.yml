@@ -11,9 +11,8 @@ permissions:
 jobs:
   create-todo-issue:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.comment.body, '/TODO') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     steps:
-      - name: Checkout
+      - name: This is a test
         uses: actions/checkout@v3
       - run: |
           trimmed_comment=$(echo "${{ github.event.comment.body }}" | sed 's|/TODO ||I')
