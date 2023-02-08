@@ -23,9 +23,9 @@ async function run() {
     const output = core.getInput("output", { required: true });
     const buildDescription = core.getInput("build_description", { required: true });
     const lastReleaseDate = core.getInput("last_release_date", { required: true });
-    const branch = core.getInput("branch_name", { required: true });
+    const branch = "release/8.x"
 
-    const repoOwner = github.context.payload.repository.owner.login;
+    const repoOwner = "dotnet";
     const repoName = github.context.payload.repository.name;
 
     try {
@@ -99,8 +99,10 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
         commitHashesInRelease.add(commit.sha);
     }
 
-    // Keep track of all of the ids we may mention to avoid duplicates when resolving backports.
+    // Keep track of all of the prs we mention to avoid duplicates from resolved backports.
+    // Use the api url as a unique identifier as the numbers+html_url of backport prs are patched.
     let mentionedUrls = new Set();
+
     let prs = [];
     for (const pr of candidatePrs) {
         // Get a fully-qualified version of the pr that has all of the relevant information,
@@ -111,7 +113,7 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
             pull_number: pr.number
         }))?.data;
 
-        console.log(pr.url);
+
         if (commitHashesInRelease.has(fqPr.merge_commit_sha) && !mentionedUrls.has(pr.url)) {
             console.log(`Including: #${fqPr.number}`);
             mentionedUrls.add(pr.url);
