@@ -113,10 +113,9 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
             pull_number: pr.number
         }))?.data;
 
-
-        if (commitHashesInRelease.has(fqPr.merge_commit_sha) && !mentionedUrls.has(pr.url)) {
-            console.log(`Including: #${fqPr.number} -- ${pr.url}`);
-            mentionedUrls.add(pr.url);
+        if (commitHashesInRelease.has(fqPr.merge_commit_sha) && !mentionedUrls.has(fqPr.url)) {
+            console.log(`Including: #${fqPr.number} -- ${fqPr.url}`);
+            mentionedUrls.add(fqPr.url);
             prs.push(pr);
         } else {
             console.log(`Skipping: #${fqPr.number} --- ${fqPr.merge_commit_sha}`);
