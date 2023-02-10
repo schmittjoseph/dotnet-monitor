@@ -112,3 +112,4 @@ jobs:
           branch_name: releaseNotes/${{ env.qualified_release_version }}
           fail_if_files_unchanged: true
           auth_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: "todo"
