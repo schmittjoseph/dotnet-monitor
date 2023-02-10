@@ -28,7 +28,7 @@ jobs:
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
         with:
           name: issue-todo
           path: issue/
