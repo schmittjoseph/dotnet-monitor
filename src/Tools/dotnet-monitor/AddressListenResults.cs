@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.IO;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
@@ -28,8 +29,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         public bool AnyAddresses => (_defaultAddressCount + _metricsAddressCount) > 0;
 
-        public bool HasInsecureAuthentication { get; private set; }
+        public bool HasInsecureAuthentication    { get; private set; }
 
+        
+        
+        
+        
         public IEnumerable<string> GetDefaultAddresses(IServerAddressesFeature serverAddresses)
         {
             Debug.Assert(serverAddresses.Addresses.Count == _defaultAddressCount + _metricsAddressCount);
