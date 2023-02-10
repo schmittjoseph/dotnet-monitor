@@ -45,7 +45,6 @@ jobs:
       with:
         persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
         fetch-depth: 0
-
     - name: Run backport
       uses: ./eng/actions/backport
       with:

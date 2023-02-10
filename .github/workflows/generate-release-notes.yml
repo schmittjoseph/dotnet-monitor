@@ -33,7 +33,8 @@ jobs:
           # Grab the latest tag from the current branch. If it doesn't exist, grab the latest tag across all branches.
           last_release_tag=$(git describe --tags --abbrev=0 || git describe --tags $(git rev-list --tags --max-count=1))
           echo "Using tag: $last_release_tag"
-          echo "last_release_date=$(git log -1 --format=%aI ${last_release_tag})" >> $GITHUB_ENV
+          last_release_date=$(git log -1 --format=%aI "$last_release_tag")
+          echo "last_release_date=$last_release_date" >> $GITHUB_ENV
 
           versionFile="./eng/Versions.props"
           release_version=$(perl -ne '/<VersionPrefix>([^<]*)/ && print $1' $versionFile)
@@ -65,9 +66,10 @@ jobs:
             friendly_release_name="next official preview version"
           fi
 
-          echo "release_note_path=$(echo ./documentation/releaseNotes/releaseNotes.v${qualified_release_version}.md)" >> $GITHUB_ENV
-          echo "friendly_release_name=$(echo ${friendly_release_name})" >> $GITHUB_ENV
-          echo "qualified_release_version=$(echo ${qualified_release_version})" >> $GITHUB_ENV
+          release_note_path="./documentation/releaseNotes/releaseNotes.v${qualified_release_version}.md"
+          echo "release_note_path=$release_note_path" >> $GITHUB_ENV
+          echo "friendly_release_name=$friendly_release_name" >> $GITHUB_ENV
+          echo "qualified_release_version=$qualified_release_version" >> $GITHUB_ENV
 
       - name: Checkout main
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
