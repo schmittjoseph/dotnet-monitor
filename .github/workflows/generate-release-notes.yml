@@ -9,19 +9,21 @@ on:
         required: true
         type: boolean
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   generate-release-notes:
     name: 'Generate release notes'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout release branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
         with:
+          persist-credentials: false
           fetch-depth: 0 # Fetch the entire repo for the below git commit graph operations
 
       - name: Calculate release information
@@ -68,8 +70,9 @@ jobs:
           echo "qualified_release_version=$(echo ${qualified_release_version})" >> $GITHUB_ENV
 
       - name: Checkout main
-        uses: actions/checkout@v3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
         with:
+          persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
           ref: main
 
       - name: Generate release notes
