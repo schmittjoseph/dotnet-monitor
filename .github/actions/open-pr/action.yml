@@ -61,7 +61,7 @@ runs:
           extraArgs="${extraArgs} --draft"
         fi
 
-        $labelArg=""
+        labelArg=""
         if [[ ! -z "$LABELS" ]]; then
           labelArg="--label "
         fi
