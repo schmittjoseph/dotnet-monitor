@@ -41,7 +41,7 @@ jobs:
           release_version_label=$(perl -ne '/<PreReleaseVersionLabel>([^<]*)/ && print $1' $versionFile)
           major_minor_version=${release_version%.*}
 
-          if [[ "$INPUTS_TEST_RUN" == "true" ]]; then
+          if [[ "$TEST_RUN == "true" ]]; then
             qualified_release_version="test-$release_version"
           else
             version_url="https://aka.ms/dotnet/diagnostics/monitor${major_minor_version}/release/dotnet-monitor.nupkg.version"
@@ -70,6 +70,8 @@ jobs:
           echo "release_note_path=$release_note_path" >> $GITHUB_ENV
           echo "friendly_release_name=$friendly_release_name" >> $GITHUB_ENV
           echo "qualified_release_version=$qualified_release_version" >> $GITHUB_ENV
+        env:
+          TEST_RUN: ${{ inputs.test_run }}
 
       - name: Checkout main
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c

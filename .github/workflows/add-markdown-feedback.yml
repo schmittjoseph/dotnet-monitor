@@ -42,8 +42,8 @@ jobs:
       - name: Generate artifacts
         run: |
           mkdir -p ./pr
-          cp $GITHUB_EVENT_PATH ./pr/pr-event.json
-          echo -n $GITHUB_EVENT_NAME > ./pr/pr-event-name
+          cp "$GITHUB_EVENT_PATH" ./pr/pr-event.json
+          echo -n "$GITHUB_EVENT_NAME" > ./pr/pr-event-name
           git diff > ./pr/linter.diff
 
       - name: Upload artifacts
