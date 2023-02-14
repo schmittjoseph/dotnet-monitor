@@ -1,4 +1,4 @@
-name: 'Add Markdown Feedback'
+name: 'Add Markdown Feedback test'
 on:
   pull_request:
     paths: ['documentation/**.md']
