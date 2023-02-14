@@ -9,7 +9,6 @@ permissions:
 
 jobs:
   update-shipping-branch:
-    if: github.repository == 'dotnet/dotnet-monitor'
     name: '[${{ github.ref_name }}] Update shipping branch'
     runs-on: ubuntu-latest
 
