@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout release branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
         with:
           fetch-depth: 0 # Fetch the entire repo for the below git commit graph operations
 
@@ -68,7 +68,7 @@ jobs:
           echo "qualified_release_version=$(echo ${qualified_release_version})" >> $GITHUB_ENV
 
       - name: Checkout main
-        uses: actions/checkout@v3
+        uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
         with:
           ref: main
 

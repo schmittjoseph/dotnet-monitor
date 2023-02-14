@@ -39,7 +39,7 @@ jobs:
             body: backport_start_body
           });
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
       with:
         fetch-depth: 0
     - name: Run backport

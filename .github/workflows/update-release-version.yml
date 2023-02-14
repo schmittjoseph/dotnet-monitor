@@ -7,7 +7,7 @@ on:
       release_type:
         description: 'Release type'
         required: true
-        default: 'preview' 
+        default: 'preview'
         type: choice
         options:
         - rtm
@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
 
       - name: Update release information
         run: |
@@ -39,7 +39,7 @@ jobs:
               echo "Unexpected release version, valid format is major.minor.patch without any extra labels."
               exit 1
           fi
-      
+
           versionFile="./eng/Versions.props"
 
           current_release_version=$(perl -ne '/<VersionPrefix>([^<]*)/ && print $1' $versionFile)
