@@ -32,6 +32,6 @@ jobs:
             await github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: ${{ steps.calculateBranchName.outputs.shipping_branch_name }}
-              sha: ${{ github.ref_name }}
+              ref: "${{ steps.calculateBranchName.outputs.shipping_branch_name }}"
+              sha: context.sha
             });
