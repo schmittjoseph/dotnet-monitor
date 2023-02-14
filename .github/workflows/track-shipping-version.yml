@@ -24,7 +24,7 @@ jobs:
 
           major_minor_version=${release_version%.*}
           shipping_branch_name="shipped/$major_minor_version"
-          echo "shipping_branch_name=refs/head$shipping_branch_name" >> $GITHUB_OUTPUT
+          echo "shipping_branch_name=refs/head/$shipping_branch_name" >> $GITHUB_OUTPUT
 
       - uses: actions/github-script@v6.4.0
         with:
