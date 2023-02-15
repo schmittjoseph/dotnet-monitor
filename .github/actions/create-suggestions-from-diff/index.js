@@ -60,6 +60,7 @@ async function run() {
         const suggestions = await getAllSuggestions(diffFile);
         await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, formattedReporter, maxSuggestions, runLocalCommand, suggestions);
     } catch (error) {
+        console.log(error);
         core.setFailed(error);
 
         let messageBody = `${formattedReporter} Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
@@ -95,15 +96,6 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
         throw new Error(`Too many suggestions ${suggestions.length}/${maxSuggestions}`)
     }
-    let comment = {
-        owner: owner,
-        repo: repo,
-        pull_number: prNumber,
-        commit_id: commitId,
-        path: suggestion.file,
-        side: 'RIGHT',
-        body: `${reporter}\n${suggestion.getCommentBody()}`
-    };
 
     // Transform the suggestions into comments
     const comments = [];
