@@ -33,7 +33,7 @@ async function run() {
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const diffFile = core.getInput("diff_file", { required: true });
     const reporter = core.getInput("reporter", { required: true });
-    const formattedReporter = `**[${github.context.payload.repository.name}]**`;
+    const formattedReporter = `**[${reporter}]**`;
 
     const maxSuggestionsInput = core.getInput("max_suggestions", { required: false });
     const runLocalCommand = core.getInput("run_local_command", { required: false });
