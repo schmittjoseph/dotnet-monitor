@@ -58,7 +58,6 @@ async function run() {
         await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, formattedReporter, maxSuggestions, runLocalCommand, suggestions);
     } catch (error) {
         core.setFailed(error);
-        console.log(error);
 
         let messageBody = `${formattedReporter} Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
         if (runLocalCommand) {
