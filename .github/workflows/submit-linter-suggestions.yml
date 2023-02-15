@@ -49,6 +49,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Submit formatting suggestions
         uses: ./.github/actions/create-suggestions-from-diff
