@@ -59,7 +59,7 @@ async function run() {
     } catch (error) {
         core.setFailed(error);
 
-        let messageBody = `[${formattedReporter}] Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+        let messageBody = `${formattedReporter} Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
         if (runLocalCommand) {
             messageBody += `
 
@@ -82,7 +82,7 @@ async function submitSuggestions(octokit, prNumber, commitId, owner, repo, repor
             repo: repo,
             issue_number: prNumber,
             commit_id: commitId,
-            body:`[${reporter}] is reporting too many linter changes (${suggestions.length}), please fix them locally and update this PR.
+            body:`${reporter} is reporting too many linter changes (${suggestions.length}), please fix them locally and update this PR.
 
 To fix them locally, please run: \`${runLocalCommand}\``});
 
