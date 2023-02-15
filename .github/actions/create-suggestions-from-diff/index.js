@@ -55,6 +55,15 @@ async function run() {
         await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, reporter, maxSuggestions, runLocalCommand, suggestions);
     } catch (error) {
         core.setFailed(error);
+
+        await octokit.rest.issues.createComment({
+            owner: owner,
+            repo: repo,
+            issue_number: prNumber,
+            commit_id: commitId,
+            body:`[${reporter}] Was unable to create all linter suggestions, please apply them locally and update this PR.
+
+To fix them locally, please run: \`${runLocalCommand}\``});
     }
 }
 
@@ -74,31 +83,18 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
     for (const suggestion of suggestions) {
         // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
-        try {
-            await octokit.rest.pulls.createReviewComment({
-                owner: owner,
-                repo: repo,
-                pull_number: prNumber,
-                commit_id: commitId,
-                path: suggestion.file,
-                start_line: suggestion.startingLine,
-                line: suggestion.startingLine + suggestion.length,
-                start_side: 'RIGHT',
-                side: 'RIGHT',
-                body: `[${reporter}]\n${suggestion.getCommentBody()}`
-            });
-        }
-        catch (error) {
-            await octokit.rest.issues.createComment({
-                owner: owner,
-                repo: repo,
-                issue_number: prNumber,
-                commit_id: commitId,
-                body:`[${reporter}] Was unable to create all linter suggestions, please fix them locally and update this PR.
-
-    To fix them locally, please run: \`${runLocalCommand}\``});
-            throw error;
-        }
+        await octokit.rest.pulls.createReviewComment({
+            owner: owner,
+            repo: repo,
+            pull_number: prNumber,
+            commit_id: commitId,
+            path: suggestion.file,
+            start_line: suggestion.startingLine,
+            line: suggestion.startingLine + suggestion.length,
+            start_side: 'RIGHT',
+            side: 'RIGHT',
+            body: `[${reporter}]\n${suggestion.getCommentBody()}`
+        });
     }
 }
 

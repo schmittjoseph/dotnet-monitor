@@ -21,7 +21,7 @@ jobs:
         uses: actions/github-script@v6.4.0
         with:
           script: |
-            console.log(context);
+            console.log(context.workflow_run.pull_requests[0]);
       - name: Set C# Linting Env Vars
         if: ${{ github.event.workflow_run.name == 'C# Linting' }}
         run: |
