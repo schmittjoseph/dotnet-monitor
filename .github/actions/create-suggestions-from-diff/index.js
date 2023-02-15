@@ -16,7 +16,10 @@ class Suggestion {
     }
 
     getCommentBody() {
-        return `\`\`\`suggestion\n${this.body.join('\n')}\`\`\``
+        return `
+\`\`\`suggestion
+${this.body.join('\n')}
+\`\`\``
     }
 }
 
@@ -98,7 +101,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             commit_id: commitId,
             path: suggestion.file,
             side: 'RIGHT',
-            body: `[${reporter}]\n${suggestion.getCommentBody()}`
+            body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
         if (suggestion.numberOfLines > 0) {
