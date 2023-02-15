@@ -101,7 +101,6 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     }
 }
 
-
 async function getAllSuggestions(diffFile) {
     let diffContents = await readFile(diffFile);
 
