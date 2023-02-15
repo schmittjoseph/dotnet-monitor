@@ -56,6 +56,8 @@ async function run() {
     const prNumber = triggeringPr.number;
     const commitId = triggeringPr.head.sha;
 
+    console.log(commitId);
+
     try {
         const suggestions = await getAllSuggestions(diffFile);
         await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, formattedReporter, maxSuggestions, runLocalCommand, suggestions);
