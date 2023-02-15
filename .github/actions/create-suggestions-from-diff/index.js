@@ -91,18 +91,25 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
     for (const suggestion of suggestions) {
         // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
-        await octokit.rest.pulls.createReviewComment({
+        let request = {
             owner: owner,
             repo: repo,
             pull_number: prNumber,
             commit_id: commitId,
             path: suggestion.file,
-            start_line: suggestion.startingLine,
-            line: suggestion.startingLine + suggestion.numberOfLines,
-            start_side: 'RIGHT',
             side: 'RIGHT',
             body: `[${reporter}]\n${suggestion.getCommentBody()}`
-        });
+        };
+
+        if (suggestion.numberOfLines > 0) {
+            request.start_line = suggestion.startingLine;
+            request.line = suggestion.startingLine + suggestion.numberOfLines;
+            request.start_side =  'RIGHT';
+        } else {
+            request.line = suggestion.startingLine;
+        }
+
+        await octokit.rest.pulls.createReviewComment(request);
     }
 }
 
