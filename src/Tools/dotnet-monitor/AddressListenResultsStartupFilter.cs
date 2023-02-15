@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Monitoring;
 using System;
+using System.IO;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
@@ -17,6 +18,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         {
             _listenResults = listenResults;
         }
+        
+        
+        
+        
 
         public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
         {
