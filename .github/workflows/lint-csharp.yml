@@ -41,9 +41,13 @@ jobs:
       - name: Generate artifacts
         run: |
           mkdir -p ./pr
-          cp $GITHUB_EVENT_PATH ./pr/pr-event.json
-          echo -n $GITHUB_EVENT_NAME > ./pr/pr-event-name
-          git diff > ./pr/linter.diff
+          cp "$GITHUB_EVENT_PATH" ./pr/pr-event.json
+          echo -n "$GITHUB_EVENT_NAME" > ./pr/pr-event-name
+
+      - name: Generate diff
+        uses: ./.github/actions/generate-linter-diff
+        with:
+          output_file: "${{ github.workspace }}/pr/linter.diff"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

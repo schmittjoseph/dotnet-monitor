@@ -1,0 +1,28 @@
+name: 'Create suggestions from diff'
+description: 'Create suggestions from diff'
+inputs:
+  auth_token:
+    description: 'The token used to authenticate to GitHub.'
+    required: true
+  diff_file:
+    description: 'The diff file to create suggestions from.'
+    required: true
+  pr_number:
+    description: 'The PR number to comment on.'
+    required: true
+  commit_id:
+    description: 'The commit id in the PR to comment on.'
+    required: true
+  reporter:
+    description: 'The tool generating the diff.'
+    required: true
+  max_suggestions:
+    description: 'The maximum number of suggestions allowed to be create.'
+    required: false
+  run_local_command:
+    description: 'The command a user can run to generate the changes locally.'
+    required: false
+
+runs:
+  using: 'node16'
+  main: 'index.js'
