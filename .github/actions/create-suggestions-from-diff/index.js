@@ -79,6 +79,10 @@ To run the linter locally, please use: \`${runLocalCommand}\``;
 }
 
 async function submitSuggestions(octokit, prNumber, commitId, owner, repo, reporter, maxSuggestions, runLocalCommand, suggestions) {
+    if (suggestions.length === 0) {
+        return;
+    }
+
     if (maxSuggestions !== undefined && suggestions.length >= maxSuggestions) {
         await octokit.rest.issues.createComment({
             owner: owner,
@@ -91,14 +95,21 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
         throw new Error(`Too many suggestions ${suggestions.length}/${maxSuggestions}`)
     }
+    let comment = {
+        owner: owner,
+        repo: repo,
+        pull_number: prNumber,
+        commit_id: commitId,
+        path: suggestion.file,
+        side: 'RIGHT',
+        body: `${reporter}\n${suggestion.getCommentBody()}`
+    };
 
+    // Transform the suggestions into comments
+    const comments = [];
     for (const suggestion of suggestions) {
         // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
-        let request = {
-            owner: owner,
-            repo: repo,
-            pull_number: prNumber,
-            commit_id: commitId,
+        let comment = {
             path: suggestion.file,
             side: 'RIGHT',
             body: `${reporter}\n${suggestion.getCommentBody()}`
@@ -106,15 +117,26 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
         const numberOfLines = suggestion.numberOfLinesToChange;
         if (numberOfLines > 0) {
-            request.start_line = suggestion.startingLine;
-            request.line = suggestion.startingLine + numberOfLines;
-            request.start_side =  'RIGHT';
+            comment.start_line = suggestion.startingLine;
+            comment.line = suggestion.startingLine + numberOfLines;
+            comment.start_side =  'RIGHT';
         } else {
-            request.line = suggestion.startingLine;
+            comment.line = suggestion.startingLine;
         }
 
-        await octokit.rest.pulls.createReviewComment(request);
+        comments.push(comment);
     }
+
+    // Submit a review with the comments
+    await octokit.rest.pulls.createReview({
+        owner: owner,
+        repo: repo,
+        pull_number: prNumber,
+        commit_id: commitId,
+        event: 'COMMENT',
+        body: '',
+        comments: comments
+    });
 }
 
 async function getAllSuggestions(diffFile) {
