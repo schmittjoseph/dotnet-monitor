@@ -32,8 +32,6 @@ async function run() {
 
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const diffFile = core.getInput("diff_file", { required: true });
-    const prNumber = core.getInput("pr_number", { required: true });
-    const commitId = core.getInput("commit_id", { required: true });
     const reporter = core.getInput("reporter", { required: true });
 
     const maxSuggestionsInput = core.getInput("max_suggestions", { required: false });
@@ -49,6 +47,10 @@ async function run() {
 
     const repoOwner = github.context.payload.repository.owner.login;
     const repoName = github.context.payload.repository.name;
+
+    const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
+    const prNumber = triggeringPr.number;
+    const commitId = triggeringPr.head.sha;
 
     try {
         const suggestions = await getAllSuggestions(diffFile);

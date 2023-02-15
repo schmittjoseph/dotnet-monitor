@@ -38,19 +38,13 @@ jobs:
       - name: Run dotnet format (style)
         run: ./dotnet.sh format style --no-restore --include ${{ env.updated_files }}
 
-      - name: Generate artifacts
-        run: |
-          mkdir -p ./pr
-          cp "$GITHUB_EVENT_PATH" ./pr/pr-event.json
-          echo -n "$GITHUB_EVENT_NAME" > ./pr/pr-event-name
-
       - name: Generate diff
         uses: ./.github/actions/generate-linter-diff
         with:
-          output_file: "${{ github.workspace }}/pr/linter.diff"
+          output_file: "${{ github.workspace }}/linter.diff"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: pr-linter
-          path: pr/
+          path: linter.diff
