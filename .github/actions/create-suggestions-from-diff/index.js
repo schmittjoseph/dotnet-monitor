@@ -58,6 +58,7 @@ async function run() {
         await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, formattedReporter, maxSuggestions, runLocalCommand, suggestions);
     } catch (error) {
         core.setFailed(error);
+        console.log(error);
 
         let messageBody = `${formattedReporter} Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
         if (runLocalCommand) {
@@ -137,13 +138,13 @@ async function getAllSuggestions(diffFile) {
             if (line.startsWith(contextPrefix)) {
                 hasContext = true;
                 currentSuggestion.addLine(line.substring(contextPrefix.length));
-                return;
+                continue;
             } else if (line.startsWith(delPrefix)) {
                 // no-op
-                return;
+                continue;
             } else if (line.startsWith(addPrefix)) {
                 currentSuggestion.addLine(line.substring(addPrefix.length));
-                return;
+                continue;
             } else {
                 // Finished the hunk, save it and proceed with the line processing
                 if (!hasContext) {
