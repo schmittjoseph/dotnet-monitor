@@ -56,6 +56,7 @@ async function run() {
     const prNumber = triggeringPr.number;
     const commitId = triggeringPr.head.sha;
 
+    console.log(triggeringPr);
     console.log(commitId);
 
     try {
