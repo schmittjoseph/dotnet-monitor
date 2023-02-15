@@ -137,13 +137,13 @@ async function getAllSuggestions(diffFile) {
             if (line.startsWith(contextPrefix)) {
                 hasContext = true;
                 currentSuggestion.addLine(line.substring(contextPrefix.length));
-                return;
+                continue;
             } else if (line.startsWith(delPrefix)) {
                 // no-op
-                return;
+                continue;
             } else if (line.startsWith(addPrefix)) {
                 currentSuggestion.addLine(line.substring(addPrefix.length));
-                return;
+                continue;
             } else {
                 // Finished the hunk, save it and proceed with the line processing
                 if (!hasContext) {
