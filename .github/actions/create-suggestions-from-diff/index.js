@@ -58,14 +58,19 @@ async function run() {
     } catch (error) {
         core.setFailed(error);
 
+        let messageBody = `[${reporter}] Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+        if (runLocalCommand) {
+            messageBody += `
+
+To fix them locally, please run: \`${runLocalCommand}\``;
+        }
+
         await octokit.rest.issues.createComment({
             owner: repoOwner,
             repo: repoName,
             issue_number: prNumber,
             commit_id: commitId,
-            body:`[${reporter}] Was unable to create all linter suggestions, please apply them locally and update this PR.
-
-To fix them locally, please run: \`${runLocalCommand}\``});
+            body:messageBody});
     }
 }
 
@@ -174,6 +179,8 @@ async function getAllSuggestions(diffFile) {
             currentSuggestion = new Suggestion(dstFile, startingLine, length);
         }
     };
+
+    return allSuggestions;
 }
 
 run();
