@@ -1,5 +1,6 @@
 const fs = require('fs');
 const readline = require('readline');
+const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
 const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
 
@@ -102,14 +103,10 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
 
 async function getAllSuggestions(diffFile) {
-    // JSFIX: Wait on this...
-    const file = readline.createInterface({
-        input: fs.createReadStream(diffFile),
-        output: process.stdout,
-        terminal: false
-    });
+    let diffContents = await readFile(diffFile);
 
     let allSuggestions = [];
+    let currentSuggestion = undefined;
 
     let srcFile = undefined;
     let dstFile = undefined;
@@ -129,8 +126,9 @@ async function getAllSuggestions(diffFile) {
     const hunkPrefix = "@@ ";
     const hunkRegex=/^@@ -(?<srcLine>\d+),?(?<srcLength>\d+)* \+(?<dstLine>\d+),?(?<dstLength>\d+)? @@/m
 
-    let currentSuggestion = undefined;
-    file.on('line', (line) => {
+    const diffLines = diffContents.split(/\r?\n/);
+    for (const line of diffLines)
+    {
         if (inHunk) {
             if (line.startsWith(contextPrefix)) {
                 hasContext = true;
@@ -177,7 +175,7 @@ async function getAllSuggestions(diffFile) {
 
             currentSuggestion = new Suggestion(dstFile, startingLine, length);
         }
-    });
+    };
 }
 
 run();
