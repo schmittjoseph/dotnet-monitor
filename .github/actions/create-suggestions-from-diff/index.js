@@ -60,8 +60,8 @@ async function run() {
         core.setFailed(error);
 
         await octokit.rest.issues.createComment({
-            owner: owner,
-            repo: repo,
+            owner: repoOwner,
+            repo: repoName,
             issue_number: prNumber,
             commit_id: commitId,
             body:`[${reporter}] Was unable to create all linter suggestions, please apply them locally and update this PR.
