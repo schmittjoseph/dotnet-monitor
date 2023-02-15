@@ -1,5 +1,4 @@
 const fs = require('fs');
-const readline = require('readline');
 const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
 const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
@@ -47,7 +46,7 @@ async function run() {
     }
 
     const repoOwner = github.context.payload.repository.owner.login;
-    const repoName = github.context.payload.repository.name;
+    const repoName = `**[{github.context.payload.repository.name}]**`;
 
     const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
     const prNumber = triggeringPr.number;
@@ -138,7 +137,7 @@ async function getAllSuggestions(diffFile) {
                 return;
             } else if (line.startsWith(addPrefix)) {
                 if (!hasContext) {
-                    throw new Error("At least 1 line of context is required in the diff");
+                //    throw new Error("At least 1 line of context is required in the diff");
                 }
                 currentSuggestion.addLine(line.substring(addPrefix.length));
                 return;
