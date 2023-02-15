@@ -15,7 +15,7 @@ class Suggestion {
     }
 
     getNumberOfLines() {
-        return this.body.length;
+        return this.body.length - 1;
     }
 
     getCommentBody() {
@@ -58,9 +58,6 @@ async function run() {
     const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
     const prNumber = triggeringPr.number;
     const commitId = triggeringPr.head.sha;
-
-    console.log(triggeringPr);
-    console.log(commitId);
 
     try {
         const suggestions = await getAllSuggestions(diffFile);
