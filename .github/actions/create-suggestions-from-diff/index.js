@@ -33,6 +33,7 @@ async function run() {
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const diffFile = core.getInput("diff_file", { required: true });
     const reporter = core.getInput("reporter", { required: true });
+    const formattedReporter = `**[${github.context.payload.repository.name}]**`;
 
     const maxSuggestionsInput = core.getInput("max_suggestions", { required: false });
     const runLocalCommand = core.getInput("run_local_command", { required: false });
@@ -46,7 +47,7 @@ async function run() {
     }
 
     const repoOwner = github.context.payload.repository.owner.login;
-    const repoName = `**[{github.context.payload.repository.name}]**`;
+    const repoName = github.context.payload.repository.name;
 
     const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
     const prNumber = triggeringPr.number;
@@ -54,11 +55,11 @@ async function run() {
 
     try {
         const suggestions = await getAllSuggestions(diffFile);
-        await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, reporter, maxSuggestions, runLocalCommand, suggestions);
+        await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, formattedReporter, maxSuggestions, runLocalCommand, suggestions);
     } catch (error) {
         core.setFailed(error);
 
-        let messageBody = `[${reporter}] Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+        let messageBody = `[${formattedReporter}] Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
         if (runLocalCommand) {
             messageBody += `
 
@@ -142,7 +143,7 @@ async function getAllSuggestions(diffFile) {
                 return;
             } else if (line.startsWith(addPrefix)) {
                 if (!hasContext) {
-                //    throw new Error("At least 1 line of context is required in the diff");
+                    throw new Error("At least 1 line of context is required in the diff");
                 }
                 currentSuggestion.addLine(line.substring(addPrefix.length));
                 return;
@@ -178,7 +179,7 @@ async function getAllSuggestions(diffFile) {
 
             currentSuggestion = new Suggestion(dstFile, startingLine, length);
         }
-    };
+    }
 
     return allSuggestions;
 }
