@@ -4,10 +4,10 @@ const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
 
 class Suggestion {
-    constructor(file, startingLine, length) {
+    constructor(file, startingLine, numberOfLines) {
         this.file = file;
         this.startingLine = startingLine;
-        this.length = length;
+        this.numberOfLines = numberOfLines;
         this.body = [];
     }
 
@@ -59,11 +59,11 @@ async function run() {
     } catch (error) {
         core.setFailed(error);
 
-        let messageBody = `[${formattedReporter}] Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+        let messageBody = `${formattedReporter} Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
         if (runLocalCommand) {
             messageBody += `
 
-To fix them locally, please run: \`${runLocalCommand}\``;
+To run the linter locally, please use: \`${runLocalCommand}\``;
         }
 
         await octokit.rest.issues.createComment({
@@ -82,7 +82,7 @@ async function submitSuggestions(octokit, prNumber, commitId, owner, repo, repor
             repo: repo,
             issue_number: prNumber,
             commit_id: commitId,
-            body:`[${reporter}] is reporting too many linter changes (${suggestions.length}), please fix them locally and update this PR.
+            body:`${reporter} is reporting too many linter changes (${suggestions.length}), please fix them locally and update this PR.
 
 To fix them locally, please run: \`${runLocalCommand}\``});
 
@@ -98,7 +98,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             commit_id: commitId,
             path: suggestion.file,
             start_line: suggestion.startingLine,
-            line: suggestion.startingLine + suggestion.length,
+            line: suggestion.startingLine + suggestion.numberOfLines,
             start_side: 'RIGHT',
             side: 'RIGHT',
             body: `[${reporter}]\n${suggestion.getCommentBody()}`
@@ -142,13 +142,13 @@ async function getAllSuggestions(diffFile) {
                 // no-op
                 return;
             } else if (line.startsWith(addPrefix)) {
-                if (!hasContext) {
-                    throw new Error("At least 1 line of context is required in the diff");
-                }
                 currentSuggestion.addLine(line.substring(addPrefix.length));
                 return;
             } else {
                 // Finished the hunk, save it and proceed with the line processing
+                if (!hasContext) {
+                    throw new Error("At least 1 line of context is required in the diff");
+                }
                 allSuggestions.push(currentSuggestion);
                 console.log(currentSuggestion);
                 currentSuggestion = undefined;
@@ -175,9 +175,9 @@ async function getAllSuggestions(diffFile) {
             const match = line.match(hunkRegex);
 
             const startingLine = parseInt(match.groups.srcLine.trim());
-            const length = (match.groups.srcLength === undefined) ? 0 : parseInt(match.groups.srcLength?.trim());
+            const numberOfLines = (match.groups.srcLength === undefined) ? 0 : parseInt(match.groups.srcLength?.trim());
 
-            currentSuggestion = new Suggestion(dstFile, startingLine, length);
+            currentSuggestion = new Suggestion(dstFile, startingLine, numberOfLines);
         }
     }
 
