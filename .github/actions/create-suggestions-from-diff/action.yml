@@ -7,12 +7,6 @@ inputs:
   diff_file:
     description: 'The diff file to create suggestions from.'
     required: true
-  pr_number:
-    description: 'The PR number to comment on.'
-    required: true
-  commit_id:
-    description: 'The commit id in the PR to comment on.'
-    required: true
   reporter:
     description: 'The tool generating the diff.'
     required: true
