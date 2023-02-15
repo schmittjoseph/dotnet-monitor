@@ -4,18 +4,15 @@ const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
 
 class Suggestion {
-    constructor(file, startingLine) {
+    constructor(file, startingLine, numberOfLinesToChange) {
         this.file = file;
         this.startingLine = startingLine;
+        this.numberOfLinesToChange = numberOfLinesToChange;
         this.body = [];
     }
 
     addLine(line) {
         this.body.push(line);
-    }
-
-    getNumberOfLines() {
-        return this.body.length - 1;
     }
 
     getCommentBody() {
@@ -107,7 +104,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
-        const numberOfLines = suggestion.getNumberOfLines();
+        const numberOfLines = suggestion.numberOfLinesToChange;
         if (numberOfLines > 0) {
             request.start_line = suggestion.startingLine;
             request.line = suggestion.startingLine + numberOfLines;
@@ -188,7 +185,9 @@ async function getAllSuggestions(diffFile) {
             hasContext = false;
             const match = line.match(hunkRegex);
             const startingLine = parseInt(match.groups.srcLine.trim());
-            currentSuggestion = new Suggestion(dstFile, startingLine);
+            const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim());
+
+            currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
         }
     }
 
