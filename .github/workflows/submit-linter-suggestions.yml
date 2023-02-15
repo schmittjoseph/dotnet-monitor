@@ -39,8 +39,8 @@ jobs:
         with:
           workflow: ${{env.workflow_name}}
           run_id: ${{github.event.workflow_run.id }}
-          name: pr-linter
-          path: ./pr-linter
+          name: linter.diff
+          path: ./linter.diff
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -51,7 +51,7 @@ jobs:
         uses: ./.github/actions/create-suggestions-from-diff
         with:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
-          diff_file: "./pr-linter/linter.diff"
+          diff_file: "./linter.diff"
           reporter: ${{ env.reporter_name }}
           max_suggestions: ${{ env.max_suggestions }}
           run_local_command: ${{ env.run_local_command }}
