@@ -38,13 +38,5 @@ jobs:
       - name: Run dotnet format (style)
         run: ./dotnet.sh format style --no-restore --include ${{ env.updated_files }}
 
-      - name: Generate diff
+      - name: Generate linter diff
         uses: ./.github/actions/generate-linter-diff
-        with:
-          output_file: "${{ github.workspace }}/linter.diff"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: linter.diff
-          path: linter.diff

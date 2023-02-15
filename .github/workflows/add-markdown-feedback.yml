@@ -37,15 +37,5 @@ jobs:
           textToAdd: '### Was this documentation helpful? [Share feedback](https://www.research.net/r/DGDQWXH?src={insertFileName})'
           paths: ${{ env.updated_files }}
 
-      - name: Generate artifacts
-        run: |
-          mkdir -p ./pr
-          cp $GITHUB_EVENT_PATH ./pr/pr-event.json
-          echo -n $GITHUB_EVENT_NAME > ./pr/pr-event-name
-          git diff > ./pr/linter.diff
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: pr-linter
-          path: pr/
+      - name: Generate linter diff
+        uses: ./.github/actions/generate-linter-diff
