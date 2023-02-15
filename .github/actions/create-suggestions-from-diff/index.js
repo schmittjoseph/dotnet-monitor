@@ -4,15 +4,18 @@ const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
 
 class Suggestion {
-    constructor(file, startingLine, numberOfLines) {
+    constructor(file, startingLine) {
         this.file = file;
         this.startingLine = startingLine;
-        this.numberOfLines = numberOfLines;
         this.body = [];
     }
 
     addLine(line) {
         this.body.push(line);
+    }
+
+    getNumberOfLines() {
+        return this.body.length - 1;
     }
 
     getCommentBody() {
@@ -55,9 +58,6 @@ async function run() {
     const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
     const prNumber = triggeringPr.number;
     const commitId = triggeringPr.head.sha;
-
-    console.log(triggeringPr);
-    console.log(commitId);
 
     try {
         const suggestions = await getAllSuggestions(diffFile);
@@ -107,9 +107,10 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
-        if (suggestion.numberOfLines > 0) {
+        const numberOfLines = suggestion.getNumberOfLines();
+        if (numberOfLines > 0) {
             request.start_line = suggestion.startingLine;
-            request.line = suggestion.startingLine + suggestion.numberOfLines;
+            request.line = suggestion.startingLine + numberOfLines;
             request.start_side =  'RIGHT';
         } else {
             request.line = suggestion.startingLine;
@@ -186,11 +187,8 @@ async function getAllSuggestions(diffFile) {
             inHunk = true;
             hasContext = false;
             const match = line.match(hunkRegex);
-
             const startingLine = parseInt(match.groups.srcLine.trim());
-            const numberOfLines = (match.groups.srcLength === undefined) ? 0 : parseInt(match.groups.srcLength?.trim());
-
-            currentSuggestion = new Suggestion(dstFile, startingLine, numberOfLines);
+            currentSuggestion = new Suggestion(dstFile, startingLine);
         }
     }
 
