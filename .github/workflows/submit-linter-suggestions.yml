@@ -31,6 +31,12 @@ jobs:
           echo 'reporter_name=Add Markdown Feedback' >> $GITHUB_ENV
           echo 'workflow_name=add-markdown-feedback.yml' >> $GITHUB_ENV
 
+      # We need to checkout the repo to use our custom action
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
       # Download the artifact from the workflow that kicked off this one.
       # The default artifact download action doesn't support cross-workflow
       # artifacts, so use a 3rd party one.
@@ -39,19 +45,14 @@ jobs:
         with:
           workflow: ${{env.workflow_name}}
           run_id: ${{github.event.workflow_run.id }}
-          name: linter.diff
-          path: ./linter.diff
-
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
+          name: linter
+          path: ${{ github.workspace }}/linter
 
       - name: Submit formatting suggestions
         uses: ./.github/actions/create-suggestions-from-diff
         with:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
-          diff_file: "./linter.diff"
+          diff_file: ${{ github.workspace }}/linter/linter.diff
           reporter: ${{ env.reporter_name }}
           max_suggestions: ${{ env.max_suggestions }}
           run_local_command: ${{ env.run_local_command }}

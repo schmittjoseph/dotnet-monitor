@@ -14,7 +14,7 @@ runs:
     - name: Upload linter differ
       uses: actions/upload-artifact@v3
       with:
-        name: linter.diff
+        name: linter
         path: ${{ github.workspace }}/linter.diff
 
 
