@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { stringify } = require('querystring');
 const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
 const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
@@ -19,7 +20,7 @@ class Suggestion {
         return `
 \`\`\`suggestion
 ${this.body.join('\n')}
-\`\`\``
+\`\`\``;
     }
 }
 
@@ -103,27 +104,27 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         pull_number: prNumber,
     });
 
+    let fileToComments = new Map();
     let existingCommentBodies = new Set();
     for (const comment of existingComments) {
-        console.log(comment);
         existingCommentBodies.add(comment.body);
         console.log(comment.body);
+
+        if (fileToComments.has(comment.path)) {
+            filesToComments[comment.Path].push(comment);
+        } else {
+            filesToComments[comment.Path] = [comment];
+        }
     }
 
     // Transform the suggestions into comments
     const comments = [];
     for (const suggestion of suggestions) {
-        const suggestionBody = suggestion.getCommentBody();
-        console.log(suggestionBody);
-        if (existingCommentBodies.has(suggestionBody)) {
-            // Avoid creating a duplicate
-            continue;
-        }
         // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
         let comment = {
             path: suggestion.file,
             side: 'RIGHT',
-            body: `${reporter}\n${suggestionBody}`
+            body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
         const numberOfLines = suggestion.numberOfLinesToChange;
@@ -133,6 +134,21 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             comment.start_side = 'RIGHT';
         } else {
             comment.line = suggestion.startingLine;
+        }
+
+        let foundExisting = false;
+        if (filesToComments.has(suggestion.file)) {
+            for (const existingComment of filesToComments[suggestion.file]) {
+                if (existingComment.original_line === comment.line &&
+                    existingComment.original_start_line === comment.start_line &&
+                    existingComment.body === comment.body) {
+                        foundExisting = true;
+                    }
+            }
+        }
+
+        if (foundExisting) {
+            continue;
         }
 
         comments.push(comment);
