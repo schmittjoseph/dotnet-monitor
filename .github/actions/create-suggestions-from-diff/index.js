@@ -134,7 +134,6 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         let foundExisting = false;
         if (fileToComments.has(comment.path)) {
             for (const existingComment of fileToComments.get(comment.path)) {
-                console.log(`${existingComment} -- ${comment}`)
                 if (existingComment.line === comment.line &&
                     existingComment.start_line === comment.start_line &&
                     existingComment.body === comment.body) {
