@@ -1,22 +1,23 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System;
 
 using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.Extensions.Hosting;
+using System.IO;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Threading;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
     internal sealed class AddressListenResultsStartupLogger :
-        IStartupLogger,
+             IStartupLogger,
         IDisposable
     {
         private readonly CancellationTokenRegistration _applicationStartedRegistration;
         private readonly AddressListenResults _listenResults;
-        private readonly ILogger _logger;
+  private readonly ILogger _logger;
         private readonly IServer _server;
 
         public AddressListenResultsStartupLogger(
