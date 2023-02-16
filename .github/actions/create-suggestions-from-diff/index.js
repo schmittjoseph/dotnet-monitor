@@ -104,12 +104,8 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         pull_number: prNumber,
     });
 
-    let fileToComments = new Map();
-    let existingCommentBodies = new Set();
+    let filesToComments = new Map();
     for (const comment of existingComments) {
-        existingCommentBodies.add(comment.body);
-        console.log(comment.body);
-
         if (fileToComments.has(comment.path)) {
             filesToComments[comment.Path].push(comment);
         } else {
