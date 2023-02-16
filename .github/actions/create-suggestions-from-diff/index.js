@@ -36,7 +36,7 @@ async function run() {
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const diffFile = core.getInput("diff_file", { required: true });
     const reporter = core.getInput("reporter", { required: true });
-    const formattedReporter = `**[${reporter}]**`;
+    const formattedReporter = `**${reporter}**`;
 
     const maxSuggestionsInput = core.getInput("max_suggestions", { required: false });
     const runLocalCommand = core.getInput("run_local_command", { required: false });
@@ -185,7 +185,7 @@ async function getAllSuggestions(diffFile) {
         } else if (line.startsWith(dstFilePrefix)) {
             dstFile = line.substring(dstFilePrefix.length).trim();
             if (dstFile !== srcFile) {
-                throw new Error(`The source and destination files are different! The diff must not contain prefixes or file renames. (src: ${srcFile} dst:${dstFile}`)
+                throw new Error(`The source and destination files for the hunk are different! The diff must not contain prefixes or file renames. (src: ${srcFile} dst:${dstFile}`)
             }
             inFile = true;
         } else if (line.startsWith(hunkPrefix)) {
