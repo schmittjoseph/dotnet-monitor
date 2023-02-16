@@ -97,7 +97,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     }
 
     // Get all of the suggestions for the PR already made. We do this to avoid duplicate entries from being created and spamming the user.
-    const existingComments = await octokit.paginate(octokit.rest.pulls.listCommentsForReview, {
+    const existingComments = await octokit.rest.pulls.listCommentsForReview({
         owner: owner,
         repo: repo,
         pull_number: prNumber,
