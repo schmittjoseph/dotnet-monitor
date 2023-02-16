@@ -107,9 +107,9 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     let fileToComments = new Map();
     for (const comment of existingComments) {
         if (fileToComments.has(comment.path)) {
-            fileToComments[comment.Path].push(comment);
+            fileToComments[comment.path].push(comment);
         } else {
-            fileToComments[comment.Path] = [comment];
+            fileToComments[comment.path] = [comment];
         }
     }
 
@@ -133,10 +133,11 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         }
 
         let foundExisting = false;
-        if (fileToComments.has(suggestion.file)) {
-            for (const existingComment of fileToComments[suggestion.file]) {
-                if (existingComment.original_line === comment.line &&
-                    existingComment.original_start_line === comment.start_line &&
+        if (fileToComments.has(comment.path)) {
+            for (const existingComment of fileToComments[comment.path]) {
+                console.log(`${existingComment} -- ${comment}`)
+                if (existingComment.line === comment.line &&
+                    existingComment.start_line === comment.start_line &&
                     existingComment.body === comment.body) {
                         foundExisting = true;
                     }
