@@ -107,9 +107,9 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     let fileToComments = new Map();
     for (const comment of existingComments) {
         if (fileToComments.has(comment.path)) {
-            fileToComments[comment.path].push(comment);
+            fileToComments.get(comment.path).push(comment);
         } else {
-            fileToComments[comment.path] = [comment];
+            fileToComments.set(comment.path, [comment]);
         }
     }
 
@@ -134,7 +134,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
         let foundExisting = false;
         if (fileToComments.has(comment.path)) {
-            for (const existingComment of fileToComments[comment.path]) {
+            for (const existingComment of fileToComments.get(comment.path)) {
                 console.log(`${existingComment} -- ${comment}`)
                 if (existingComment.line === comment.line &&
                     existingComment.start_line === comment.start_line &&
