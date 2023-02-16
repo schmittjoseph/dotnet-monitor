@@ -106,12 +106,14 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     let existingCommentBodies = new Set();
     for (const comment of existingComments) {
         existingCommentBodies.add(comment.body);
+        console.log(comment.body);
     }
 
     // Transform the suggestions into comments
     const comments = [];
     for (const suggestion of suggestions) {
         const suggestionBody = suggestion.getCommentBody();
+        console.log(suggestionBody);
         if (existingCommentBodies.has(suggestionBody)) {
             // Avoid creating a duplicate
             continue;
@@ -127,7 +129,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         if (numberOfLines > 0) {
             comment.start_line = suggestion.startingLine;
             comment.line = suggestion.startingLine + numberOfLines;
-            comment.start_side =  'RIGHT';
+            comment.start_side = 'RIGHT';
         } else {
             comment.line = suggestion.startingLine;
         }
