@@ -105,6 +105,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
     let existingCommentBodies = new Set();
     for (const comment of existingComments) {
+        console.log(comment);
         existingCommentBodies.add(comment.body);
         console.log(comment.body);
     }
