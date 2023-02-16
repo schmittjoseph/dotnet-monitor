@@ -96,14 +96,31 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         throw new Error(`Too many suggestions ${suggestions.length}/${maxSuggestions}`)
     }
 
+    // Get all of the suggestions for the PR already made. We do this to avoid duplicate entries from being created and spamming the user.
+    const existingComments = await octokit.paginate(octokit.rest.pulls.listCommentsForReview, {
+        owner: owner,
+        repo: repo,
+        pull_number: prNumber,
+    });
+
+    let existingCommentBodies = new Set();
+    for (const comment of existingComments) {
+        existingCommentBodies.add(comment.body);
+    }
+
     // Transform the suggestions into comments
     const comments = [];
     for (const suggestion of suggestions) {
+        const suggestionBody = suggestion.getCommentBody();
+        if (existingCommentBodies.has(suggestionBody)) {
+            // Avoid creating a duplicate
+            continue;
+        }
         // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
         let comment = {
             path: suggestion.file,
             side: 'RIGHT',
-            body: `${reporter}\n${suggestion.getCommentBody()}`
+            body: `${reporter}\n${suggestionBody}`
         };
 
         const numberOfLines = suggestion.numberOfLinesToChange;
