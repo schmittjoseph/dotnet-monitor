@@ -140,11 +140,14 @@ To fix them locally, please run: \`${runLocalCommand}\``});
                     existingComment.start_line === comment.start_line &&
                     existingComment.body === comment.body) {
                         foundExisting = true;
+                        break;
                     }
             }
         }
 
         if (foundExisting) {
+            console.log("Skipping duplicate suggestion: ");
+            console.log(suggestion);
             continue;
         }
 
