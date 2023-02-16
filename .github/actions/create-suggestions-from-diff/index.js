@@ -60,7 +60,6 @@ async function run() {
         const suggestions = await getAllSuggestions(diffFile);
         await submitSuggestions(octokit, prNumber, commitId, repoOwner, repoName, formattedReporter, maxSuggestions, runLocalCommand, suggestions);
     } catch (error) {
-        console.log(error);
         core.setFailed(error);
 
         let messageBody = `${formattedReporter} Was unable to create all linter suggestions, for more details see https://github.com/${repoOwner}/${repoName}/actions/runs/${process.env.GITHUB_RUN_ID}`;
@@ -175,7 +174,6 @@ async function getAllSuggestions(diffFile) {
                     throw new Error("At least 1 line of context is required in the diff");
                 }
                 allSuggestions.push(currentSuggestion);
-                console.log(currentSuggestion);
                 currentSuggestion = undefined;
                 inHunk = false;
             }
