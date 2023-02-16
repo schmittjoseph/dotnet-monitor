@@ -104,12 +104,12 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         pull_number: prNumber,
     });
 
-    let filesToComments = new Map();
+    let fileToComments = new Map();
     for (const comment of existingComments) {
         if (fileToComments.has(comment.path)) {
-            filesToComments[comment.Path].push(comment);
+            fileToComments[comment.Path].push(comment);
         } else {
-            filesToComments[comment.Path] = [comment];
+            fileToComments[comment.Path] = [comment];
         }
     }
 
@@ -133,8 +133,8 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         }
 
         let foundExisting = false;
-        if (filesToComments.has(suggestion.file)) {
-            for (const existingComment of filesToComments[suggestion.file]) {
+        if (fileToComments.has(suggestion.file)) {
+            for (const existingComment of fileToComments[suggestion.file]) {
                 if (existingComment.original_line === comment.line &&
                     existingComment.original_start_line === comment.start_line &&
                     existingComment.body === comment.body) {
