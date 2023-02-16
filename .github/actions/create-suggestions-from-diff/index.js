@@ -135,6 +135,10 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         comments.push(comment);
     }
 
+    if (comments.length === 0) {
+        return;
+    }
+
     // Submit a review with the comments
     await octokit.rest.pulls.createReview({
         owner: owner,
