@@ -19,7 +19,7 @@ class Suggestion {
         return `
 \`\`\`suggestion
 ${this.body.join('\n')}
-\`\`\``
+\`\`\``;
     }
 }
 
@@ -36,7 +36,7 @@ async function run() {
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const diffFile = core.getInput("diff_file", { required: true });
     const reporter = core.getInput("reporter", { required: true });
-    const formattedReporter = `**[${reporter}]**`;
+    const formattedReporter = `**${reporter}**`;
 
     const maxSuggestionsInput = core.getInput("max_suggestions", { required: false });
     const runLocalCommand = core.getInput("run_local_command", { required: false });
@@ -96,13 +96,28 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         throw new Error(`Too many suggestions ${suggestions.length}/${maxSuggestions}`)
     }
 
+    // Get all of the suggestions for the PR already made. We do this to avoid duplicate entries from being created and spamming the user.
+    const existingComments = await octokit.paginate(octokit.rest.pulls.listReviewComments, {
+        owner: owner,
+        repo: repo,
+        pull_number: prNumber,
+    });
+
+    let fileToComments = new Map();
+    for (const comment of existingComments) {
+        if (fileToComments.has(comment.path)) {
+            fileToComments.get(comment.path).push(comment);
+        } else {
+            fileToComments.set(comment.path, [comment]);
+        }
+    }
+
     // Transform the suggestions into comments
     const comments = [];
     for (const suggestion of suggestions) {
-        // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
+        // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request for comment payload format
         let comment = {
             path: suggestion.file,
-            side: 'RIGHT',
             body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
@@ -110,12 +125,36 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         if (numberOfLines > 0) {
             comment.start_line = suggestion.startingLine;
             comment.line = suggestion.startingLine + numberOfLines;
-            comment.start_side =  'RIGHT';
+            comment.start_side = 'RIGHT';
+            comment.side = 'LEFT';
         } else {
+            comment.side = 'RIGHT';
             comment.line = suggestion.startingLine;
         }
 
+        let foundExisting = false;
+        if (fileToComments.has(comment.path)) {
+            for (const existingComment of fileToComments.get(comment.path)) {
+                if (existingComment.line === comment.line &&
+                    existingComment.start_line === comment.start_line &&
+                    existingComment.body === comment.body) {
+                        foundExisting = true;
+                        break;
+                    }
+            }
+        }
+
+        if (foundExisting) {
+            console.log("Skipping duplicate suggestion: ");
+            console.log(suggestion);
+            continue;
+        }
+
         comments.push(comment);
+    }
+
+    if (comments.length === 0) {
+        return;
     }
 
     // Submit a review with the comments
@@ -185,7 +224,7 @@ async function getAllSuggestions(diffFile) {
         } else if (line.startsWith(dstFilePrefix)) {
             dstFile = line.substring(dstFilePrefix.length).trim();
             if (dstFile !== srcFile) {
-                throw new Error(`The source and destination files are different! The diff must not contain prefixes or file renames. (src: ${srcFile} dst:${dstFile}`)
+                throw new Error(`The source and destination files for the hunk are different! The diff must not contain prefixes or file renames. (src: ${srcFile} dst:${dstFile}`)
             }
             inFile = true;
         } else if (line.startsWith(hunkPrefix)) {
