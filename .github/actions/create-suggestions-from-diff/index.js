@@ -115,10 +115,9 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     // Transform the suggestions into comments
     const comments = [];
     for (const suggestion of suggestions) {
-        // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request
+        // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request for comment payload format
         let comment = {
             path: suggestion.file,
-            side: 'RIGHT',
             body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
@@ -127,7 +126,9 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             comment.start_line = suggestion.startingLine;
             comment.line = suggestion.startingLine + numberOfLines;
             comment.start_side = 'RIGHT';
+            comment.side = 'LEFT';
         } else {
+            comment.side = 'RIGHT';
             comment.line = suggestion.startingLine;
         }
 
