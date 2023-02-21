@@ -126,7 +126,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             comment.start_line = suggestion.startingLine;
             comment.line = suggestion.startingLine + numberOfLines;
             comment.start_side = 'RIGHT';
-            comment.side = 'LEFT';
+            comment.side = 'RIGHT';
         } else {
             comment.side = 'RIGHT';
             comment.line = suggestion.startingLine;
@@ -150,6 +150,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             continue;
         }
 
+        console.log(comment);
         comments.push(comment);
     }
 
