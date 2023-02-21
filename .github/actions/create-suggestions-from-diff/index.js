@@ -125,10 +125,10 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         if (numberOfLines > 0) {
             comment.start_line = suggestion.startingLine;
             comment.line = suggestion.startingLine + numberOfLines;
-            comment.start_side = 'RIGHT';
-            comment.side = 'RIGHT';
+            comment.start_side = 'LEFT';
+            comment.side = 'LEFT';
         } else {
-            comment.side = 'RIGHT';
+            comment.side = 'LEFT';
             comment.line = suggestion.startingLine;
         }
 
