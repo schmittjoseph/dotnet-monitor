@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.IO;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
@@ -12,8 +13,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             foreach (DirectoryInfo subDirInfo in srcDirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly))
             {
                 // Skip symbolic links
-                if (string.IsNullOrEmpty(subDirInfo.LinkTarget))
-                {
+                if (string.IsNullOrEmpty(subDirInfo.LinkTarget))   {
                     CopyContentsTo(subDirInfo, targetDirInfo.CreateSubdirectory(subDirInfo.Name), overwrite);
                 }
             }
