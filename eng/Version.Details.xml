@@ -1,16 +1,16 @@
 <Dependencies>
   <ProductDependencies>
-    <Dependency Name="Microsoft.AspNetCore.App.Runtime.win-x64" Version="8.0.0-preview.2.23107.2" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
+    <Dependency Name="Microsoft.AspNetCore.App.Runtime.win-x64" Version="8.0.0-preview.2.23116.9" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>cec7fbf64e63af88a9165cbbf14aa4ab6f8cc76d</Sha>
+      <Sha>bb3f0d626627d399695a9fa0741e4803c0c23eb8</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Diagnostics.Monitoring" Version="7.0.0-preview.23114.1">
+    <Dependency Name="Microsoft.Diagnostics.Monitoring" Version="7.0.0-preview.23116.1">
       <Uri>https://github.com/dotnet/diagnostics</Uri>
-      <Sha>0dc3edb6ba5a7d41f1d93209818887ee092c102a</Sha>
+      <Sha>595179eba3b3265caa51e6321b442d92128d4e66</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Diagnostics.Monitoring.EventPipe" Version="7.0.0-preview.23114.1">
+    <Dependency Name="Microsoft.Diagnostics.Monitoring.EventPipe" Version="7.0.0-preview.23116.1">
       <Uri>https://github.com/dotnet/diagnostics</Uri>
-      <Sha>0dc3edb6ba5a7d41f1d93209818887ee092c102a</Sha>
+      <Sha>595179eba3b3265caa51e6321b442d92128d4e66</Sha>
     </Dependency>
     <Dependency Name="System.CommandLine" Version="2.0.0-beta4.23113.1">
       <Uri>https://github.com/dotnet/command-line-api</Uri>
@@ -18,45 +18,45 @@
     </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
-    <Dependency Name="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview1.23111.1">
+    <Dependency Name="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview1.23117.2">
       <Uri>https://github.com/dotnet/roslyn-analyzers</Uri>
-      <Sha>5cd64de1a3319d7f15380b843352a2b963e59b57</Sha>
+      <Sha>913f56f4fe47859f60df06821c1b15f21aa9c700</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="8.0.0-beta.23113.1">
+    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="8.0.0-beta.23118.1">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>7b0fb0ad52d106185432b8437b9defefa1cca9d4</Sha>
+      <Sha>38d3196e1596eb525367ec8d65fcc1f30a58261c</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Build.Tasks.Archives" Version="8.0.0-beta.23113.1">
+    <Dependency Name="Microsoft.DotNet.Build.Tasks.Archives" Version="8.0.0-beta.23118.1">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>7b0fb0ad52d106185432b8437b9defefa1cca9d4</Sha>
+      <Sha>38d3196e1596eb525367ec8d65fcc1f30a58261c</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="8.0.0-beta.23113.1">
+    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="8.0.0-beta.23118.1">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>7b0fb0ad52d106185432b8437b9defefa1cca9d4</Sha>
+      <Sha>38d3196e1596eb525367ec8d65fcc1f30a58261c</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Dotnet.Sdk.Internal" Version="8.0.100-preview.2.23114.23">
+    <Dependency Name="Microsoft.Dotnet.Sdk.Internal" Version="8.0.100-preview.2.23117.18">
       <Uri>https://github.com/dotnet/installer</Uri>
-      <Sha>1cdfc9ce47498fdb11851d89979c547f5f67323b</Sha>
+      <Sha>a66c6515bf3b84027dc88255de4f8a01fbf69b6a</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23113.1">
+    <Dependency Name="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23118.1">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>7b0fb0ad52d106185432b8437b9defefa1cca9d4</Sha>
+      <Sha>38d3196e1596eb525367ec8d65fcc1f30a58261c</Sha>
     </Dependency>
     <Dependency Name="Microsoft.FileFormats" Version="1.0.411401">
       <Uri>https://github.com/dotnet/symstore</Uri>
       <Sha>c4fbbf397c3b51ddbd0824950bbe8ae5633ccf10</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.NETCore.App.Runtime.win-x64" Version="8.0.0-preview.2.23107.1" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
+    <Dependency Name="Microsoft.NETCore.App.Runtime.win-x64" Version="8.0.0-preview.2.23116.1" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>e71a4fb10d7ea6b502dd5efe7a8fcefa2b9c1550</Sha>
+      <Sha>f2f734a7e4f95d22a56994c127fe63d6aa97c780</Sha>
     </Dependency>
-    <Dependency Name="VS.Redist.Common.AspNetCore.SharedFramework.x64.8.0" Version="8.0.0-preview.2.23107.2" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
+    <Dependency Name="VS.Redist.Common.AspNetCore.SharedFramework.x64.8.0" Version="8.0.0-preview.2.23116.9" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>cec7fbf64e63af88a9165cbbf14aa4ab6f8cc76d</Sha>
+      <Sha>bb3f0d626627d399695a9fa0741e4803c0c23eb8</Sha>
     </Dependency>
-    <Dependency Name="VS.Redist.Common.NetCore.SharedFramework.x64.8.0" Version="8.0.0-preview.2.23107.1" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
+    <Dependency Name="VS.Redist.Common.NetCore.SharedFramework.x64.8.0" Version="8.0.0-preview.2.23116.1" CoherentParentDependency="Microsoft.Dotnet.Sdk.Internal">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>e71a4fb10d7ea6b502dd5efe7a8fcefa2b9c1550</Sha>
+      <Sha>f2f734a7e4f95d22a56994c127fe63d6aa97c780</Sha>
     </Dependency>
   </ToolsetDependencies>
 </Dependencies>
