@@ -118,6 +118,7 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         // https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#create-a-review-comment-for-a-pull-request for comment payload format
         let comment = {
             path: suggestion.file,
+            side: 'RIGHT',
             body: `${reporter}\n${suggestion.getCommentBody()}`
         };
 
@@ -125,10 +126,8 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         if (numberOfLines > 0) {
             comment.start_line = suggestion.startingLine;
             comment.line = suggestion.startingLine + numberOfLines;
-            comment.start_side = 'LEFT';
-            comment.side = 'LEFT';
+            comment.start_side = 'RIGHT';
         } else {
-            comment.side = 'LEFT';
             comment.line = suggestion.startingLine;
         }
 
@@ -150,7 +149,6 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             continue;
         }
 
-        console.log(comment);
         comments.push(comment);
     }
 
