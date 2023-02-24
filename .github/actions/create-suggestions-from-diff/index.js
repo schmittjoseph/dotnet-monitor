@@ -240,8 +240,8 @@ async function getAllSuggestions(diffFile) {
             inHunk = true;
             hasContext = false;
             const match = line.match(hunkRegex);
-            const startingLine = parseInt(match.groups.srcLine.trim());
-            const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
+            const startingLine = parseInt(match.groups.dstLine.trim());
+            const numLinesToChange = match.groups.dstLength === undefined ? 0 : parseInt(match.groups.dstLength.trim()) - 1;
 
             currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
         }
