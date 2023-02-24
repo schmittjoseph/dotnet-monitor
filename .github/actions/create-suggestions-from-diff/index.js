@@ -149,6 +149,11 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             continue;
         }
 
+        comment.issue_number = prNumber;
+        comment.commit_id = commitId;
+
+        await octokit.rest.issues.createComment(comment);
+
         comments.push(comment);
     }
 
@@ -156,16 +161,16 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         return;
     }
 
-    // Submit a review with the comments
-    await octokit.rest.pulls.createReview({
-        owner: owner,
-        repo: repo,
-        pull_number: prNumber,
-        commit_id: commitId,
-        event: 'COMMENT',
-        body: '',
-        comments: comments
-    });
+    // // Submit a review with the comments
+    // await octokit.rest.pulls.createReview({
+    //     owner: owner,
+    //     repo: repo,
+    //     pull_number: prNumber,
+    //     commit_id: commitId,
+    //     event: 'COMMENT',
+    //     body: '',
+    //     comments: comments
+    // });
 }
 
 async function getAllSuggestions(diffFile) {
