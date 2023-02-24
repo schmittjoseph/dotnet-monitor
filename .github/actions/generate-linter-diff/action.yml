@@ -6,7 +6,7 @@ runs:
   steps:
     - name: Open PR
       run: |
-        git diff --minimal --unified=1 --no-prefix --text > "$OUTPUT_FILE"
+        git diff --minimal --unified=0 --no-prefix --text > "$OUTPUT_FILE"
       shell: bash
       env:
         OUTPUT_FILE: ${{ github.workspace }}/linter.diff
