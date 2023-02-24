@@ -149,13 +149,6 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             continue;
         }
 
-        comment.pull_number = prNumber;
-        comment.commit_id = commitId;
-        comment.owner = owner;
-        comment.repo = repo;
-
-        await octokit.rest.pulls.createReviewComment(comment);
-
         comments.push(comment);
     }
 
@@ -163,16 +156,16 @@ To fix them locally, please run: \`${runLocalCommand}\``});
         return;
     }
 
-    // // Submit a review with the comments
-    // await octokit.rest.pulls.createReview({
-    //     owner: owner,
-    //     repo: repo,
-    //     pull_number: prNumber,
-    //     commit_id: commitId,
-    //     event: 'COMMENT',
-    //     body: '',
-    //     comments: comments
-    // });
+    // Submit a review with the comments
+    await octokit.rest.pulls.createReview({
+        owner: owner,
+        repo: repo,
+        pull_number: prNumber,
+        commit_id: commitId,
+        event: 'COMMENT',
+        body: '',
+        comments: comments
+    });
 }
 
 async function getAllSuggestions(diffFile) {
@@ -195,6 +188,7 @@ async function getAllSuggestions(diffFile) {
     const delPrefix = "-";
     const addPrefix = "+";
 
+    // https://www.gnu.org/software/diffutils/manual/html_node/index.html
     const hunkPrefix = "@@ ";
     const hunkRegex=/^@@ -(?<srcLine>\d+),?(?<srcLength>\d+)* \+(?<dstLine>\d+),?(?<dstLength>\d+)? @@/m
 
@@ -215,7 +209,7 @@ async function getAllSuggestions(diffFile) {
             } else {
                 // Finished the hunk, save it and proceed with the line processing
                 if (!hasContext) {
-                    throw new Error("At least 1 line of context is required in the diff");
+                //    throw new Error("At least 1 line of context is required in the diff");
                 }
                 allSuggestions.push(currentSuggestion);
                 currentSuggestion = undefined;
@@ -240,8 +234,8 @@ async function getAllSuggestions(diffFile) {
             inHunk = true;
             hasContext = false;
             const match = line.match(hunkRegex);
-            const startingLine = parseInt(match.groups.dstLine.trim());
-            const numLinesToChange = match.groups.dstLength === undefined ? 0 : parseInt(match.groups.dstLength.trim()) - 1;
+            const startingLine = parseInt(match.groups.srcLine.trim());
+            const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
 
             currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
         }
