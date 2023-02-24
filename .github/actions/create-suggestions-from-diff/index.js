@@ -239,7 +239,7 @@ async function getAllSuggestions(diffFile) {
             inHunk = true;
             hasContext = false;
             const match = line.match(hunkRegex);
-            const startingLine = parseInt(match.groups.srcLine.trim()) - lineOffset;
+            const startingLine = parseInt(match.groups.srcLine.trim()) + lineOffset;
             const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
 
             currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
