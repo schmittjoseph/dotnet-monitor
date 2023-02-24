@@ -3,12 +3,11 @@
 
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Exceptions;
-using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
 {
@@ -19,7 +18,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
 
         public ActionListExecutor(ILogger<CollectionRuleService> logger, ICollectionRuleActionOperations actionOperations)
         {
-               _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _actionOperations = actionOperations ?? throw new ArgumentNullException(nameof(actionOperations));
         }
 
