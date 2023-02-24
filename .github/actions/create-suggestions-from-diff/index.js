@@ -149,12 +149,12 @@ To fix them locally, please run: \`${runLocalCommand}\``});
             continue;
         }
 
-        comment.issue_number = prNumber;
+        comment.pull_number = prNumber;
         comment.commit_id = commitId;
         comment.owner = owner;
         comment.repo = repo;
 
-        await octokit.rest.issues.createComment(comment);
+        await octokit.rest.pulls.createReviewComment(comment);
 
         comments.push(comment);
     }
@@ -195,7 +195,6 @@ async function getAllSuggestions(diffFile) {
     const delPrefix = "-";
     const addPrefix = "+";
 
-    // https://www.gnu.org/software/diffutils/manual/html_node/index.html
     const hunkPrefix = "@@ ";
     const hunkRegex=/^@@ -(?<srcLine>\d+),?(?<srcLength>\d+)* \+(?<dstLine>\d+),?(?<dstLength>\d+)? @@/m
 
