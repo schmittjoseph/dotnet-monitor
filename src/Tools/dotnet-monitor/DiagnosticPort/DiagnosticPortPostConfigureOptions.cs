@@ -1,9 +1,8 @@
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.IO;
-
+using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
     internal sealed class DiagnosticPortPostConfigureOptions :
