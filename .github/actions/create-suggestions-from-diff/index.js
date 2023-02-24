@@ -151,6 +151,8 @@ To fix them locally, please run: \`${runLocalCommand}\``});
 
         comment.issue_number = prNumber;
         comment.commit_id = commitId;
+        comment.owner = owner;
+        comment.repo = repo;
 
         await octokit.rest.issues.createComment(comment);
 
