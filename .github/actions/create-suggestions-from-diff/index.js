@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { start } = require('repl');
 const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
 const util = require('util');
 const jsExec = util.promisify(require("child_process").exec);
@@ -179,7 +180,11 @@ async function getAllSuggestions(diffFile) {
 
     let inFile = false;
     let inHunk = false;
-    let hasContext = false;
+
+    // Since we're calculating diff, we need to account for
+    // line additions and removals if there are multiple
+    // hunks in a single file.
+    let lineOffset = 0;
 
     const srcFilePrefix = "--- ";
     const dstFilePrefix = "+++ ";
@@ -197,20 +202,17 @@ async function getAllSuggestions(diffFile) {
     {
         if (inHunk) {
             if (line.startsWith(contextPrefix)) {
-                hasContext = true;
                 currentSuggestion.addLine(line.substring(contextPrefix.length));
                 continue;
             } else if (line.startsWith(delPrefix)) {
-                // no-op
+                lineOffset++;
                 continue;
             } else if (line.startsWith(addPrefix)) {
+                lineOffset--;
                 currentSuggestion.addLine(line.substring(addPrefix.length));
                 continue;
             } else {
                 // Finished the hunk, save it and proceed with the line processing
-                if (!hasContext) {
-                //    throw new Error("At least 1 line of context is required in the diff");
-                }
                 allSuggestions.push(currentSuggestion);
                 currentSuggestion = undefined;
                 inHunk = false;
@@ -226,6 +228,9 @@ async function getAllSuggestions(diffFile) {
                 throw new Error(`The source and destination files for the hunk are different! The diff must not contain prefixes or file renames. (src: ${srcFile} dst:${dstFile}`)
             }
             inFile = true;
+
+            // New file, reset line offset tracking
+            lineOffset = 0;
         } else if (line.startsWith(hunkPrefix)) {
             if (!inFile) {
                 throw new Error("Invalid diff file.")
@@ -234,7 +239,7 @@ async function getAllSuggestions(diffFile) {
             inHunk = true;
             hasContext = false;
             const match = line.match(hunkRegex);
-            const startingLine = parseInt(match.groups.srcLine.trim());
+            const startingLine = parseInt(match.groups.srcLine.trim()) - lineOffset;
             const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
 
             currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
