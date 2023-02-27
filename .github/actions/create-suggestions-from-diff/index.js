@@ -17,10 +17,11 @@ class Suggestion {
     }
 
     getCommentBody() {
-        return `
-\`\`\`suggestion
-${this.body.join('\n')}
-\`\`\``;
+        if (this.body.length === 0) {
+            return `\`\`\`suggestion\n\`\`\``;
+        } else {
+            return `\`\`\`suggestion\n${this.body.join('\n')}\n\`\`\``;
+        }
     }
 }
 
