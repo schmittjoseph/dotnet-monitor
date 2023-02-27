@@ -181,11 +181,6 @@ async function getAllSuggestions(diffFile) {
     let inFile = false;
     let inHunk = false;
 
-    // Since we're calculating diff, we need to account for
-    // line additions and removals if there are multiple
-    // hunks in a single file.
-    let lineOffset = 0;
-
     const srcFilePrefix = "--- ";
     const dstFilePrefix = "+++ ";
 
@@ -193,7 +188,7 @@ async function getAllSuggestions(diffFile) {
     const delPrefix = "-";
     const addPrefix = "+";
 
-    // https://www.gnu.org/software/diffutils/manual/html_node/index.html
+    // https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html
     const hunkPrefix = "@@ ";
     const hunkRegex=/^@@ -(?<srcLine>\d+),?(?<srcLength>\d+)* \+(?<dstLine>\d+),?(?<dstLength>\d+)? @@/m
 
@@ -205,10 +200,8 @@ async function getAllSuggestions(diffFile) {
                 currentSuggestion.addLine(line.substring(contextPrefix.length));
                 continue;
             } else if (line.startsWith(delPrefix)) {
-                lineOffset++;
                 continue;
             } else if (line.startsWith(addPrefix)) {
-                lineOffset--;
                 currentSuggestion.addLine(line.substring(addPrefix.length));
                 continue;
             } else {
@@ -228,9 +221,6 @@ async function getAllSuggestions(diffFile) {
                 throw new Error(`The source and destination files for the hunk are different! The diff must not contain prefixes or file renames. (src: ${srcFile} dst:${dstFile}`)
             }
             inFile = true;
-
-            // New file, reset line offset tracking
-            lineOffset = 0;
         } else if (line.startsWith(hunkPrefix)) {
             if (!inFile) {
                 throw new Error("Invalid diff file.")
@@ -239,7 +229,7 @@ async function getAllSuggestions(diffFile) {
             inHunk = true;
             hasContext = false;
             const match = line.match(hunkRegex);
-            const startingLine = parseInt(match.groups.srcLine.trim()) + lineOffset;
+            const startingLine = parseInt(match.groups.srcLine.trim());
             const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
 
             currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
