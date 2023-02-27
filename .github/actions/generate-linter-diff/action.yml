@@ -1,0 +1,20 @@
+name: 'Generate linter diff'
+description: 'Generates and uploads a diff file meant for consumption by the submit-linter-suggestions workflow.'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Open PR
+      run: |
+        git diff --minimal --unified=0 --no-prefix --text > "$OUTPUT_FILE"
+      shell: bash
+      env:
+        OUTPUT_FILE: ${{ github.workspace }}/linter.diff
+
+    - name: Upload linter differ
+      uses: actions/upload-artifact@v3
+      with:
+        name: linter
+        path: ${{ github.workspace }}/linter.diff
+
+
