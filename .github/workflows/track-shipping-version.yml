@@ -21,11 +21,8 @@ jobs:
         with:
           result-encoding: string
           script: |
-            console.log(context);
-            if (context.ref_type !== "tag") throw "Error: This action only works on tags.";
-
             const regex = /v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)/;
-            const releaseVersion = regex.exec(context.payload.comment.body);
+            const releaseVersion = regex.exec(context.payload.release.tag_name);
             if (releaseVersion == null) throw "Error: Unexpected tag format";
 
             return `v${releaseVersion.groups.major}.${releaseVersion.groups.minor}`;
@@ -64,20 +61,15 @@ jobs:
           }
 
           //
-          // Create a new commit to trigger the branch mirroring.
+          // Create a new blob & tree object to trigger branch mirroring.
+          // Empty commits (i.e. no new tree object) and new refs will **not** trigger mirroring.
           //
-
-          // We want to create an empty commit, so reference the parent's tree.
-          const parentCommit = await github.rest.git.updateRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            commit_sha: context.sha,
-          });
-
-          await github.rest.git.createCommit({
+          // The simplest way of doing this is to create an empty file on this new ref.
+          //
+          await github.rest.repos.createOrUpdateFileContents({
             owner: context.repo.owner,
             repo: context.repo.repo,
             message: 'Trigger branch mirroring',
-            parents: [ context.sha ]
-            tree: parentCommit.tree.sha
+            path: '.mirror'
+            content: ''
           });
