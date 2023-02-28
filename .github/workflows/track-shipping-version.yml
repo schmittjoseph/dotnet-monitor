@@ -7,6 +7,7 @@ permissions: {}
 
 jobs:
   update-shipping-branch:
+    if: github.repository == 'dotnet/dotnet-monitor'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,6 +70,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               message: 'Trigger branch mirroring',
-              path: '.mirror'
+              path: '.mirror',
               content: ''
             });
