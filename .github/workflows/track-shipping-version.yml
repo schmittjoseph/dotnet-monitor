@@ -11,28 +11,74 @@ env:
 jobs:
   update-shipping-branch:
     if: github.repository == 'dotnet/dotnet-monitor'
-    name: '[${{ github.ref_name }}] Update shipping branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      - name: Calculate branch name
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        id: calculate-branch-name
         with:
-          persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
+          result-encoding: string
+          script: |
+            console.log(context);
+            if (context.ref_type !== "tag") throw "Error: This action only works on tags.";
 
-      - name: Update shipping branch
+            const regex = /v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)/;
+            const releaseVersion = regex.exec(context.payload.comment.body);
+            if (releaseVersion == null) throw "Error: Unexpected tag format";
+
+            return `v${releaseVersion.groups.major}.${releaseVersion.groups.minor}`;
+
+      - name: Create or update shipped branch
         run: |
-          release_version=${GITHUB_REF_NAME%-*}
-          if [[ ! "$release_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Unexpected release tag: $release_version."
-              exit 1
-          fi
+          const refName = `heads/${{ steps.calculate-branch-name.outputs.result }}`;
 
-          major_minor_version=${release_version%.*}
-          shipping_branch_name="${shipping_branch_prefix}/${major_minor_version}"
+          // Check if the ref already exists, if so we will need to fast forward it.
+          let needToCreateRef = true;
+          try {
+            await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: refName
+            });
+            needToCreateRef = false;
+          } catch {
+          }
 
-          # This is a shallow clone so we will always create a new local branch even if it already exists on the remote
-          git checkout -b "$shipping_branch_name"
-          git push --force --set-upstream origin "HEAD:$shipping_branch_name"
+          if (needToCreateRef) {
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              ref: `refs/${refName}`
+            });
+          } else {
+            await github.rest.git.updateRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              ref: `refs/${refName}`,
+              force: true
+            });
+          }
+
+          //
+          // Create a new commit to trigger the branch mirroring.
+          //
+
+          // We want to create an empty commit, so reference the parent's tree.
+          const parentCommit = await github.rest.git.updateRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+          });
+
+          await github.rest.git.createCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            message: 'Trigger branch mirroring',
+            parents: [ context.sha ]
+            tree: parentCommit.tree.sha
+          });
