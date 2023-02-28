@@ -26,48 +26,49 @@ jobs:
 
       - name: Create or update shipped branch
         uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
-        run: |
-          const refName = `heads/${{ steps.calculate-branch-name.outputs.result }}`;
+        with:
+          script: |
+            const refName = `heads/${{ steps.calculate-branch-name.outputs.result }}`;
 
-          // Check if the ref already exists, if so we will need to fast forward it.
-          let needToCreateRef = true;
-          try {
-            await github.rest.git.getRef({
+            // Check if the ref already exists, if so we will need to fast forward it.
+            let needToCreateRef = true;
+            try {
+              await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: refName
+              });
+              needToCreateRef = false;
+            } catch {
+            }
+
+            if (needToCreateRef) {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.sha,
+                ref: `refs/${refName}`
+              });
+            } else {
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.sha,
+                ref: `refs/${refName}`,
+                force: true
+              });
+            }
+
+            //
+            // Create a new blob & tree object to trigger branch mirroring.
+            // Empty commits (i.e. no new tree object) and new refs will **not** trigger mirroring.
+            //
+            // The simplest way of doing this is to create an empty file on this new ref.
+            //
+            await github.rest.repos.createOrUpdateFileContents({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: refName
+              message: 'Trigger branch mirroring',
+              path: '.mirror'
+              content: ''
             });
-            needToCreateRef = false;
-          } catch {
-          }
-
-          if (needToCreateRef) {
-            await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              ref: `refs/${refName}`
-            });
-          } else {
-            await github.rest.git.updateRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              ref: `refs/${refName}`,
-              force: true
-            });
-          }
-
-          //
-          // Create a new blob & tree object to trigger branch mirroring.
-          // Empty commits (i.e. no new tree object) and new refs will **not** trigger mirroring.
-          //
-          // The simplest way of doing this is to create an empty file on this new ref.
-          //
-          await github.rest.repos.createOrUpdateFileContents({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            message: 'Trigger branch mirroring',
-            path: '.mirror'
-            content: ''
-          });
