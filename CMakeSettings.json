@@ -4,7 +4,7 @@
       "name": "win-arm64.Debug",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\artifacts\\obj\\win-arm64.Debug\\crossgen",
+      "buildRoot": "${projectDir}\\artifacts\\obj          \win-arm64.Debug\\crossgen",
       "installRoot": "${projectDir}\\artifacts\\bin\\win-arm64.Debug",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
