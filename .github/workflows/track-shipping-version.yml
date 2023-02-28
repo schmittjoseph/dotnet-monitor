@@ -7,7 +7,6 @@ permissions: {}
 
 jobs:
   update-shipping-branch:
-    if: github.repository == 'dotnet/dotnet-monitor'
     runs-on: ubuntu-latest
     permissions:
       contents: write
