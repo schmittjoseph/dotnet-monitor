@@ -5,9 +5,6 @@ on:
 
 permissions: {}
 
-env:
-  shipping_branch_prefix: 'shipped'
-
 jobs:
   update-shipping-branch:
     runs-on: ubuntu-latest
@@ -25,9 +22,10 @@ jobs:
             const releaseVersion = regex.exec(context.payload.release.tag_name);
             if (releaseVersion == null) throw "Error: Unexpected tag format";
 
-            return `v${releaseVersion.groups.major}.${releaseVersion.groups.minor}`;
+            return `shipped/v${releaseVersion.groups.major}.${releaseVersion.groups.minor}`;
 
       - name: Create or update shipped branch
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
         run: |
           const refName = `heads/${{ steps.calculate-branch-name.outputs.result }}`;
 
