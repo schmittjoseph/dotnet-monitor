@@ -8,6 +8,8 @@
 Due to limitations in event counters, `dotnet monitor` supports only **one** refresh interval when collecting metrics. This interval is used for
 Prometheus metrics, livemetrics, triggers, traces, and trigger actions that collect traces. The default interval is 5 seconds, but can be changed in configuration.
 
+[7.1+] For EventCounter providers, is possible to specify a different interval for each provider. See [Per provider intervals](#per-provider-intervals-71).
+
 <details>
   <summary>JSON</summary>
 
@@ -34,6 +36,48 @@ Prometheus metrics, livemetrics, triggers, traces, and trigger actions that coll
   ```yaml
   - name: DotnetMonitor_GlobalCounter__IntervalSeconds
     value: "10"
+  ```
+</details>
+
+## Per provider intervals (7.1+)
+
+It is possible to override the global interval on a per provider basis. Note this forces all scenarios (triggers, live metrics, prometheus metrics, traces) that use a particular provider to use that interval. Metrics that are `System.Diagnostics.Metrics` based always use global interval.
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+      "GlobalCounter": {
+        "IntervalSeconds": 5,
+        "Providers": {
+            "System.Runtime": {
+              "IntervalSeconds": 10
+            }
+          }
+      }
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+  
+  ```yaml
+  GlobalCounter__IntervalSeconds: "5"
+  GlobalCounter__Providers__System.Runtime__IntervalSeconds: "10"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+  
+  ```yaml
+  - name: DotnetMonitor_GlobalCounter__IntervalSeconds
+    value: "5"
+  - name: DotnetMonitor_GlobalCounter__Providers__System.Runtime__IntervalSeconds
+    value: "10"
+
   ```
 </details>
 
@@ -166,7 +210,129 @@ Additional metrics providers and counter names to return from this route can be 
 
 When `CounterNames` are not specified, all the counters associated with the `ProviderName` are collected.
 
-[7.1+] Custom metrics support labels for metadata. Metadata cannot include commas (`,`); the inclusion of a comma in metadata will result in all metadata being removed from the custom metric.
+[8.0+] Custom metrics support labels for metadata. Metadata cannot include commas (`,`); the inclusion of a comma in metadata will result in all metadata being removed from the custom metric.
+
+[8.0+] `System.Diagnostics.Metrics` is now supported in a limited capacity for custom metrics. At this time, there are several known limitations:
+ * `System.Diagnostics.Metrics` cannot have multiple sessions collecting metrics concurrently (i.e. `/metrics` and `/livemetrics` cannot both be looking for `System.Diagnostics.Metrics` at the same time). 
+ * There is currently no trigger for `System.Diagnostics.Metrics` for collection rule scenarios.
+ * `dotnet monitor` may fail to collect `System.Diagnostics.Metrics` if it begins collecting the metric before the target app creates the Meter ([note that this is fixed for .NET 8+ apps](https://github.com/dotnet/runtime/pull/76965)).
+ 
+### Set [`MetricType`](../api/definitions.md#metrictype-80)
+
+By default, `dotnet monitor` is unable to determine whether a custom provider is an `EventCounter` or `Meter`, and will attempt to collect both kinds of metrics for the specified provider. To explicitly specify whether a custom provider is an `EventCounter` or `Meter`, set the appropriate `MetricType`:
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "Metrics": {
+      "Providers": [
+        {
+          "ProviderName": "MyCustomEventCounterProvider",
+          "MetricType": "EventCounter"
+        },
+        {
+          "ProviderName": "MyCustomSDMProvider",
+          "MetricType": "Meter"
+        }
+      ]
+    }
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+  
+  ```yaml
+  Metrics__Providers__0__ProviderName: "MyCustomEventCounterProvider"
+  Metrics__Providers__0__MetricType: "EventCounter"
+  Metrics__Providers__1__ProviderName: "MyCustomSDMProvider"
+  Metrics__Providers__1__MetricType: "Meter"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+  
+  ```yaml
+  - name: DotnetMonitor_Metrics__Providers__0__ProviderName
+    value: "MyCustomEventCounterProvider"
+  - name: DotnetMonitor_Metrics__Providers__0__MetricType
+    value: "EventCounter"
+  - name: DotnetMonitor_Metrics__Providers__1__ProviderName
+    value: "MyCustomSDMProvider"
+  - name: DotnetMonitor_Metrics__Providers__1__MetricType
+    value: "Meter"
+  ```
+</details>
+
+## Limit How Many Histograms To Track (8.0+)
+
+For System.Diagnostics.Metrics, `dotnet monitor` allows you to set the maximum number of histograms that can be tracked. Each unique combination of provider name, histogram name, and dimension values counts as one histogram. Tracking more histograms uses more memory in the target process so this bound guards against unintentional high memory use. `MaxHistograms` has a default value of `20`.
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "GlobalCounter": {
+      "MaxHistograms": 5
+    }
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+  
+  ```yaml
+  GlobalCounter__MaxHistograms: "5"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+  
+  ```yaml
+  - name: DotnetMonitor_GlobalCounter__MaxHistograms
+    value: "5"
+  ```
+</details>
+
+## Limit How Many Time Series To Track (8.0+)
+
+For System.Diagnostics.Metrics, `dotnet monitor` allows you to set the maximum number of time series that can be tracked. Each unique combination of provider name, metric name, and dimension values counts as one time series. Tracking more time series uses more memory in the target process so this bound guards against unintentional high memory use. `MaxTimeSeries` has a default value of `1000`.
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "GlobalCounter": {
+      "MaxTimeSeries": 500
+    }
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+  
+  ```yaml
+  GlobalCounter__MaxTimeSeries: "500"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+  
+  ```yaml
+  - name: DotnetMonitor_GlobalCounter__MaxTimeSeries
+    value: "500"
+  ```
+</details>
 
 ## Disable default providers
 
