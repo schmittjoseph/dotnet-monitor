@@ -106,3 +106,24 @@ HRESULT EnvironmentHelper::GetTempFolder(tstring& tempFolder)
 
     return S_OK;
 }
+
+HRESULT EnvironmentHelper::GetIsMainProfiler(BOOL& isMainProfiler)
+{
+    HRESULT hr = S_OK;
+
+    tstring mainProfilerValue;
+
+    hr = _environment->GetEnvironmentVariable(IsMainProfilerEnvVar, mainProfilerValue);
+    if (FAILED(hr)) {
+        if (hr == HRESULT_FROM_WIN32(ERROR_ENVVAR_NOT_FOUND))
+        {
+            isMainProfiler = FALSE;
+            return S_FALSE;
+        }
+
+        IfFailLogRet(hr);
+    }
+
+    isMainProfiler = (mainProfilerValue == EnvVarEnabledValue);
+    return S_OK;
+}
