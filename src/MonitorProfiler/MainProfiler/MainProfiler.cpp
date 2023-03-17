@@ -201,7 +201,8 @@ HRESULT MainProfiler::InitializeCommon()
     // communication channel's GetProcessEnvironment command to get this value.
     IfFailLogRet(m_pEnvironmentHelper->SetProductVersion());
 
-    DWORD eventsLow = COR_PRF_MONITOR::COR_PRF_MONITOR_NONE;#ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
+    DWORD eventsLow = COR_PRF_MONITOR::COR_PRF_MONITOR_NONE;
+#ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
     ThreadDataManager::AddProfilerEventMask(eventsLow);
     _exceptionTracker->AddProfilerEventMask(eventsLow);
 #endif // DOTNETMONITOR_FEATURE_EXCEPTIONS
@@ -281,7 +282,7 @@ HRESULT MainProfiler::InitializeCommandServer()
     HRESULT hr = S_OK;
 
     tstring instanceId;
-    IfFailRet(_environmentHelper->GetRuntimeInstanceId(instanceId));
+    IfFailRet(m_pEnvironmentHelper->GetRuntimeInstanceId(instanceId));
 
 #if TARGET_UNIX
     tstring separator = _T("/");
@@ -290,7 +291,7 @@ HRESULT MainProfiler::InitializeCommandServer()
 #endif
 
     tstring sharedPath;
-    IfFailRet(_environmentHelper->GetSharedPath(sharedPath));
+    IfFailRet(m_pEnvironmentHelper->GetSharedPath(sharedPath));
 
     _commandServer = std::unique_ptr<CommandServer>(new CommandServer(m_pLogger, m_pCorProfilerInfo));
     tstring socketPath = sharedPath + separator + instanceId + _T(".sock");
