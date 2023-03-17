@@ -20,7 +20,7 @@ jobs:
         id: check-user
         with:
           script: |
-            console.log(context);
+            console.log(context.payload.referenced_workflows[0]);
             await github.rest.repos.checkCollaborator({
               owner: context.repo.owner,
               repo: context.repo.repo,
