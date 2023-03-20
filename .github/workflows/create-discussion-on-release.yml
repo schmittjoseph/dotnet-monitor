@@ -1,0 +1,26 @@
+name: "Create release announcement"
+
+on:
+  release:
+    types: [released]
+    
+
+permissions:
+  discussions: write
+
+jobs:
+  create-announcement:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create or update shipped branch
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        with:
+          script: |
+            console.log(context.payload.release);
+            await github.rest.teams.createDiscussionInOrg({
+              org: context.repo.owner,
+              team_slug: context.repo.repo,
+              title: `New Release ${context.payload.release.tag_name}`,
+              body: 'A new release has been made!',
+            });
