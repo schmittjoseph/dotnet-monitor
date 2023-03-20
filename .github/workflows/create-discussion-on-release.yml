@@ -6,7 +6,7 @@ on:
     
 
 permissions:
-  discussions: write
+  issues: write
 
 jobs:
   create-announcement:
