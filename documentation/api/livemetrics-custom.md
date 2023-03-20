@@ -60,7 +60,9 @@ The expected content type is `application/json`.
 
 ## Examples
 
-### Sample Request
+### EventCounter
+
+#### Sample Request
 
 ```http
 POST /livemetrics?pid=21632&durationSeconds=60 HTTP/1.1
@@ -81,7 +83,7 @@ Authorization: Bearer fffffffffffffffffffffffffffffffffffffffffff=
 }
 ```
 
-### Sample Response
+#### Sample Response
 
 ```http
 HTTP/1.1 200 OK
@@ -110,6 +112,67 @@ Location: localhost:52323/operations/67f07e40-5cca-4709-9062-26302c484f18
     "counterType": "Metric",
     "value": 126,
     "metadata": {}
+}
+```
+
+### System.Diagnostics.Metrics (8.0+)
+
+#### Sample Request
+
+```http
+GET /livemetrics?pid=21632&durationSeconds=60 HTTP/1.1
+Host: localhost:52323
+Authorization: Bearer fffffffffffffffffffffffffffffffffffffffffff=
+
+{
+    "includeDefaultProviders": false,
+    "providers": [
+        {
+            "providerName": "CustomProvider",
+            "counterNames": [
+                "myHistogram"
+            ]
+        }
+    ]
+}
+```
+
+#### Sample Histogram Response
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json-seq
+Location: localhost:52323/operations/67f07e40-5cca-4709-9062-26302c484f18
+
+{
+    "timestamp": "2021-08-31T16:58:39.7514031+00:00",
+    "provider": "CustomProvider",
+    "name": "myHistogram",
+    "displayName": "myHistogram",
+    "unit": null,
+    "counterType": "Metric",
+    "tags": "Percentile=50",
+    "value": 2292
+}
+{
+    "timestamp": "2021-08-31T16:58:39.7514031+00:00",
+    "provider": "CustomProvider",
+    "name": "myHistogram",
+    "displayName": "myHistogram",
+    "unit": null,
+    "counterType": "Metric",
+    "tags": "Percentile=95",
+    "value": 4616
+}
+{
+    "timestamp": "2021-08-31T16:58:39.7514031+00:00",
+    "provider": "CustomProvider",
+    "name": "myHistogram",
+    "displayName": "myHistogram",
+    "unit": null,
+    "counterType": "Metric",
+    "tags": "Percentile=99",
+    "value": 4960
 }
 ```
 
