@@ -21,6 +21,6 @@ jobs:
             await github.rest.teams.createDiscussionInOrg({
               org: context.repo.owner,
               team_slug: context.repo.repo,
-              title: `New Release ${context.payload.release.tag_name}`,
-              body: 'A new release has been made!',
+              title: `New Release ${context.payload.release.name}`,
+              body: `${context.payload.release.body}\n\n${context.payload.release.html_url}`,
             });
