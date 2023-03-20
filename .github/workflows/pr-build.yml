@@ -17,7 +17,7 @@ jobs:
       
       - name: Build
         run: |
-          sudo apt update && sudo apt install -y --no-install-recommends cmake clang llvm
+          sudo -c 'apt update;apt install -y cmake clang llvm'
           ./build.sh -ci -Configuration debug
           
  
