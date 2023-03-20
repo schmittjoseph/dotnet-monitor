@@ -1,60 +1,44 @@
-const util = require("util");
 const fs = require('fs');
 const path = require('path')
 
-async function main() {
+/* Run the action */
+require('../action-init.js').run(main);
 
-    const jsExec = util.promisify(require("child_process").exec);
+async function main(core, github, octokit) {
+    const textToSearch = core.getInput('textToSearch', { required: true });
+    const textToAdd = core.getInput('textToAdd', { required: true });
+    const paths = core.getInput('paths', {required: false});
 
-    console.log("Installing npm dependencies");
-    const { stdout, stderr } = await jsExec("npm install @actions/core");
-    console.log("npm-install stderr:\n\n" + stderr);
-    console.log("npm-install stdout:\n\n" + stdout);
-    console.log("Finished installing npm dependencies");
+    const insertFileNameParameter = "{insertFileName}";
 
-    const core = require('@actions/core');
+    if (paths === null || paths.trim() === "")
+    {
+        return;
+    }
 
-    try {        
-        const textToSearch = core.getInput('textToSearch', { required: true });
-        const textToAdd = core.getInput('textToAdd', { required: true });
-        const paths = core.getInput('paths', {required: false});
+    console.log("Paths: " + paths);
 
-        const insertFileNameParameter = "{insertFileName}";
+    for (const currPath of paths.split(',')) {
+        fs.readFile(currPath, (err, content) => {
+            if (err)
+            {
+                console.log(err);
+            }
 
-        if (paths === null || paths.trim() === "")
-        {
-            return;
-        }
-        
-        console.log("Paths: " + paths);
-
-        for (const currPath of paths.split(',')) {
-            fs.readFile(currPath, (err, content) => {
-                if (err)
+            if (content && !content.includes(textToSearch))
+            {
+                var updatedTextToAdd = textToAdd;
+                if (textToAdd.includes(insertFileNameParameter))
                 {
-                    console.log(err);
+                    const parsedPath = path.parse(currPath);
+                    const encodedURIWithoutExtension = encodeURIComponent(path.join(parsedPath.dir, parsedPath.name))
+                    updatedTextToAdd = textToAdd.replace(insertFileNameParameter, encodedURIWithoutExtension);
                 }
 
-                if (content && !content.includes(textToSearch))
-                {
-                    var updatedTextToAdd = textToAdd;
-                    if (textToAdd.includes(insertFileNameParameter))
-                    {
-                        const parsedPath = path.parse(currPath);
-                        const encodedURIWithoutExtension = encodeURIComponent(path.join(parsedPath.dir, parsedPath.name))
-                        updatedTextToAdd = textToAdd.replace(insertFileNameParameter, encodedURIWithoutExtension);
-                    }
+                var contentStr = updatedTextToAdd + "\n\n" + content.toString();
 
-                    var contentStr = updatedTextToAdd + "\n\n" + content.toString();
-
-                    fs.writeFile(currPath, contentStr, (err) => {});
-                }
-            });
-        }
-    } catch (error) {
-        core.setFailed(error.message);
+                fs.writeFile(currPath, contentStr, (err) => {});
+            }
+        });
     }
 }
-
-// Call the main function to run the action
-main();

@@ -1,25 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
-const jsExec = util.promisify(require("child_process").exec);
 const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
 const writeFile = (fileName, contents) => util.promisify(fs.writeFile)(fileName, contents);
 
 const UpdateReleaseNotesLabel = "update-release-notes";
 const BackportLabel = "backport";
 
-async function run() {
-    console.log("Installing npm dependencies");
-    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github");
-    console.log("npm-install stderr:\n\n" + stderr);
-    console.log("npm-install stdout:\n\n" + stdout);
-    console.log("Finished installing npm dependencies");
 
-    const github = require('@actions/github');
-    const core = require('@actions/core');
+/* Run the action */
+require('../action-init.js').run(main);
 
-    const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
-
+async function main(core, github, octokit) {
     const output = core.getInput("output", { required: true });
     const buildDescription = core.getInput("build_description", { required: true });
     const lastReleaseDate = core.getInput("last_release_date", { required: true });
@@ -228,5 +220,3 @@ async function resolveBackportPrToReleaseNotePr(octokit, pr, repoOwner, repoName
 
     return undefined;
 }
-
-run();
