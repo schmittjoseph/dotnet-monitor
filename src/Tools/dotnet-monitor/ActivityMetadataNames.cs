@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
     /// <summary>
     /// Metadata keys that correspond to <see cref="System.Diagnostics.Activity"/> properties.
     /// </summary>
-    internal static class ActivityMetadataNames
+       internal static class ActivityMetadataNames
     {
         /// <summary>
         /// Represents the ID of the parent activity.
