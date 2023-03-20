@@ -1,0 +1,22 @@
+name: 'PR Build'
+on:
+  pull_request:
+    paths: ['**.cs']
+
+
+permissions:
+  pull-requests: read
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build
+        run: |
+          ./build.sh -ci -Configuration debug
+          
+ 
