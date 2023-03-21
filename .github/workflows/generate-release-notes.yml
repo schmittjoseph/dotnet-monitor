@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
         with:
           persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
-          ref: main
+          ref: action-toolkit
 
       - name: Generate release notes
         uses: ./.github/actions/generate-release-notes
