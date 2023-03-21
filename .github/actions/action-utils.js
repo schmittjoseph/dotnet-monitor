@@ -1,9 +1,6 @@
 const util = require("util");
 const fs = require("fs");
-
 const jsExec = util.promisify(require("child_process").exec);
-const readFile = util.promisify(fs.readFile)(fileName, 'utf8');
-const writeFile = util.promisify(fs.writeFile)(fileName, contents);
 
 module.exports.installAndRequirePackages = async function(...newPackages)
 {
@@ -21,10 +18,5 @@ module.exports.installAndRequirePackages = async function(...newPackages)
     return requiredPackages;
 }
 
-module.exports.readFile = async function(fileName) {
-    return await readFile(fileName);
-}
-
-module.exports.writeFile = async function(fileName, contents) {
-    return await writeFile(fileName, contents);
-}
+module.exports.readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
+module.exports.writeFile = (fileName, contents) => util.promisify(fs.writeFile)(fileName, contents);
