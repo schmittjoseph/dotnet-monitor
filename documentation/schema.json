@@ -396,15 +396,26 @@
     "AuthenticationOptions": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "MonitorApiKey"
-      ],
       "properties": {
         "MonitorApiKey": {
           "description": "The parameters used to validate MonitorApiKey JWT tokens.",
           "oneOf": [
             {
+              "type": "null"
+            },
+            {
               "$ref": "#/definitions/MonitorApiKeyOptions"
+            }
+          ]
+        },
+        "AzureAd": {
+          "description": "The parameters used to use configure authentication using Azure Active Directory.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/AzureAdOptions"
             }
           ]
         }
@@ -428,6 +439,58 @@
           "description": "The public key used to sign the JWT (JSON Web Token) used for authentication. This field is a JSON Web Key serialized as JSON encoded with base64Url encoding. The JWK must have a kty field of RSA or EC and should not have the private key information.",
           "minLength": 1,
           "pattern": "[0-9a-zA-Z_-]+"
+        }
+      }
+    },
+    "AzureAdOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ClientId",
+        "RequiredRole"
+      ],
+      "properties": {
+        "Instance": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Specifies the Azure cloud instance users are signing in from. Can be either the Azure public cloud or one of the national clouds.",
+          "format": "uri",
+          "default": "https://login.microsoftonline.com"
+        },
+        "TenantId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The tenant id of the Azure Active Directory tenant, or its tenant domain.",
+          "default": "organizations"
+        },
+        "ClientId": {
+          "type": "string",
+          "description": "The unique application (client) id assigned to the app registration in Azure Active Directory.",
+          "minLength": 1
+        },
+        "AppIdUri": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The App ID URI of the app registration. Defaults to api://{ClientId} if not specified.",
+          "format": "uri"
+        },
+        "RequiredRole": {
+          "type": "string",
+          "description": "The role required to be able to authenticate.",
+          "minLength": 1
+        },
+        "SwaggerScope": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The API scope required by users to be able to interactively authenticate using the in-box Swagger UI. If not specified, users will not be able to interactively authenticate."
         }
       }
     },
@@ -658,6 +721,19 @@
             },
             "Settings": {
               "$ref": "#/definitions/ThreadpoolQueueLengthOptions"
+            }
+          }
+        },
+        {
+          "required": [
+            "Settings"
+          ],
+          "properties": {
+            "Type": {
+              "const": "EventMeter"
+            },
+            "Settings": {
+              "$ref": "#/definitions/EventMeterOptions"
             }
           }
         },
@@ -1327,6 +1403,16 @@
           "items": {
             "$ref": "#/definitions/MetricProvider"
           }
+        },
+        "Meters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Names of meters to collect from the System.Diagnostics.Metrics provider.",
+          "items": {
+            "$ref": "#/definitions/MeterConfiguration"
+          }
         }
       }
     },
@@ -1351,35 +1437,31 @@
           "items": {
             "type": "string"
           }
-        },
-        "MetricType": {
-          "description": "The type of metrics this provider consumes",
-          "default": "All",
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/definitions/MetricProviderType"
-            }
-          ]
         }
       }
     },
-    "MetricProviderType": {
-      "type": "string",
-      "description": "",
-      "x-enumFlags": true,
-      "x-enumNames": [
-        "EventCounter",
-        "Meter",
-        "All"
-      ],
-      "enum": [
-        "EventCounter",
-        "Meter",
-        "All"
-      ]
+    "MeterConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "MeterName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Name of the custom meter."
+        },
+        "InstrumentNames": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Names of the custom instruments.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "StorageOptions": {
       "type": "object",
@@ -1675,6 +1757,16 @@
             "$ref": "#/definitions/EventMetricsProvider"
           }
         },
+        "Meters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "The array of meters for metrics to collect.",
+          "items": {
+            "$ref": "#/definitions/EventMetricsMeter"
+          }
+        },
         "Duration": {
           "type": [
             "null",
@@ -1710,16 +1802,28 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "EventMetricsMeter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "MeterName"
+      ],
+      "properties": {
+        "MeterName": {
+          "type": "string",
+          "minLength": 1
         },
-        "MetricType": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/definitions/MetricProviderType"
-            }
-          ]
+        "InstrumentNames": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -2106,6 +2210,7 @@
         "CPUUsage",
         "GCHeapSize",
         "ThreadpoolQueueLength",
+        "EventMeter",
         "Startup"
       ]
     },
@@ -2398,6 +2503,60 @@
           "description": "The sliding time window in which the counter must maintain its value as specified by the threshold levels in GreaterThan and LessThan.",
           "format": "duration",
           "default": "00:01:00"
+        }
+      }
+    },
+    "EventMeterOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "MeterName",
+        "InstrumentName"
+      ],
+      "properties": {
+        "MeterName": {
+          "type": "string",
+          "description": "The name of the meter that provides the instrument information.",
+          "minLength": 1
+        },
+        "InstrumentName": {
+          "type": "string",
+          "description": "The name of the instrument to monitor.",
+          "minLength": 1
+        },
+        "GreaterThan": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "description": "The threshold level the instrument must maintain (or higher) for the specified duration. Either GreaterThan or LessThan (or both) must be specified.",
+          "format": "double"
+        },
+        "LessThan": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "description": "The threshold level the instrument must maintain (or lower) for the specified duration. Either GreaterThan or LessThan (or both) must be specified.",
+          "format": "double"
+        },
+        "SlidingWindowDuration": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The sliding time window in which the instrument must maintain its value as specified by the threshold levels in GreaterThan and LessThan.",
+          "format": "duration"
+        },
+        "HistogramPercentile": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "When monitoring a histogram, this dictates which percentile to compare against using the value in GreaterThan/LessThan - by default, the percentile can be 50, 95, or 99.",
+          "format": "int32",
+          "maximum": 100.0,
+          "minimum": 0.0
         }
       }
     },

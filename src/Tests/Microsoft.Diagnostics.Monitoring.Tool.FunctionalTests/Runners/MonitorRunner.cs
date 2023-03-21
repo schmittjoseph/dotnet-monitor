@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners
         public bool EnableCallStacksFeature { get; set; }
 
         /// <summary>
-        /// Gets the task for the underlying <see cref="DotNetRunner"/>'s 
+        /// Gets the task for the underlying <see cref="DotNetRunner"/>'s
         /// <see cref="DotNetRunner.ExitedTask"/> which is used to wait for process exit.
         /// </summary>
         protected Task<int> RunnerExitedTask => _runner.ExitedTask;
@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners
             }
 
             // Ensures that the TestStartupHook is loaded early so it helps resolve other test assemblies
-            _adapter.Environment.Add("DOTNET_STARTUP_HOOKS", TestStartupHookPath);
+            _adapter.Environment.Add(ToolIdentifiers.EnvironmentVariables.StartupHooks, TestStartupHookPath);
 
             // Allow TestHostingStartup to participate in host building in the tool
             _adapter.Environment.Add("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", TestHostingStartupAssemblyName);

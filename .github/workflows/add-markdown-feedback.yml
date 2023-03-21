@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
         with:
           persist-credentials: false
 
@@ -30,7 +30,7 @@ jobs:
           changed_source_files=$(git diff-tree --no-commit-id --name-only -r "$base_sha" "$GITHUB_SHA" -- documentation ':!documentation/releaseNotes/*' | { grep "**.md$" || test $? = 1; })
           echo "Files to validate: '${changed_source_files}'"
           changed_source_files=$(echo "$changed_source_files" | sed 's/ documentation/,documentation/g')
-          echo "updated_files=$(echo ${changed_source_files}" >> $GITHUB_ENV
+          echo "updated_files=$(echo ${changed_source_files})" >> $GITHUB_ENV
 
       - name: Append To File
         uses: ./.github/actions/AppendToFile

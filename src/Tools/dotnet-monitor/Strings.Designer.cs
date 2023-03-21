@@ -385,6 +385,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The following unrecoverable validation issues were found with the &apos;{0}&apos; configuration:
+        ///{1}.
+        /// </summary>
+        internal static string ErrorMessage_StartupConfigurationValidationException {
+            get {
+                return ResourceManager.GetString("ErrorMessage_StartupConfigurationValidationException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Could not find a template with the name: {0}.
         /// </summary>
         internal static string ErrorMessage_TemplateNotFound {
@@ -651,6 +661,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         internal static string HelpDescription_SecurityDefinitionDescription_ApiKey {
             get {
                 return ResourceManager.GetString("HelpDescription_SecurityDefinitionDescription_ApiKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Swagger UI permission.
+        /// </summary>
+        internal static string HelpDescription_SwaggerScope_AzureAd {
+            get {
+                return ResourceManager.GetString("HelpDescription_SwaggerScope_AzureAd", resourceCulture);
             }
         }
         
@@ -1285,6 +1304,33 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The DOTNET_STARTUP_HOOKS environment variable is missing from target process {processId}..
+        /// </summary>
+        internal static string LogFormatString_StartupHookEnvironmentMissing {
+            get {
+                return ResourceManager.GetString("LogFormatString_StartupHookEnvironmentMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exception-based features require that the DOTNET_STARTUP_HOOKS environment variable is set on the target process and must contain the path to the .NET Monitor startup hook library. The path to the library is &quot;{path}&quot;..
+        /// </summary>
+        internal static string LogFormatString_StartupHookInstructions {
+            get {
+                return ResourceManager.GetString("LogFormatString_StartupHookInstructions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The DOTNET_STARTUP_HOOKS environment variable for target process {processId} does not contain the &apos;{name}&apos; startup hook..
+        /// </summary>
+        internal static string LogFormatString_StartupHookMissing {
+            get {
+                return ResourceManager.GetString("LogFormatString_StartupHookMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to apply profiler..
         /// </summary>
         internal static string LogFormatString_UnableToApplyProfiler {
@@ -1389,6 +1435,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         internal static string Message_ShowSources {
             get {
                 return ResourceManager.GetString("Message_ShowSources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to First chance exception. {0}: {1}.
+        /// </summary>
+        internal static string OutputFormatString_FirstChanceException {
+            get {
+                return ResourceManager.GetString("OutputFormatString_FirstChanceException", resourceCulture);
             }
         }
         
