@@ -37,7 +37,6 @@ async function run() {
 
         const releaseNotes = await generateReleaseNotes(path.join(__dirname, "releaseNotes.template.md"), buildDescription, changelog, monikerDescriptions);
         await actionUtils.writeFile(output, releaseNotes);
-        console.log(`==== Release Notes ====\n${releaseNotes}`)
     } catch (error) {
         core.setFailed(error);
     }
