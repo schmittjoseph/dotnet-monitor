@@ -4,6 +4,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -216,6 +217,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                         Status = kvp.Value.State,
                         EgressProviderName = kvp.Value.EgressRequest.EgressOperation.EgressProviderName,
                         IsStoppable = kvp.Value.IsStoppable,
+                        TimeElapsed = kvp.Value.EgressRequest.OperationStopwatch.Elapsed,
                         Process = processInfo != null ?
                             new Models.OperationProcessInfo
                             {
@@ -246,6 +248,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                     CreatedDateTime = entry.CreatedDateTime,
                     EgressProviderName = entry.EgressRequest.EgressOperation.EgressProviderName,
                     IsStoppable = entry.IsStoppable,
+                    TimeElapsed = entry.EgressRequest.OperationStopwatch.Elapsed,
                     Process = processInfo != null ?
                         new Models.OperationProcessInfo
                         {

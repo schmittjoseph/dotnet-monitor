@@ -44,15 +44,19 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 CancellationToken token = linkedTokenSource.Token;
                 token.ThrowIfCancellationRequested();
 
+                egressRequest.OperationStopwatch.Start();
                 try
                 {
                     ExecutionResult<EgressResult> result = await egressRequest.EgressOperation.ExecuteAsync(_serviceProvider, token);
+                    egressRequest.OperationStopwatch.Stop();
 
                     //It is possible that this operation never completes, due to infinite duration operations.
                     _operationsStore.CompleteOperation(egressRequest.OperationId, result);
                 }
                 catch (OperationCanceledException)
                 {
+                    egressRequest.OperationStopwatch.Stop();
+
                     try
                     {
                         // Mirror the state in the operations store incase the operation was cancelled via another means besides
@@ -70,6 +74,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 // This is unexpected, but an unhandled exception should still fail the operation.
                 catch (Exception e)
                 {
+                    egressRequest.OperationStopwatch.Stop();
                     _operationsStore.CompleteOperation(egressRequest.OperationId, ExecutionResult<EgressResult>.Failed(e));
                 }
             }

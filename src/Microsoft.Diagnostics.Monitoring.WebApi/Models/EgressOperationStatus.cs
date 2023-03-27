@@ -32,6 +32,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Models
 
         [JsonPropertyName("tags")]
         public ISet<string> Tags { get; set; }
+
+        [JsonPropertyName("timeElapsed")]
+        public TimeSpan TimeElapsed { get; set; }
     }
 
     /// <summary>

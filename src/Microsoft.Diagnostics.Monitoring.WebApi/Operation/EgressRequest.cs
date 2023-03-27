@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.WebApi
@@ -20,6 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             OperationId = operationId;
             EgressOperation = egressOperation;
             _limitTracker = limitTracker;
+            OperationStopwatch = new Stopwatch();
         }
 
         public CancellationTokenSource CancellationTokenSource { get; } = new();
@@ -27,6 +29,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         public Guid OperationId { get; }
 
         public IEgressOperation EgressOperation { get; }
+
+        public Stopwatch OperationStopwatch { get; }
 
         public void Dispose()
         {
