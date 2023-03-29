@@ -43,6 +43,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Profiler
             // (Optional) This environment variable is manually applied to the target process to override the
             // default level of the stderr logger.
             public const string StdErrLogger_Level = ProfilerPrefix + nameof(StdErrLogger_Level);
+
+            public const string IsMainProfiler = ProfilerPrefix + nameof(IsMainProfiler);
+
+            public const string EnvVarEnabledValue = "1";
         }
     }
 }

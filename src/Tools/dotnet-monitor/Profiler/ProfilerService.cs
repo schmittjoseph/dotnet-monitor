@@ -120,6 +120,17 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Profiler
                     }
 
                     await client.SetEnvironmentVariableAsync(
+                        ProfilerIdentifiers.EnvironmentVariables.IsMainProfiler,
+                        ProfilerIdentifiers.EnvironmentVariables.EnvVarEnabledValue,
+                        cancellationToken);
+
+                    // JSFIX
+                    await client.SetEnvironmentVariableAsync(
+                        ProfilerIdentifiers.EnvironmentVariables.StdErrLogger_Level,
+                        "Debug",
+                        cancellationToken);
+
+                    await client.SetEnvironmentVariableAsync(
                         ProfilerIdentifiers.EnvironmentVariables.RuntimeInstanceId,
                         endpointInfo.RuntimeInstanceCookie.ToString("D"),
                         cancellationToken);

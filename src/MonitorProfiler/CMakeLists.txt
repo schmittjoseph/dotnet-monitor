@@ -28,6 +28,7 @@ set(SOURCES
     MainProfiler/ThreadDataManager.cpp
     Stacks/StacksEventProvider.cpp
     Stacks/StackSampler.cpp
+    Snapshot/Snapshot.cpp
     Utilities/NameCache.cpp
     Utilities/ThreadNameCache.cpp
     Utilities/ThreadUtilities.cpp

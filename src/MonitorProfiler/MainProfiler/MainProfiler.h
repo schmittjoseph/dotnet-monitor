@@ -9,8 +9,8 @@
 #include "../Logging/Logger.h"
 #include "../Communication/CommandServer.h"
 #include "../Utilities/ThreadNameCache.h"
-#include "ProfilerString.h"
 #include <memory>
+#include "../Snapshot/Snapshot.h"
 
 #ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
 #include "ThreadDataManager.h"
@@ -32,10 +32,10 @@ private:
     std::shared_ptr<ThreadDataManager> _threadDataManager;
     std::unique_ptr<ExceptionTracker> _exceptionTracker;
 #endif // DOTNETMONITOR_FEATURE_EXCEPTIONS
-    BOOL m_seeUserModule;
+
+    std::unique_ptr<Snapshot> m_pSnapshotter;
+
     BOOL m_isMainProfiler;
-    ModuleID m_moduleId;
-    ClassID m_classId;
 
 
 public:
@@ -52,9 +52,10 @@ public:
     STDMETHOD(InitializeForAttach)(IUnknown* pCorProfilerInfoUnk, void* pvClientData, UINT cbClientData) override;
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
 
-    HRESULT STDMETHODCALLTYPE EnterCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
-    HRESULT STDMETHODCALLTYPE LeaveCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
-    HRESULT STDMETHODCALLTYPE TailcallCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
+    STDMETHOD(EnterCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
+    STDMETHOD(LeaveCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
+    STDMETHOD(TailcallCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
+
 private:
     HRESULT InitializeCommon();
     HRESULT InitializeEnvironment();
@@ -63,12 +64,6 @@ private:
     HRESULT InitializeCommandServer();
     HRESULT MessageCallback(const IpcMessage& message);
     HRESULT ProcessCallstackMessage();
-
-    String MainProfiler::GetFunctionIDName(FunctionID funcId);
-    String MainProfiler::GetClassIDName(ClassID classId);
-    HRESULT MainProfiler::CacheUserModuleId(FunctionID funcId);
-    BOOL MainProfiler::IsUserCode(FunctionID funcId);
-
 private:
     std::unique_ptr<CommandServer> _commandServer;
 };
