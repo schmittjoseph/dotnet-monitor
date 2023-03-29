@@ -1,15 +1,22 @@
-const fs = require('fs');
-const { start } = require('repl');
-const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
-const util = require('util');
-const jsExec = util.promisify(require("child_process").exec);
+const actionUtils = require('../action-utils.js');
 
 class Suggestion {
-    constructor(file, startingLine, numberOfLinesToChange) {
+    constructor(file, startingLine) {
         this.file = file;
         this.startingLine = startingLine;
-        this.numberOfLinesToChange = numberOfLinesToChange;
+        this.numberOfLinesToChange = -1;
+        this.hasContext = false;
         this.body = [];
+    }
+
+    removeLine() {
+        this.numberOfLinesToChange++;
+    }
+
+    addContext(context) {
+        this.hasContext = true;
+        this.numberOfLinesToChange++;
+        this.body.push(context);
     }
 
     addLine(line) {
@@ -26,18 +33,19 @@ class Suggestion {
 }
 
 async function run() {
-    console.log("Installing npm dependencies");
-    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github");
-    console.log("npm-install stderr:\n\n" + stderr);
-    console.log("npm-install stdout:\n\n" + stdout);
-    console.log("Finished installing npm dependencies");
-
-    const github = require('@actions/github');
-    const core = require('@actions/core');
+    const [core, github] = await actionUtils.installAndRequirePackages("@actions/core", "@actions/github");
 
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const diffFile = core.getInput("diff_file", { required: true });
     const reporter = core.getInput("reporter", { required: true });
+
+    const repoOwner = github.context.payload.repository.owner.login;
+    const repoName = github.context.payload.repository.name;
+
+    const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
+    const prNumber = triggeringPr.number;
+    const commitId = triggeringPr.head.sha;
+
     const formattedReporter = `**${reporter}**`;
 
     const maxSuggestionsInput = core.getInput("max_suggestions", { required: false });
@@ -50,13 +58,6 @@ async function run() {
             throw new Error("If a maximum number of suggestions is set, a run local command must also be provided.")
         }
     }
-
-    const repoOwner = github.context.payload.repository.owner.login;
-    const repoName = github.context.payload.repository.name;
-
-    const triggeringPr = github.context.payload.workflow_run.pull_requests[0];
-    const prNumber = triggeringPr.number;
-    const commitId = triggeringPr.head.sha;
 
     try {
         const suggestions = await getAllSuggestions(diffFile);
@@ -170,46 +171,103 @@ To fix them locally, please run: \`${runLocalCommand}\``});
     });
 }
 
+class HunkTransformer {
+    #contextPrefix = " ";
+    #delPrefix = "-";
+    #addPrefix = "+";
+
+    constructor(file, hunkLine) {
+        const hunkRegex=/^@@ -(?<srcLine>\d+),?(?<srcLength>\d+)* \+(?<dstLine>\d+),?(?<dstLength>\d+)? @@/m
+
+        const match = hunkLine.match(hunkRegex);
+        this.startingLine = parseInt(match.groups.srcLine.trim());
+        this.hunkLength = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
+
+        this.effectiveLine = this.startingLine;
+
+        this.file = file;
+
+        this.suggestionBufferMode = undefined;
+        this.suggestionBuffer = undefined;
+        this.suggestions = [];
+    }
+
+    #commitSuggestionBuffer = function() {
+        if (this.suggestionBuffer !== undefined &&
+            this.suggestionBufferMode !== this.#contextPrefix) {
+
+            this.suggestions.push(this.suggestionBuffer);
+            this.suggestionBuffer = undefined;
+            this.suggestionBufferMode = undefined;
+        }
+    }
+
+    #stageNewSuggestionBufferIfNeeded = function(mode) {
+        if (this.suggestionBufferMode !== mode ||
+            (this.suggestionBufferMode === this.#contextPrefix && mode === this.#contextPrefix)) {
+            this.#commitSuggestionBuffer();
+            this.suggestionBuffer = new Suggestion(this.file, this.effectiveLine);
+            this.suggestionBufferMode = mode;
+        }
+    }
+
+    processLine(line) {
+        if (line.startsWith(this.#contextPrefix)) {
+            if (this.suggestionBufferMode == this.#delPrefix ||
+                this.suggestionBufferMode == this.#contextPrefix ||
+                (this.suggestionBufferMode == this.#addPrefix && this.suggestionBuffer.hasContext)) {
+                this.#stageNewSuggestionBufferIfNeeded(this.#contextPrefix);
+            }
+
+            this.suggestionBuffer.addContext(line.substring(this.#contextPrefix.length))
+            this.effectiveLine++;
+        } else if (line.startsWith(this.#delPrefix)) {
+            this.#stageNewSuggestionBufferIfNeeded(this.#delPrefix);
+            this.suggestionBuffer.removeLine();
+            this.effectiveLine++;
+        } else if (line.startsWith(this.#addPrefix)) {
+            if (this.suggestionBufferMode == this.#contextPrefix) {
+                // Take ownership of the current buffer.
+                this.suggestionBufferMode = this.#addPrefix;
+            }
+
+            this.#stageNewSuggestionBufferIfNeeded(this.#addPrefix);
+            this.suggestionBuffer.addLine(line.substring(this.#addPrefix.length));
+
+        } else {
+            // Hunk has finished.
+            this.#commitSuggestionBuffer();
+            return false;
+        }
+
+        return true;
+    }
+}
+
 async function getAllSuggestions(diffFile) {
-    let diffContents = await readFile(diffFile);
+    let diffContents = await actionUtils.readFile(diffFile);
 
     let allSuggestions = [];
-    let currentSuggestion = undefined;
+    let hunkTransformer = undefined;
 
     let srcFile = undefined;
     let dstFile = undefined;
 
     let inFile = false;
-    let inHunk = false;
 
     const srcFilePrefix = "--- ";
     const dstFilePrefix = "+++ ";
-
-    const contextPrefix = " ";
-    const delPrefix = "-";
-    const addPrefix = "+";
-
-    // https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html
     const hunkPrefix = "@@ ";
-    const hunkRegex=/^@@ -(?<srcLine>\d+),?(?<srcLength>\d+)* \+(?<dstLine>\d+),?(?<dstLength>\d+)? @@/m
 
     const diffLines = diffContents.split(/\r?\n/);
     for (const line of diffLines)
     {
-        if (inHunk) {
-            if (line.startsWith(contextPrefix)) {
-                currentSuggestion.addLine(line.substring(contextPrefix.length));
-                continue;
-            } else if (line.startsWith(delPrefix)) {
-                continue;
-            } else if (line.startsWith(addPrefix)) {
-                currentSuggestion.addLine(line.substring(addPrefix.length));
+        if (hunkTransformer !== undefined) {
+            if (hunkTransformer.processLine(line)) {
                 continue;
             } else {
-                // Finished the hunk, save it and proceed with the line processing
-                allSuggestions.push(currentSuggestion);
-                currentSuggestion = undefined;
-                inHunk = false;
+                // Hunk is done.
+                allSuggestions = allSuggestions.concat(hunkTransformer.suggestions);
             }
         }
 
@@ -227,13 +285,7 @@ async function getAllSuggestions(diffFile) {
                 throw new Error("Invalid diff file.")
             }
 
-            inHunk = true;
-            hasContext = false;
-            const match = line.match(hunkRegex);
-            const startingLine = parseInt(match.groups.srcLine.trim());
-            const numLinesToChange = match.groups.srcLength === undefined ? 0 : parseInt(match.groups.srcLength.trim()) - 1;
-
-            currentSuggestion = new Suggestion(dstFile, startingLine, numLinesToChange);
+            hunkTransformer = new HunkTransformer(srcFile, line);
         }
     }
 
