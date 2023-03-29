@@ -644,6 +644,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The array of meters for metrics to collect..
+        /// </summary>
+        public static string DisplayAttributeDescription_CollectLiveMetricsOptions_Meters {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_CollectLiveMetricsOptions_Meters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The array of providers for metrics to collect..
         /// </summary>
         public static string DisplayAttributeDescription_CollectLiveMetricsOptions_Providers {
@@ -1031,6 +1040,60 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The threshold level the instrument must maintain (or higher) for the specified duration. Either GreaterThan or LessThan (or both) must be specified..
+        /// </summary>
+        public static string DisplayAttributeDescription_EventMeterOptions_GreaterThan {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_GreaterThan", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When monitoring a histogram, this dictates which percentile to compare against using the value in GreaterThan/LessThan - by default, the percentile can be 50, 95, or 99..
+        /// </summary>
+        public static string DisplayAttributeDescription_EventMeterOptions_HistogramPercentile {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_HistogramPercentile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The name of the instrument to monitor..
+        /// </summary>
+        public static string DisplayAttributeDescription_EventMeterOptions_InstrumentName {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_InstrumentName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The threshold level the instrument must maintain (or lower) for the specified duration. Either GreaterThan or LessThan (or both) must be specified..
+        /// </summary>
+        public static string DisplayAttributeDescription_EventMeterOptions_LessThan {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_LessThan", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The name of the meter that provides the instrument information..
+        /// </summary>
+        public static string DisplayAttributeDescription_EventMeterOptions_MeterName {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_MeterName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The sliding time window in which the instrument must maintain its value as specified by the threshold levels in GreaterThan and LessThan..
+        /// </summary>
+        public static string DisplayAttributeDescription_EventMeterOptions_SlidingWindowDuration {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_SlidingWindowDuration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The arguments to pass to the executable..
         /// </summary>
         public static string DisplayAttributeDescription_ExecuteOptions_Arguments {
@@ -1212,20 +1275,29 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Names of the custom instruments..
+        /// </summary>
+        public static string DisplayAttributeDescription_MeterConfiguration_InstrumentNames {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_MeterConfiguration_InstrumentNames", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Name of the custom meter..
+        /// </summary>
+        public static string DisplayAttributeDescription_MeterConfiguration_MeterName {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_MeterConfiguration_MeterName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Name of custom metrics counters..
         /// </summary>
         public static string DisplayAttributeDescription_MetricProvider_CounterNames {
             get {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricProvider_CounterNames", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The type of metrics this provider consumes.
-        /// </summary>
-        public static string DisplayAttributeDescription_MetricProvider_MetricType {
-            get {
-                return ResourceManager.GetString("DisplayAttributeDescription_MetricProvider_MetricType", resourceCulture);
             }
         }
         
@@ -1280,6 +1352,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
         public static string DisplayAttributeDescription_MetricsOptions_MaxTimeSeries {
             get {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_MaxTimeSeries", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Names of meters to collect from the System.Diagnostics.Metrics provider..
+        /// </summary>
+        public static string DisplayAttributeDescription_MetricsOptions_Meters {
+            get {
+                return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_Meters", resourceCulture);
             }
         }
         

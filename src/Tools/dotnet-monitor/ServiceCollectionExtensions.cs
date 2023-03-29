@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Diagnostics.Monitoring.EventPipe.Triggers;
 using Microsoft.Diagnostics.Monitoring.EventPipe.Triggers.AspNet;
 using Microsoft.Diagnostics.Monitoring.EventPipe.Triggers.EventCounter;
+using Microsoft.Diagnostics.Monitoring.EventPipe.Triggers.SystemDiagnosticsMetrics;
 using Microsoft.Diagnostics.Monitoring.Options;
 using Microsoft.Diagnostics.Monitoring.WebApi;
+using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
 using Microsoft.Diagnostics.Tools.Monitor.Auth;
 using Microsoft.Diagnostics.Tools.Monitor.Auth.ApiKey;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules;
@@ -23,7 +25,10 @@ using Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.Configuration;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.S3;
+using Microsoft.Diagnostics.Tools.Monitor.Exceptions;
+using Microsoft.Diagnostics.Tools.Monitor.LibrarySharing;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
+using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -130,12 +135,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             services.RegisterCollectionRuleTrigger<CollectionRules.Triggers.EventCounterTriggerFactory, GCHeapSizeOptions>(KnownCollectionRuleTriggers.GCHeapSize);
             services.RegisterCollectionRuleTrigger<CollectionRules.Triggers.EventCounterTriggerFactory, ThreadpoolQueueLengthOptions>(KnownCollectionRuleTriggers.ThreadpoolQueueLength);
             services.RegisterCollectionRuleTrigger<StartupTriggerFactory>(KnownCollectionRuleTriggers.Startup);
+            services.RegisterCollectionRuleTrigger<CollectionRules.Triggers.EventMeterTriggerFactory, EventMeterOptions>(KnownCollectionRuleTriggers.EventMeter);
 
             services.AddSingleton<EventPipeTriggerFactory>();
             services.AddSingleton<ITraceEventTriggerFactory<EventCounterTriggerSettings>, Monitoring.EventPipe.Triggers.EventCounter.EventCounterTriggerFactory>();
             services.AddSingleton<ITraceEventTriggerFactory<AspNetRequestDurationTriggerSettings>, Monitoring.EventPipe.Triggers.AspNet.AspNetRequestDurationTriggerFactory>();
             services.AddSingleton<ITraceEventTriggerFactory<AspNetRequestCountTriggerSettings>, Monitoring.EventPipe.Triggers.AspNet.AspNetRequestCountTriggerFactory>();
             services.AddSingleton<ITraceEventTriggerFactory<AspNetRequestStatusTriggerSettings>, Monitoring.EventPipe.Triggers.AspNet.AspNetRequestStatusTriggerFactory>();
+            services.AddSingleton<ITraceEventTriggerFactory<SystemDiagnosticsMetricsTriggerSettings>, Monitoring.EventPipe.Triggers.SystemDiagnosticsMetrics.SystemDiagnosticsMetricsTriggerFactory>();
 
             services.AddSingleton<CollectionRulesConfigurationProvider>();
             services.AddSingleton<ICollectionRuleActionOperations, CollectionRuleActionOperations>();
@@ -248,12 +255,30 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             return services;
         }
 
+        public static IServiceCollection ConfigureLibrarySharing(this IServiceCollection services)
+        {
+            services.AddSingleton<SharedLibraryService>();
+            services.AddSingletonForwarder<ISharedLibraryService, SharedLibraryService>();
+            services.AddHostedServiceForwarder<SharedLibraryService>();
+            services.TryAddSingleton<ISharedLibraryInitializer, DefaultSharedLibraryInitializer>();
+            return services;
+        }
+
         public static IServiceCollection ConfigureProfiler(this IServiceCollection services)
         {
             services.AddSingleton<ProfilerService>();
-            services.AddHostedServiceForwarder<ProfilerService>();
             services.AddSingleton<IEndpointInfoSourceCallbacks, ProfilerEndpointInfoSourceCallbacks>();
-            services.TryAddSingleton<ISharedLibraryInitializer, DefaultSharedLibraryInitializer>();
+            return services;
+        }
+
+        public static IServiceCollection ConfigureExceptions(this IServiceCollection services)
+        {
+            services.AddSingleton<IExceptionsOperationFactory, ExceptionsOperationFactory>();
+            // The exceptions store for the default process; long term, create a store for each process
+            // that wants to participate in exception collection.
+            services.AddSingleton<IExceptionsStore, ExceptionsStore>();
+            services.AddHostedService<ExceptionsService>();
+            services.AddSingleton<StartupHookValidator>();
             return services;
         }
 
