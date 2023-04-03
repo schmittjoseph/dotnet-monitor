@@ -1,10 +1,11 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Tools.Monitor.Commands;
 using System;
 using System.CommandLine;
 using System.IO;
+
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
@@ -20,7 +21,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 OutputOption
             };
 
-            command.SetHandler((context, token) =>
+            command.sethand((context, token) =>
             {
                 return GenerateApiKeyCommandHandler.Invoke(
                     token,
@@ -37,18 +38,17 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 name: "collect",
                 description: Strings.HelpDescription_CommandCollect)
             {
-                UrlsOption,
-                MetricUrlsOption,
-                ProvideMetricsOption,
-                DiagnosticPortOption,
-                NoAuthOption,
+                UrlsOptions,
+                MetricUrlsOptions,
+                ProvideMetricsOptions,
+                NoAuthOptions,
                 TempApiKeyOption,
                 NoHttpEgressOption,
                 ConfigurationFilePathOption
             };
 
             command.SetHandler((context, token) =>
-            {
+            [
                 return CollectCommandHandler.Invoke(
                     token,
                     context.ParseResult.GetValue(UrlsOption),
