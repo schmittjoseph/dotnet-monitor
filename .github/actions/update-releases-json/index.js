@@ -104,14 +104,13 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
     const releaseMajorMinorVersion = `${majorVersion}.${minorVersion}`;
 
     // See if we're updating a release
-    const existingRelease = versionsData.releases[releaseMajorMinorVersion];
+    let existingRelease = versionsData.releases[releaseMajorMinorVersion];
 
     // Check if we're promoting a preview to RTM, if so re-create everything
-    let isPromotion = false;
     if (iteration === undefined) {
         const [_, __, ___, existingIteration] = actionUtils.splitVersionTag(releasePayload.tag_name);
         if (existingIteration !== undefined) {
-            isPromotion = true;
+            existingRelease = undefined;
         }
     }
 
@@ -122,11 +121,11 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
         supportedFrameworks: supportedFrameworks.split(' ')
     };
 
-    if (existingRelease === undefined || isPromotion === true) {
-        if (iteration !== undefined) {
-            versionsData.preview.unshift(releaseMajorMinorVersion);
-        } else {
+    if (existingRelease === undefined) {
+        if (iteration === undefined) {
             versionsData.supported.unshift(releaseMajorMinorVersion);
+        } else {
+            versionsData.preview.unshift(releaseMajorMinorVersion);
         }
     } else if (iteration !== undefined) {
         newRelease.minorReleaseDate = existingRelease.minorReleaseDate;
