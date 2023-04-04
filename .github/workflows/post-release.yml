@@ -96,7 +96,7 @@ jobs:
         id: build
         run: |
           ./build.sh -ci -c Release -skipnative
-          supported_tfms=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net")
+          supported_tfms=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
           echo "supported_tfms=$supported_tfms" >> "$GITHUB_OUTPUT"
 
   update-releases-json:
