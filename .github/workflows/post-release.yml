@@ -179,6 +179,6 @@ jobs:
           commit_message: Update releases information for ${{ github.ref_name }}
           body: Update release information.
           branch_name: ${{ env.TARGET_BRANCH_POSTFIX }}
-          fail_if_files_unchanged: ${{ github.event.release }} # If we're responding to a release, we must have updates.
+          fail_if_files_unchanged: ${{ github.event_name == 'release' }} # If we're responding to a release, we must have updates.
           update_if_already_exists: ${{ steps.SxS-check.outputs.result }}
           auth_token: ${{ secrets.GITHUB_TOKEN }}
