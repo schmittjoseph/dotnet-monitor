@@ -1,14 +1,10 @@
 run-name: '[${{ github.ref_name }}] Post release'
 
 on:
-  # Run on every release to add new version information.
-  release:
+  release: # Run on every release to add new version information.
     types: [released]
-  # Run once a week to detect and manage out-of-support versions.
-  schedule:
-    # Run at the start of every Wednesday.
-    # Most releases will be made on Patch Tuesdays and so will most likely go out-of-support on Wednesday.
-    - cron '0 0 * * 3'
+  schedule: # Run once a week to detect and manage out-of-support versions.
+    - cron '0 0 * * 3' # Run at the start of every Wednesday as most releases are made on Patch Tuesday.
 
 
 # Only process one release at a time so we can generate cumulative results in the same PR.
