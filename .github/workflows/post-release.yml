@@ -25,12 +25,9 @@ jobs:
         with:
           result-encoding: string
           script: |
-            console.log(context.payload.release);
-            const regex = /v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)/;
-            const releaseVersion = regex.exec(context.payload.release.tag_name);
-            if (releaseVersion == null) throw "Error: Unexpected tag format";
-
-            return `shipped/v${releaseVersion.groups.major}.${releaseVersion.groups.minor}`;
+            const actionUtils = require('./github/actions/action-utils.js')
+            const [major, minor] = actionUtils.splitVersionTag(context.payload.release.tag_name)
+            return `shipped/v${major}.${minor}`;
 
       - name: Create or update shipped branch
         uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
@@ -81,11 +78,11 @@ jobs:
               content: ''
             });
   # Easier than trying to parse our output, just spin a managed build and analyze the output.
-  calculate-supported-tfms:
+  calculate-supported-frameworks:
     name: 'Calculated supported frameworks'
     runs-on: ubuntu-latest
     outputs:
-      supported-tfms: ${{ steps.build.outputs.supported_tfms }}
+      result: ${{ steps.scan.outputs.supported_frameworks }}
 
     steps:
       - name: Checkout
@@ -97,24 +94,57 @@ jobs:
         id: build
         run: |
           ./build.sh -ci -c Release -skipnative
-          supported_tfms=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
-          echo "supported_tfms=$supported_tfms" >> "$GITHUB_OUTPUT"
+
+      - name: Scan supported frameworks
+        id: scan
+        run: |
+          supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
+          echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
 
   update-releases-json:
     name: 'Update release info'
-    needs: calculate-supported-tfms
+    needs: calculate-supported-frameworks
     runs-on: ubuntu-latest
+    env:
+      BASE_BRANCH: main
+      TARGET_BRANCH_POSTFIX: postRelease/trigger
     permissions:
       contents: write
       pull-requests: write
       discussions: write
 
     steps:
+      - name: Check for SxS release
+        id: SxS-check
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        with:
+          retries: 3
+          result-encoding: json
+          script: |
+            try {
+              const prs = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `dotnet:bot/${process.env.TARGET_BRANCH_POSTFIX}`,
+                base: process.env.BASE_BRANCH
+              });
+
+              if (prs !== undefined && prs.length > 0) {
+                // Pending update exists!
+                process.env.BASE_BRANCH = `bot/${process.env.TARGET_BRANCH_POSTFIX}`
+                return true;
+              }
+            } catch {
+            }
+
+            return false;
+
       - name: Checkout
         uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
         with:
           persist-credentials: true # We need to persist credentials inorder to open a PR.
-          ref: manage-released-versions
+          ref: ${{ env.BASE_BRANCH }}
 
       - name: Update releases.json
         uses: ./.github/actions/update-releases-json
@@ -122,7 +152,7 @@ jobs:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
           releases_json_file: ./.github/releases.json
           end_of_support_discussion_category: Announcements
-          supported_frameworks: ${{needs.calculate-supported-tfms.outputs.supported-tfms}}
+          supported_frameworks: ${{needs.calculate-supported-frameworks.outputs.result}}
 
       - name: Update releases.md
         uses: ./.github/actions/update-releases-md
@@ -135,8 +165,9 @@ jobs:
         with:
           files_to_commit: ./.github/releases.json ./documentation/releases.md
           title: "Update releases information"
-          commit_message: Update releases information
+          commit_message: Update releases information for ${{ github.ref_name }}
           body: Test
-          branch_name: releaseInfo/trigger
+          branch_name: ${{ env.TARGET_BRANCH_POSTFIX }}
           fail_if_files_unchanged: true
+          update_if_already_exists: ${{ steps.SxS-check.outputs.result }}
           auth_token: ${{ secrets.GITHUB_TOKEN }}
