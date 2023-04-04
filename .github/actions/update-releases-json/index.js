@@ -100,9 +100,10 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
         supportedFrameworks: supportedFrameworks.split(' ')
     };
 
-    if (existingRelease !== undefined) {
-        newRelease.minorReleaseDate = existingRelease.minorReleaseDate;
+    if (existingRelease === undefined) {
         versionsData.supported.push(releaseMajorMinorVersion);
+    } else {
+        newRelease.minorReleaseDate = existingRelease.minorReleaseDate;
     }
 
     versionsData.releases[releaseMajorMinorVersion] = newRelease;
