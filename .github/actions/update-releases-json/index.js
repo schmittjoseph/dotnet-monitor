@@ -102,17 +102,13 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
 
     if (existingRelease !== undefined) {
         newRelease.minorReleaseDate = existingRelease.minorReleaseDate;
+        versionsData.supported.push(releaseMajorMinorVersion);
     }
 
     versionsData.releases[releaseMajorMinorVersion] = newRelease;
 
-    // We support it!
-    if (existingRelease === undefined) {
-        versionsData.supported.push(releaseMajorMinorVersion);
-    }
-
     // Check if we're going to be putting a version out-of-support.
-    if (minorVersion > 0) {
+    if (minorVersion > 0 && patchVersion === 0) {
         const endOfSupportDate = new Date(releaseDate.valueOf());
         endOfSupportDate.setMonth(endOfSupportDate.getMonth() + versionsData.policy.additionalMonthsOfSupportOnNewMinorRelease);
 
@@ -170,7 +166,6 @@ async function announceVersionHasEndOfSupport(ocotkit, category, repoName, repoO
 
     discussionBody = discussionBody.replace("${endOfSupportDate}", friendlyDate);
     discussionBody = discussionBody.replace("${majorMinorVersion}", `${major}.${minor}`); // todo: strio
-    discussionBody = discussionBody.replace("${nextVersion}", "?");
 
     // https://docs.github.com/en/graphql/reference/mutations#creatediscussion
     // https://docs.github.com/en/graphql/reference/input-objects#creatediscussioninput
