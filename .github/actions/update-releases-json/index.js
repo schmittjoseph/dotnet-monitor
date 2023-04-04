@@ -43,13 +43,13 @@ function cleanupSupportedVersions(versionsData) {
     for (const releaseKey of versionsData.supported) {
         const releaseData = versionsData.releases[releaseKey];
         if (releaseData.outOfSupportDate === undefined) {
-            stillSupportedVersion.push(releaseKey);
+            stillSupportedVersion.unshift(releaseKey);
             continue;
         }
 
         const endOfSupportDate = new Date(releaseData.outOfSupportDate);
         if (currentDate >= endOfSupportDate) {
-            versionsData.unsupported.push(releaseKey);
+            versionsData.unsupported.unshift(releaseKey);
         } else {
             stillSupportedVersion.push(releaseKey);
         }
