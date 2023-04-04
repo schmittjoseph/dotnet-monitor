@@ -1,12 +1,19 @@
-name: Track shipped versions
+run-name: '[${{ github.context.payload.release.tag_name }}] Post release'
+
 on:
   release:
     types: [released]
+
+# Only process one release at a time so we can generate cumulative results.
+concurrency:
+  group: post-release-workflow
+  cancel-in-progress: false
 
 permissions: {}
 
 jobs:
   update-shipping-branch:
+    name: '[${{ github.ref_name }}] Update shipping branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,3 +80,60 @@ jobs:
               path: '.mirror',
               content: ''
             });
+  # Easier than trying to parse our output, just spin a managed build and analyze the output.
+  calculate-supported-tfms:
+    if: github.repository == 'dotnet/dotnet-monitor'
+    name: '[${{ github.ref_name }}] Build'
+    runs-on: ubuntu-latest
+    outputs:
+      supported-tfms: ${{ steps.build.outputs.supported_tfms }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        with:
+          persist-credentials: false
+
+      - name: Build
+        id: build
+        run: |
+          ./build.sh -ci -c Release -skipnative
+          supported_tfms=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net")
+          echo "supported_tfms=$supported_tfms" >> "$GITHUB_OUTPUT"
+
+  update-releases-json:
+    name: 'Update release info'
+    needs: calculate-supported-tfms
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        with:
+          persist-credentials: true # We need to persist credentials inorder to open a PR.
+          ref: main
+
+      - name: Update releases.json
+        uses: ./.github/actions/update-releases-json
+        with:
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
+          releases_json_file: ./.github/releases.json
+          end_of_support_discussion_category: General
+          supported_frameworks: ${{needs.calculate-supported-tfms.outputs.supported-tfms}}
+
+      - name: Update releases.md
+        uses: ./.github/actions/update-releases-md
+        with:
+          releases_json_file: ./.github/releases.json
+          releases_md_file: ./documentation/releases.md
+
+      - name: Open PR
+        uses: ./.github/actions/open-pr
+        with:
+          files_to_commit: ./.github/releases.json ./documentation/releases.md
+          title: "Update releases information"
+          commit_message: Update releases information
+          body: Test
+          branch_name: releaseInfo/trigger
+          fail_if_files_unchanged: true
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
