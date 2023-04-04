@@ -1,4 +1,4 @@
-run-name: '[${{ github.context.payload.release.tag_name }}] Post release'
+run-name: '[${{ github.ref_name }}] Post release'
 
 on:
   release:
@@ -13,7 +13,7 @@ permissions: {}
 
 jobs:
   update-shipping-branch:
-    name: '[${{ github.context.payload.release.tag_name }}] Update shipping branch'
+    name: '[${{ github.ref_name }}] Update shipping branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
