@@ -19,6 +19,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        with:
+          persist-credentials: false
+
       - name: Calculate branch name
         uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
         id: calculate-branch-name
