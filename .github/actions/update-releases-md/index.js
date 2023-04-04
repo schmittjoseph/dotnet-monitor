@@ -1,7 +1,7 @@
 const actionUtils = require('../action-utils.js');
 
 async function run() {
-    const [core] = await actionUtils.installAndRequirePackages("@actions/core");
+    const [core, github] = await actionUtils.installAndRequirePackages("@actions/core", "@actions/github");
 
     const versionsDataFile = core.getInput("releases_json_file", { required: true });
     const outputFile = core.getInput("releases_md_file", { required: true });
