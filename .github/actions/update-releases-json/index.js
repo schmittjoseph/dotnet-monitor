@@ -82,6 +82,8 @@ function cleanupUnsupportedVersions(versionsData) {
 // Returns the release that is now out-of-support, if any.
 function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFrameworks, versionsData) {
     const releaseDate = new Date(releasePayload.published_at);
+    // To keep things simple mark the release date as midnight.
+    releaseDate.setHours(0, 0, 0, 0);
 
     const [majorVersion, minorVersion, patchVersion] = actionUtils.splitVersionTag(releasePayload.tag_name);
 
