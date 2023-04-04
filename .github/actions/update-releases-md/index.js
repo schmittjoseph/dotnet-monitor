@@ -39,7 +39,12 @@ function generateReleasesMdContent(versionsData) {
         outOfSupportReleasesTable += `${generateTableRow(release, true)}\n`;
     }
 
-    let content ='# Releases\n\n';
+    let content =`
+    ### Was this documentation helpful? [Share feedback](https://www.research.net/r/DGDQWXH?src=documentation%2Freleases)
+
+    # Releases
+
+`;
 
     if (supportedReleasesTable.length > 0) {
         content += `## Supported versions\n\n${generateTableHeader(true)}\n${supportedReleasesTable}\n\n`;
