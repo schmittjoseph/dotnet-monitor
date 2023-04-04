@@ -13,7 +13,7 @@ permissions: {}
 
 jobs:
   update-shipping-branch:
-    name: '[${{ github.ref_name }}] Update shipping branch'
+    name: 'Update shipping branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -82,7 +82,7 @@ jobs:
             });
   # Easier than trying to parse our output, just spin a managed build and analyze the output.
   calculate-supported-tfms:
-    name: '[${{ github.ref_name }}] Build'
+    name: 'Calculated supported frameworks'
     runs-on: ubuntu-latest
     outputs:
       supported-tfms: ${{ steps.build.outputs.supported_tfms }}
