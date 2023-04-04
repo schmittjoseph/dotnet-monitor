@@ -40,9 +40,9 @@ function generateReleasesMdContent(versionsData) {
     }
 
     let content =`
-    ### Was this documentation helpful? [Share feedback](https://www.research.net/r/DGDQWXH?src=documentation%2Freleases)
+### Was this documentation helpful? [Share feedback](https://www.research.net/r/DGDQWXH?src=documentation%2Freleases)
 
-    # Releases
+# Releases
 
 `;
 
