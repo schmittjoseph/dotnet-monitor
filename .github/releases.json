@@ -4,7 +4,8 @@
     "cleanupUnsupportedReleasesAfterMonths": 12
   },
   "supported": [
-    "13.0"
+    "13.0",
+    "13.1"
   ],
   "unsupported": [],
   "releases": {
@@ -14,6 +15,18 @@
       "htmlUrl": "https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.0.0",
       "minorReleaseDate": "2023-04-04T18:11:26.000Z",
       "patchReleaseDate": "2023-04-04T18:11:26.000Z",
+      "supportedFrameworks": [
+        "net6.0",
+        "net8.0"
+      ],
+      "outOfSupportDate": "2023-07-04T18:21:42.000Z"
+    },
+    "13.1": {
+      "currentVersion": "13.1.0",
+      "tag": "v13.1.0",
+      "htmlUrl": "https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.1.0",
+      "minorReleaseDate": "2023-04-04T18:21:42.000Z",
+      "patchReleaseDate": "2023-04-04T18:21:42.000Z",
       "supportedFrameworks": [
         "net6.0",
         "net8.0"
