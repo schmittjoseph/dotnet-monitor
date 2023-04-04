@@ -98,7 +98,7 @@ jobs:
       - name: Build
         id: build
         run: |
-          ./build.sh -ci -c Release -skipnative
+          # ./build.sh -ci -c Release -skipnative
 
       - name: Scan supported frameworks
         id: scan
@@ -106,7 +106,7 @@ jobs:
           supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
           echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
 
-  update-releases-json:
+  update-release-information:
     name: 'Update release info'
     needs: calculate-supported-frameworks
     runs-on: ubuntu-latest
@@ -135,7 +135,10 @@ jobs:
                 base: process.env.BASE_BRANCH
               });
 
+              console.log(prs);
+
               if (prs !== undefined && prs.length > 0) {
+                console.log("Updating!");
                 // Pending update exists!
                 core.exportVariable('BASE_BRANCH', `bot/${process.env.TARGET_BRANCH_POSTFIX}`);
                 return true;
@@ -169,9 +172,9 @@ jobs:
         uses: ./.github/actions/open-pr
         with:
           files_to_commit: ./.github/releases.json ./documentation/releases.md
-          title: "Update releases information"
+          title: "Update release information"
           commit_message: Update releases information for ${{ github.ref_name }}
-          body: Test
+          body: Update release information.
           branch_name: ${{ env.TARGET_BRANCH_POSTFIX }}
           fail_if_files_unchanged: true
           update_if_already_exists: ${{ steps.SxS-check.outputs.result }}
