@@ -6,7 +6,8 @@
   "supported": [
     "13.0",
     "13.1",
-    "13.2"
+    "13.2",
+    "14.4"
   ],
   "unsupported": [],
   "releases": {
@@ -43,6 +44,16 @@
       "supportedFrameworks": [
         "net6.0",
         "net8.0"
+      ]
+    },
+    "14.4": {
+      "currentVersion": "14.4.2",
+      "tag": "v14.4.2",
+      "htmlUrl": "https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v14.4.2",
+      "minorReleaseDate": "2023-04-04T00:00:00.000Z",
+      "patchReleaseDate": "2023-04-04T00:00:00.000Z",
+      "supportedFrameworks": [
+        "net5.0"
       ]
     }
   }
