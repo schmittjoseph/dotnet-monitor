@@ -137,7 +137,7 @@ jobs:
 
               if (prs !== undefined && prs.length > 0) {
                 // Pending update exists!
-                process.env.BASE_BRANCH = `bot/${process.env.TARGET_BRANCH_POSTFIX}`
+                core.exportVariable('BASE_BRANCH', `bot/${process.env.TARGET_BRANCH_POSTFIX}`);
                 return true;
               }
             } catch {
