@@ -106,7 +106,7 @@ jobs:
     needs: calculate-supported-frameworks
     runs-on: ubuntu-latest
     env:
-      BASE_BRANCH: main
+      BASE_BRANCH: manage-released-versions
       TARGET_BRANCH_POSTFIX: postRelease/trigger
     permissions:
       contents: write
