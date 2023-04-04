@@ -6,7 +6,9 @@
   "supported": [
     "13.0",
     "13.1",
-    "13.2"
+    "13.2",
+    "14.4",
+    "15.0"
   ],
   "unsupported": [],
   "releases": {
@@ -43,6 +45,26 @@
       "supportedFrameworks": [
         "net6.0",
         "net8.0"
+      ]
+    },
+    "14.4": {
+      "currentVersion": "14.4.3",
+      "tag": "v14.4.3",
+      "htmlUrl": "https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v14.4.3",
+      "minorReleaseDate": "2023-04-04T00:00:00.000Z",
+      "patchReleaseDate": "2023-04-04T00:00:00.000Z",
+      "supportedFrameworks": [
+        "net5.0"
+      ]
+    },
+    "15.0": {
+      "currentVersion": "15.0.1",
+      "tag": "v15.0.1",
+      "htmlUrl": "https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v15.0.1",
+      "minorReleaseDate": "2023-04-04T00:00:00.000Z",
+      "patchReleaseDate": "2023-04-04T00:00:00.000Z",
+      "supportedFrameworks": [
+        "net5.0"
       ]
     }
   }
