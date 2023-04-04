@@ -18,9 +18,9 @@ async function run() {
 }
 
 function generateReleasesMdContent(versionsData) {
-    let supportedReleasesTable = undefined;
-    let previewReleasesTable = undefined;
-    let outOfSupportReleasesTable = undefined;
+    let supportedReleasesTable = '';
+    let previewReleasesTable = '';
+    let outOfSupportReleasesTable = '';
 
     for (const releaseKey of versionsData.supported) {
         const release = versionsData.releases[releaseKey];
@@ -41,15 +41,15 @@ function generateReleasesMdContent(versionsData) {
 
     let content ='# Releases\n\n';
 
-    if (supportedReleasesTable !== undefined) {
+    if (supportedReleasesTable.length > 0) {
         content += `## Supported versions\n\n${generateTableHeader(true)}\n${supportedReleasesTable}\n\n`;
     }
 
-    if (outOfSupportReleasesTable !== undefined) {
+    if (outOfSupportReleasesTable.length > 0) {
         content += `## Out of support versions\n\n${generateTableHeader(true)}\n${outOfSupportReleasesTable}\n\n`;
     }
 
-    if (previewReleasesTable !== undefined) {
+    if (previewReleasesTable.length > 0) {
         content += `## Preview versions\n\n${generateTableHeader(false)}\n${previewReleasesTable}\n\n`;
     }
 
