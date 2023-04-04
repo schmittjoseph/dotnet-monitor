@@ -103,8 +103,8 @@ jobs:
       - name: Scan supported frameworks
         id: scan
         run: |
-          supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
-          echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
+          # supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
+          echo "supported_frameworks=net5.0" >> "$GITHUB_OUTPUT"
 
   update-release-information:
     name: 'Update release info'
