@@ -33,7 +33,8 @@ jobs:
         with:
           result-encoding: string
           script: |
-            console.log(github.event)
+            console.log(context);
+            console.log(context.payload);
             const actionUtils = require('./.github/actions/action-utils.js')
             const [major, minor] = actionUtils.splitVersionTag(context.payload.release.tag_name)
             return `shipped/v${major}.${minor}`;
