@@ -26,6 +26,7 @@ async function run() {
 
         }
 
+        cleanupPreviewVersions(versionsData);
         cleanupSupportedVersions(versionsData);
         cleanupUnsupportedVersions(versionsData);
 
@@ -34,6 +35,20 @@ async function run() {
     } catch (error) {
         core.setFailed(error);
     }
+}
+
+function cleanupPreviewVersions(versionsData) {
+    let versionsStillInPreview = [];
+
+    for (const releaseKey of versionsData.preview) {
+        const releaseData = versionsData.releases[releaseKey];
+        const [_, __, ___, iteration] = actionUtils.splitVersionTag(releaseData.tag);
+        if (iteration !== undefined) {
+            versionsStillInPreview.push(releaseKey);
+        }
+    }
+
+    versionsData.preview = versionsStillInPreview;
 }
 
 function cleanupSupportedVersions(versionsData) {
@@ -84,33 +99,43 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
     // To keep things simple mark the release date as midnight.
     releaseDate.setHours(0, 0, 0, 0);
 
-    const [majorVersion, minorVersion, patchVersion] = actionUtils.splitVersionTag(releasePayload.tag_name);
+    const [majorVersion, minorVersion, patchVersion, iteration] = actionUtils.splitVersionTag(releasePayload.tag_name);
 
     const releaseMajorMinorVersion = `${majorVersion}.${minorVersion}`;
 
     // See if we're updating a release
     const existingRelease = versionsData.releases[releaseMajorMinorVersion];
 
-    // Patch it.
+    // Check if we're promoting a preview to RTM, if so re-create everything
+    let isPromotion = false;
+    if (iteration === undefined) {
+        const [_, __, ___, existingIteration] = actionUtils.splitVersionTag(releasePayload.tag_name);
+        if (existingIteration !== undefined) {
+            isPromotion = true;
+        }
+    }
+
     const newRelease = {
-        currentVersion: `${majorVersion}.${minorVersion}.${patchVersion}`,
         tag: releasePayload.tag_name,
-        htmlUrl: releasePayload.html_url,
         minorReleaseDate: releaseDate.toISOString(),
         patchReleaseDate: releaseDate.toISOString(),
         supportedFrameworks: supportedFrameworks.split(' ')
     };
 
-    if (existingRelease === undefined) {
-        versionsData.supported.push(releaseMajorMinorVersion);
-    } else {
+    if (existingRelease === undefined || isPromotion === true) {
+        if (iteration !== undefined) {
+            versionsData.preview.push(releaseMajorMinorVersion);
+        } else {
+            versionsData.supported.push(releaseMajorMinorVersion);
+        }
+    } else if (iteration !== undefined) {
         newRelease.minorReleaseDate = existingRelease.minorReleaseDate;
     }
 
     versionsData.releases[releaseMajorMinorVersion] = newRelease;
 
     // Check if we're going to be putting a version out-of-support.
-    if (minorVersion > 0 && patchVersion === 0) {
+    if (minorVersion > 0 && patchVersion === 0 && iteration === undefined) {
         const endOfSupportDate = new Date(releaseDate.valueOf());
         endOfSupportDate.setMonth(endOfSupportDate.getMonth() + versionsData.policy.additionalMonthsOfSupportOnNewMinorRelease);
 
