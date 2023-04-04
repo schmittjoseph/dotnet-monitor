@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE_BRANCH: manage-released-versions
-      TARGET_BRANCH_POSTFIX: postRelease
+      TARGET_BRANCH_POSTFIX: release-info
     permissions:
       contents: write
       pull-requests: write
