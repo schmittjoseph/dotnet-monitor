@@ -27,16 +27,16 @@ function generateReleasesMdContent(versionsData) {
         const [major, minor, patch, iteration] = actionUtils.splitVersionTag(release.tag);
         if (iteration !== undefined) {
             // It's a preview release
-            previewReleasesTable += `\n${generateTableRow(release, false)}`;
+            previewReleasesTable += `${generateTableRow(release, false)}\n`;
         } else {
             // It's an RTM release
-            supportedReleasesTable += `\n${generateTableRow(release, true)}`;
+            supportedReleasesTable += `${generateTableRow(release, true)}\n`;
         }
     }
 
     for (const releaseKey of versionsData.unsupported) {
         const release = versionsData.releases[releaseKey];
-        outOfSupportReleasesTable += `\n${generateTableRow(release, true)}`;
+        outOfSupportReleasesTable += `${generateTableRow(release, true)}\n`;
     }
 
     let content ='# Releases\n\n';
