@@ -122,7 +122,7 @@ jobs:
         with:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
           releases_json_file: ./.github/releases.json
-          end_of_support_discussion_category: General
+          end_of_support_discussion_category: Announcements
           supported_frameworks: ${{needs.calculate-supported-tfms.outputs.supported-tfms}}
 
       - name: Update releases.md
