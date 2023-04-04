@@ -105,6 +105,9 @@ jobs:
     name: 'Update release info'
     needs: calculate-supported-tfms
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      discussions: write
 
     steps:
       - name: Checkout
