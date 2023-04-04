@@ -13,7 +13,7 @@ permissions: {}
 
 jobs:
   update-shipping-branch:
-    name: '[${{ github.ref_name }}] Update shipping branch'
+    name: '[${{ github.context.payload.release.tag_name }}] Update shipping branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -81,7 +81,6 @@ jobs:
             });
   # Easier than trying to parse our output, just spin a managed build and analyze the output.
   calculate-supported-tfms:
-    if: github.repository == 'dotnet/dotnet-monitor'
     name: '[${{ github.ref_name }}] Build'
     runs-on: ubuntu-latest
     outputs:
@@ -113,7 +112,7 @@ jobs:
         uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
         with:
           persist-credentials: true # We need to persist credentials inorder to open a PR.
-          ref: main
+          ref: manage-released-versions
 
       - name: Update releases.json
         uses: ./.github/actions/update-releases-json
