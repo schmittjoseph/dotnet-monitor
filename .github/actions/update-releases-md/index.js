@@ -3,16 +3,16 @@ const actionUtils = require('../action-utils.js');
 async function run() {
     const [core, github] = await actionUtils.installAndRequirePackages("@actions/core", "@actions/github");
 
-    const versionsDataFile = core.getInput("releases_json_file", { required: true });
+    const releasesDataFile = core.getInput("releases_json_file", { required: true });
     const outputFile = core.getInput("releases_md_file", { required: true });
 
     const repoOwner = github.context.payload.repository.owner.login;
     const repoName = github.context.payload.repository.name;
 
     try {
-        const versionsData = JSON.parse(await actionUtils.readFile(versionsDataFile));
+        const releasesData = JSON.parse(await actionUtils.readFile(releasesDataFile));
 
-        const releasesMdContent = generateReleasesMdContent(versionsData, repoOwner, repoName);
+        const releasesMdContent = generateReleasesMdContent(releasesData, repoOwner, repoName);
 
         await actionUtils.writeFile(outputFile, releasesMdContent);
     } catch (error) {
@@ -20,21 +20,21 @@ async function run() {
     }
 }
 
-function generateReleasesMdContent(versionsData, repoOwner, repoName, ) {
+function generateReleasesMdContent(releasesData, repoOwner, repoName) {
     let supportedReleasesTable = '';
     let previewReleasesTable = '';
     let outOfSupportReleasesTable = '';
 
-    for (const releaseKey of versionsData.supported) {
-        supportedReleasesTable += `${generateTableRow(versionsData.releases[releaseKey], repoOwner, repoName, true)}\n`;
+    for (const releaseKey of releasesData.supported) {
+        supportedReleasesTable += `${generateTableRow(releasesData.releases[releaseKey], repoOwner, repoName, true)}\n`;
     }
 
-    for (const releaseKey of versionsData.preview) {
-        previewReleasesTable += `${generateTableRow(versionsData.releases[releaseKey], repoOwner, repoName, false)}\n`;
+    for (const releaseKey of releasesData.preview) {
+        previewReleasesTable += `${generateTableRow(releasesData.releases[releaseKey], repoOwner, repoName, false)}\n`;
     }
 
-    for (const releaseKey of versionsData.unsupported) {
-        outOfSupportReleasesTable += `${generateTableRow(versionsData.releases[releaseKey], repoOwner, repoName, true)}\n`;
+    for (const releaseKey of releasesData.unsupported) {
+        outOfSupportReleasesTable += `${generateTableRow(releasesData.releases[releaseKey], repoOwner, repoName, true)}\n`;
     }
 
     let content =`
@@ -92,7 +92,7 @@ function generateTableRow(release, repoOwner, repoName, rtmVersions) {
     ];
 
     if (rtmVersions === true) {
-        actionUtils.friendlyDateFromISODate(release.patchReleaseDate);
+        columns.push(actionUtils.friendlyDateFromISODate(release.patchReleaseDate));
         columns.push(actionUtils.friendlyDateFromISODate(release.outOfSupportDate));
     }
 

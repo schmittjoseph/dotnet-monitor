@@ -1,4 +1,4 @@
-run-name: '[${{ github.ref_name }}] Post release'
+run-name: '[${{ github.ref_name }}] Release processing'
 
 on:
   release: # Run on every release to add new version information.
