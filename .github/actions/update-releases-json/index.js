@@ -58,7 +58,7 @@ function cleanupSupportedVersions(versionsData) {
     for (const releaseKey of versionsData.supported) {
         const releaseData = versionsData.releases[releaseKey];
         if (releaseData.outOfSupportDate === undefined) {
-            stillSupportedVersion.unshift(releaseKey);
+            stillSupportedVersion.push(releaseKey);
             continue;
         }
 
@@ -124,9 +124,9 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
 
     if (existingRelease === undefined || isPromotion === true) {
         if (iteration !== undefined) {
-            versionsData.preview.push(releaseMajorMinorVersion);
+            versionsData.preview.unshift(releaseMajorMinorVersion);
         } else {
-            versionsData.supported.push(releaseMajorMinorVersion);
+            versionsData.supported.unshift(releaseMajorMinorVersion);
         }
     } else if (iteration !== undefined) {
         newRelease.minorReleaseDate = existingRelease.minorReleaseDate;
