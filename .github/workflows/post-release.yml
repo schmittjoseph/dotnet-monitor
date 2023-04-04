@@ -107,6 +107,7 @@ jobs:
     permissions:
       contents: write
       discussions: write
+      pull-requests: write
 
     steps:
       - name: Checkout
