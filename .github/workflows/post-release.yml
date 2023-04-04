@@ -4,7 +4,7 @@ on:
   release: # Run on every release to add new version information.
     types: [released]
   schedule: # Run once a week to detect and manage out-of-support versions.
-    - cron '0 0 * * 3' # Run at the start of every Wednesday as most releases are made on Patch Tuesday.
+    - cron: '0 0 * * 3' # Run at the start of every Wednesday as most releases are made on Patch Tuesday.
 
 
 # Only process one release at a time so we can generate cumulative results in the same PR.
