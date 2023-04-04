@@ -6,10 +6,13 @@ async function run() {
     const versionsDataFile = core.getInput("releases_json_file", { required: true });
     const outputFile = core.getInput("releases_md_file", { required: true });
 
+    const repoOwner = github.context.payload.repository.owner.login;
+    const repoName = github.context.payload.repository.name;
+
     try {
         const versionsData = JSON.parse(await actionUtils.readFile(versionsDataFile));
 
-        const releasesMdContent = generateReleasesMdContent(versionsData);
+        const releasesMdContent = generateReleasesMdContent(versionsData, repoOwner, repoName);
 
         await actionUtils.writeFile(outputFile, releasesMdContent);
     } catch (error) {
@@ -17,26 +20,21 @@ async function run() {
     }
 }
 
-function generateReleasesMdContent(versionsData) {
+function generateReleasesMdContent(versionsData, repoOwner, repoName, ) {
     let supportedReleasesTable = '';
     let previewReleasesTable = '';
     let outOfSupportReleasesTable = '';
 
     for (const releaseKey of versionsData.supported) {
-        const release = versionsData.releases[releaseKey];
-        const [major, minor, patch, iteration] = actionUtils.splitVersionTag(release.tag);
-        if (iteration !== undefined) {
-            // It's a preview release
-            previewReleasesTable += `${generateTableRow(release, false)}\n`;
-        } else {
-            // It's an RTM release
-            supportedReleasesTable += `${generateTableRow(release, true)}\n`;
-        }
+        supportedReleasesTable += `${generateTableRow(versionsData.releases[releaseKey], repoOwner, repoName, true)}\n`;
+    }
+
+    for (const releaseKey of versionsData.preview) {
+        previewReleasesTable += `${generateTableRow(versionsData.releases[releaseKey], repoOwner, repoName, true)}\n`;
     }
 
     for (const releaseKey of versionsData.unsupported) {
-        const release = versionsData.releases[releaseKey];
-        outOfSupportReleasesTable += `${generateTableRow(release, true)}\n`;
+        outOfSupportReleasesTable += `${generateTableRow(versionsData.releases[releaseKey], repoOwner, repoName, true)}\n`;
     }
 
     let content =`
@@ -62,9 +60,10 @@ function generateReleasesMdContent(versionsData) {
     return content;
 }
 
-function generateTableHeader(includeEndOfSupport) {
-    let headers = ['Version', 'Original Release Date', 'Latest Patch Version', 'Patch Release Date'];
-    if (includeEndOfSupport) {
+function generateTableHeader(rtmVersions) {
+    let headers = ['Version', 'Original Release Date', 'Latest Patch Version'];
+    if (rtmVersions) {
+        headers.push('Patch Release Date');
         headers.push('End of Support');
     }
     headers.push('Runtime Frameworks');
@@ -77,17 +76,23 @@ function generateTableHeader(includeEndOfSupport) {
     return headerString;
 }
 
-function generateTableRow(release, includeEndOfSupport) {
-    const [major, minor] = actionUtils.splitVersionTag(release.tag);
+function generateTableRow(release, repoOwner, repoName, rtmVersions) {
+    const [major, minor, patch, iteration, versionLabel] = actionUtils.splitVersionTag(release.tag);
+    const htmlUrl = `https://github.com/${repoOwner}/${repoName}/releases/tag/${release.tag}`
+
+    let fqVersion = `${major}.${minor}.${patch}`;
+    if (iteration !== undefined) {
+        fqVersion += ` ${versionLabel} ${iteration}`;
+    }
 
     let columns = [
         `${major}.${minor}`,
         actionUtils.friendlyDateFromISODate(release.minorReleaseDate),
-        `[${release.currentVersion}](${release.htmlUrl})`,
-        actionUtils.friendlyDateFromISODate(release.patchReleaseDate)
+        `[${fqVersion}](${htmlUrl})`
     ];
 
-    if (includeEndOfSupport) {
+    if (rtmVersions) {
+        actionUtils.friendlyDateFromISODate(release.patchReleaseDate);
         columns.push(actionUtils.friendlyDateFromISODate(release.outOfSupportDate));
     }
 

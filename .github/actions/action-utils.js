@@ -19,7 +19,7 @@ module.exports.installAndRequirePackages = async function(...newPackages)
 }
 
 module.exports.splitVersionTag = function(tag) {
-    const regex = /v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(-preview\.(?<iteration>\d+))?/;
+    const regex = /v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(-(?<versionLabel>[a-zA-Z]+)\.(?<iteration>\d+))?/;
     const releaseVersion = regex.exec(tag);
     if (releaseVersion == null) throw "Error: Unexpected tag format";
 
@@ -27,7 +27,8 @@ module.exports.splitVersionTag = function(tag) {
         Number(releaseVersion.groups.major),
         Number(releaseVersion.groups.minor),
         Number(releaseVersion.groups.patch),
-        (releaseVersion.groups.iteration === undefined) ? undefined : Number(releaseVersion.groups.iteration)
+        (releaseVersion.groups.iteration === undefined) ? undefined : Number(releaseVersion.groups.iteration),
+        releaseVersion.groups.versionLabel
     ];
 }
 
