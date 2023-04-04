@@ -12,5 +12,6 @@
 | 13.2 | April 4, 2023 | [13.2.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.2.0) | April 4, 2023 |  | net6.0<br/>net8.0 |
 | 14.4 | April 4, 2023 | [14.4.3](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v14.4.3) | April 4, 2023 |  | net5.0 |
 | 15.0 | April 4, 2023 | [15.0.1](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v15.0.1) | April 4, 2023 |  | net5.0 |
+| 15.1 | April 4, 2023 | [15.1.1](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v15.1.1) | April 4, 2023 |  | net5.0 |
 
 
