@@ -4,7 +4,8 @@
 
 | Version | Original Release Date | Latest Patch Version | Patch Release Date | End of Support | Runtime Frameworks |
 | --- | --- | --- | --- | --- | --- |
-
 | 13.0 | April 4, 2023 | [13.0.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.0.0) | April 4, 2023 | July 4, 2023 | net6.0<br/>net8.0 |
-| 13.1 | April 4, 2023 | [13.1.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.1.0) | April 4, 2023 |  | net6.0<br/>net8.0 |
+| 13.1 | April 4, 2023 | [13.1.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.1.0) | April 4, 2023 | July 4, 2023 | net6.0<br/>net8.0 |
+| 13.2 | April 4, 2023 | [13.2.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.2.0) | April 4, 2023 |  | net6.0<br/>net8.0 |
+
 
