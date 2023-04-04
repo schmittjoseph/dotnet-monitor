@@ -105,6 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
       discussions: write
       pull-requests: write
 
