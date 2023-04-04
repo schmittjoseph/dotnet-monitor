@@ -25,7 +25,7 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const actionUtils = require('./github/actions/action-utils.js')
+            const actionUtils = require('./.github/actions/action-utils.js')
             const [major, minor] = actionUtils.splitVersionTag(context.payload.release.tag_name)
             return `shipped/v${major}.${minor}`;
 
