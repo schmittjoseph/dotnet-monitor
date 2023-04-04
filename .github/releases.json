@@ -4,9 +4,20 @@
     "cleanupUnsupportedReleasesAfterMonths": 12
   },
   "supported": [
+    "13.0"
   ],
-  "unsupported": [
-  ],
+  "unsupported": [],
   "releases": {
+    "13.0": {
+      "currentVersion": "13.0.0",
+      "tag": "v13.0.0",
+      "htmlUrl": "https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v13.0.0",
+      "minorReleaseDate": "2023-04-04T18:11:26.000Z",
+      "patchReleaseDate": "2023-04-04T18:11:26.000Z",
+      "supportedFrameworks": [
+        "net6.0",
+        "net8.0"
+      ]
+    }
   }
 }
