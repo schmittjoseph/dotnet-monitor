@@ -1,0 +1,12 @@
+{
+  "policy": {
+    "additionalMonthsOfSupportOnNewMinorRelease": 3,
+    "cleanupUnsupportedReleasesAfterMonths": 12
+  },
+  "supported": [
+  ],
+  "unsupported": [
+  ],
+  "releases": {
+  }
+}
