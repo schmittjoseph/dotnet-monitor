@@ -1,4 +1,4 @@
-On ${endOfSupportDate}, the ${majorMinorVersion}.X versions of `dotnet monitor` will be out of support. After this date, we will no longer provide any bug or security fixes for these versions. These versions have been superseded by the ${nextVersion} release of `dotnet monitor`.
+On ${endOfSupportDate}, the ${majorMinorVersion}.X versions of `dotnet monitor` will be out of support. After this date, we will no longer provide any bug or security fixes for these versions.
 
 Please refer to [Releases](https://github.com/dotnet/dotnet-monitor/blob/main/documentation/releases.md) to see the currently supported versions.
 
