@@ -9,6 +9,7 @@ async function run() {
 
     const versionsDataFile = core.getInput("releases_json_file", { required: true });
     const endOfSupportDiscussionCategory = core.getInput("end_of_support_discussion_category", { required: false });
+    const supportedFrameworks = core.getInput("supported_frameworks", { required: false });
 
     const repoOwner = github.context.payload.repository.owner.login;
     const repoName = github.context.payload.repository.name;
