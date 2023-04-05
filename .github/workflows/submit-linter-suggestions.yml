@@ -72,7 +72,7 @@ jobs:
       # This isn't the case in our setup since we are using two workflows (lint-csharp and this one)
       # to enable write permissions on fork PRs.
       - name: Submit formatting suggestions
-        run: |
+        run: | 
           new_event_file=${{github.workspace}}/reviewdog_event.json
           jq -j ".pull_request.head.repo.owner.id = .pull_request.base.repo.owner.id" ./pr-linter/pr-event.json > ${new_event_file}
           GITHUB_EVENT_NAME="pull_request" GITHUB_EVENT_PATH="${new_event_file}" reviewdog \
