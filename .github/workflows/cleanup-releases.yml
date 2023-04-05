@@ -9,7 +9,6 @@ permissions: {}
 
 jobs:
   cleanup-release-information:
-    if: github.repository == 'dotnet/dotnet-monitor'
     name: 'Cleanup releases'
     runs-on: ubuntu-latest
     permissions:
