@@ -3,7 +3,7 @@ description: 'Manage releases'
 inputs:
   auth_token:
     description: 'The token used to authenticate to GitHub.'
-    required: true
+    required: false
   releases_json_file:
     description: 'The input releases json file.'
     required: true

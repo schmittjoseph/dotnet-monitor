@@ -4,8 +4,15 @@ const path = require('path');
 async function run() {
     const [core, github] = await actionUtils.installAndRequirePackages("@actions/core", "@actions/github");
 
-    const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
     const releasesDataFile = core.getInput("releases_json_file", { required: true });
+
+    let octokit = undefined;
+    {
+        const auth_token = core.getInput("auth_token", { required: false });
+        if (auth_token !== undefined) {
+            octokit = github.getOctokit(auth_token);
+        }
+    }
 
     const endOfSupportDiscussionCategory = core.getInput("end_of_support_discussion_category", { required: false });
     const supportedFrameworks = core.getInput("supported_frameworks", { required: false });

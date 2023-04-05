@@ -1,11 +1,8 @@
-run-name: '[${{ github.ref_name }}] Release processing'
+run-name: '[${{ github.ref_name }}] Post release'
 
 on:
   release: # Run on every release to add new version information.
     types: [released]
-  schedule: # Run once a week to detect and manage out-of-support versions.
-    - cron: '0 0 * * 3' # Run at the start of every Wednesday as most releases are made on Patch Tuesday.
-  workflow_dispatch:
 
 # Only process one release at a time so we can generate cumulative results in the same PR.
 concurrency:
@@ -113,13 +110,13 @@ jobs:
           supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
           echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
 
-  update-release-information:
-    name: 'Update release info'
+  register-release-information:
+    name: 'Register new release'
     needs: calculate-supported-frameworks
     runs-on: ubuntu-latest
     env:
       BASE_BRANCH: manage-released-versions
-      TARGET_BRANCH_POSTFIX: release-info
+      TARGET_BRANCH_POSTFIX: release-info/on-release
     permissions:
       contents: write
       pull-requests: write
@@ -176,9 +173,9 @@ jobs:
         uses: ./.github/actions/open-pr
         with:
           files_to_commit: ./.github/releases.json ./documentation/releases.md
-          title: "Update release information"
-          commit_message: Update releases information for ${{ github.ref_name }}
-          body: Update release information.
+          title: "Register new release information"
+          commit_message: Register ${{ github.ref_name }} release information
+          body: Register new release information.
           branch_name: ${{ env.TARGET_BRANCH_POSTFIX }}
           fail_if_files_unchanged: ${{ github.event_name == 'release' }} # If we're responding to a release, we must have updates.
           update_if_already_exists: ${{ steps.SxS-check.outputs.result }}
