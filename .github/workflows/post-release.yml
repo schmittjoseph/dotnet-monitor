@@ -42,7 +42,7 @@ jobs:
             const branchName = `${{ steps.calculate-branch-name.outputs.result }}`;
 
             const createOrUpdateRef = require('./.github/actions/gh-script-utils/create-or-update-ref.js');
-            await createOrUpdateRef({github, context, context.sha, branchName});
+            await createOrUpdateRef(github, context, context.sha, branchName);
 
             //
             // Trigger branch mirror, empty commits and new refs will **not** trigger mirroring.
@@ -122,7 +122,7 @@ jobs:
             }
 
             const createOrUpdateRef = require('./.github/actions/gh-script-utils/create-or-update-ref.js');
-            await createOrUpdateRef({github, context, context.sha, branchName});
+            await createOrUpdateRef(github, context, context.sha, branchName);
 
   register-release-information:
     name: 'Register new release'
