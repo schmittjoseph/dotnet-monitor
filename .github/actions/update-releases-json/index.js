@@ -114,7 +114,7 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
     let existingRelease = releasesData.releases[releaseMajorMinorVersion];
 
     // Check if we're promoting a preview to RTM, if so re-create everything
-    if (iteration === undefined) {
+    if (existingRelease !== undefined && iteration === undefined) {
         const [_, __, ___, existingIteration] = actionUtils.splitVersionTag(existingRelease.tag);
         if (existingIteration !== undefined) {
             existingRelease = undefined;
