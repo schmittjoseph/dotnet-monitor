@@ -102,7 +102,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Ensure ref exists
+      # To avoid permission issues, create the target ref we will be updating
+      # using GitHub APIs.
+      #
+      # Also check if there's an existing PR open from our target ref.
+      # If so, multiple releases have occured in the same time span
+      # and we want to update that PR.
+      #
+      - name: Ensure target ref exists
         uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
         with:
           retries: 3
