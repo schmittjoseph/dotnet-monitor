@@ -9,7 +9,7 @@ async function run() {
     let octokit = undefined;
     {
         const auth_token = core.getInput("auth_token", { required: false });
-        if (auth_token !== undefined) {
+        if (auth_token !== undefined && auth_token.length > 0) {
             octokit = github.getOctokit(auth_token);
         }
     }
@@ -27,7 +27,7 @@ async function run() {
 
         if (releasePayload !== undefined) {
             const deprecatedRelease = addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFrameworks, releasesData);
-            if (endOfSupportDiscussionCategory !== undefined && deprecatedRelease !== undefined) {
+            if (endOfSupportDiscussionCategory !== undefined && endOfSupportDiscussionCategory.length > 0 && deprecatedRelease !== undefined) {
                 _ = await tryToAnnounceVersionHasEndOfSupport(core, octokit, endOfSupportDiscussionCategory, repoName, repoOwner, deprecatedRelease);
             }
 
