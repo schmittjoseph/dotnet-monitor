@@ -77,7 +77,7 @@ runs:
       env:
         BODY_MESSAGE: ${{ inputs.body }}
         BRANCH_NAME: ${{ inputs.branch_name }}
-        BASE_BRANCH_NAME: ${{ inputs.branch_name }}
+        BASE_BRANCH_NAME: ${{ inputs.base_branch }}
         COMMIT_MESSAGE: ${{ inputs.commit_message }}
         DRAFT: ${{ inputs.draft }}
         LABELS: ${{ inputs.labels }}
