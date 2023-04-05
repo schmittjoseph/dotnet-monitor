@@ -4,6 +4,9 @@ inputs:
   branch_name:
     description: 'The branch name to create. Will be prefixed with "bot/".'
     required: true
+  base_branch:
+    description: 'The base branch name to open a PR against. Will default to the current branch if not specified.'
+    required: false
   title:
     description: 'The PR title.'
     required: true
@@ -44,6 +47,8 @@ runs:
           git checkout -b "$pr_branch_name"
         fi
 
+        base_branch_name = ${BASE_BRANCH_NAME:-${current_branch_name:-default}}
+
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
         git add ${{ inputs.files_to_commit }}
@@ -67,11 +72,12 @@ runs:
           extraArgs="${extraArgs} --draft"
         fi
 
-        gh pr create --repo "${{ github.repository }}" --base "$current_branch_name" -t "$TITLE" -b "$BODY_MESSAGE" $extraArgs --label "$LABELS" || [[ "$UPDATE_IF_ALREADY_EXISTS" == "true" ]]
+        gh pr create --repo "${{ github.repository }}" --base "$base_branch_name" -t "$TITLE" -b "$BODY_MESSAGE" $extraArgs --label "$LABELS" || [[ "$UPDATE_IF_ALREADY_EXISTS" == "true" ]]
       shell: bash
       env:
         BODY_MESSAGE: ${{ inputs.body }}
         BRANCH_NAME: ${{ inputs.branch_name }}
+        BASE_BRANCH_NAME: ${{ inputs.branch_name }}
         COMMIT_MESSAGE: ${{ inputs.commit_message }}
         DRAFT: ${{ inputs.draft }}
         LABELS: ${{ inputs.labels }}

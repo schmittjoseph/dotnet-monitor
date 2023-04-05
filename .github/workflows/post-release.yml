@@ -5,6 +5,8 @@ on:
     types: [released]
 
 # Only process one release at a time so we can generate cumulative results in the same PR.
+# NOTE: This is currently restricted to only having 2 releases at the exact same time, any more and
+# the pending jobs will be cancelled (but can be manually re-invoked).
 concurrency:
   group: post-release-workflow
   cancel-in-progress: false
@@ -169,6 +171,7 @@ jobs:
           commit_message: Register ${{ github.ref_name }} release information
           body: Register new release information.
           branch_name: ${{ env.TARGET_BRANCH_POSTFIX }}
+          base_branch: ${{ env.BASE_BRANCH }}
           fail_if_files_unchanged: true # If we're responding to a release, we must have updates.
           update_if_already_exists: true
           auth_token: ${{ secrets.GITHUB_TOKEN }}
