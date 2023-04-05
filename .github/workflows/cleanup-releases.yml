@@ -8,8 +8,9 @@ on:
 permissions: {}
 
 jobs:
-  update-release-information:
-    name: 'Update release info'
+  cleanup-release-information:
+    if: github.repository == 'dotnet/dotnet-monitor'
+    name: 'Cleanup releases'
     runs-on: ubuntu-latest
     permissions:
       contents: write
