@@ -28,7 +28,7 @@ async function run() {
         if (releasePayload !== undefined) {
             const deprecatedRelease = addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFrameworks, releasesData);
             if (endOfSupportDiscussionCategory !== undefined && deprecatedRelease !== undefined) {
-                await announceVersionHasEndOfSupport(octokit, endOfSupportDiscussionCategory, repoName, repoOwner, deprecatedRelease);
+                _ = await tryToAnnounceVersionHasEndOfSupport(core, octokit, endOfSupportDiscussionCategory, repoName, repoOwner, deprecatedRelease);
             }
 
         }
@@ -153,78 +153,90 @@ function addNewReleaseAndDeprecatePriorVersion(releasePayload, supportedFramewor
     return undefined;
 }
 
-async function announceVersionHasEndOfSupport(ocotkit, category, repoName, repoOwner, version) {
-    // There's currently no REST API for creating a discussion,
-    // however we can use the GraphQL API to do so.
+async function tryToAnnounceVersionHasEndOfSupport(core, octokit, category, repoName, repoOwner, version) {
+    try {
+        // There's currently no REST API for creating a discussion,
+        // however we can use the GraphQL API to do so.
 
-    // Get the repository id and map the category name to an id.
-    const result = await ocotkit.graphql(`
-    query ($repoName: String!, $owner: String!) {
-        repository(name: $repoName, owner: $owner) {
-          id
-          discussionCategories (first: 50) {
-            edges {
-              node {
-                id
-                name
-              }
-            }
-          }
-        }
-      }`,
-    {
-        owner: repoOwner,
-        repoName: repoName
-    });
-
-    const repositoryId = result.repository.id;
-    let categoryId = undefined;
-
-    for (const edge of result.repository.discussionCategories.edges) {
-        if (edge.node.name === category) {
-            categoryId = edge.node.id;
-            break;
-        }
-    }
-
-    if (categoryId === undefined) {
-        throw new Error(`Unable to determine category id for category ${category}`);
-    }
-
-    let discussionBody = await actionUtils.readFile(path.join(__dirname, "end_of_support_discussion.template.md"));
-    const [major, minor] = actionUtils.splitVersionTag(version.tag);
-    const friendlyDate = actionUtils.friendlyDateFromISODate(version.outOfSupportDate);
-
-    const title =  `${major}.${minor}.X End of Support On ${friendlyDate}`;
-
-    discussionBody = discussionBody.replace("${endOfSupportDate}", friendlyDate);
-    discussionBody = discussionBody.replace("${majorMinorVersion}", `${major}.${minor}`); // todo: strio
-
-    // https://docs.github.com/en/graphql/reference/mutations#creatediscussion
-    // https://docs.github.com/en/graphql/reference/input-objects#creatediscussioninput
-    const createDiscussionResult = await ocotkit.graphql(`
-        mutation CreateDiscussion($repositoryId: ID!, $title: String!, $body: String!, $categoryId: ID!) {
-            createDiscussion(input: {
-                repositoryId: $repositoryId,
-                categoryId: $categoryId,
-                title: $title,
-                body: $body
-            }) {
-                discussion {
-                    url
+        //
+        // Get the repository id and map the category name to an id.
+        //
+        // Don't bother with pagination yet , we're only looking for a single category
+        // and there are only a few registered.
+        //
+        const result = await octokit.graphql(`
+        query ($repoName: String!, $owner: String!) {
+            repository(name: $repoName, owner: $owner) {
+            id
+            discussionCategories (first: 15) {
+                edges {
+                node {
+                    id
+                    name
+                }
                 }
             }
+            }
         }`,
-    {
-        repositoryId: repositoryId,
-        categoryId: categoryId,
-        title: title,
-        body: discussionBody
-    });
+        {
+            owner: repoOwner,
+            repoName: repoName
+        });
 
-    const discussionUrl = createDiscussionResult.createDiscussion.discussion.url;
+        const repositoryId = result.repository.id;
+        let categoryId = undefined;
 
-    return discussionUrl;
+        for (const edge of result.repository.discussionCategories.edges) {
+            if (edge.node.name === category) {
+                categoryId = edge.node.id;
+                break;
+            }
+        }
+
+        if (categoryId === undefined) {
+            throw new Error(`Unable to determine category id for category ${category}`);
+        }
+
+        let discussionBody = await actionUtils.readFile(path.join(__dirname, "end_of_support_discussion.template.md"));
+        const [major, minor] = actionUtils.splitVersionTag(version.tag);
+        const friendlyDate = actionUtils.friendlyDateFromISODate(version.outOfSupportDate);
+
+        const title =  `${major}.${minor}.X End of Support On ${friendlyDate}`;
+
+        discussionBody = discussionBody.replace("${endOfSupportDate}", friendlyDate);
+        discussionBody = discussionBody.replace("${majorMinorVersion}", `${major}.${minor}`); // todo: strio
+
+        // https://docs.github.com/en/graphql/reference/mutations#creatediscussion
+        // https://docs.github.com/en/graphql/reference/input-objects#creatediscussioninput
+        const createDiscussionResult = await octokit.graphql(`
+            mutation CreateDiscussion($repositoryId: ID!, $title: String!, $body: String!, $categoryId: ID!) {
+                createDiscussion(input: {
+                    repositoryId: $repositoryId,
+                    categoryId: $categoryId,
+                    title: $title,
+                    body: $body
+                }) {
+                    discussion {
+                        url
+                    }
+                }
+            }`,
+        {
+            repositoryId: repositoryId,
+            categoryId: categoryId,
+            title: title,
+            body: discussionBody
+        });
+
+        const discussionUrl = createDiscussionResult.createDiscussion.discussion.url;
+        core.notice(`Created discussion at: ${discussionUrl}`);
+
+        return discussionUrl;
+    } catch (error) {
+        core.warning(`Unable to create discussion: ${error}`);
+    }
+
+    return undefined;
 }
 
 run();
