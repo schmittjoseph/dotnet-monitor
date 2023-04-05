@@ -1,4 +1,4 @@
-module.exports = async ({github, context, baseSha, branchName}) => {
+module.exports = async (github, context, baseSha, branchName) => {
     const refName = `heads/${branchName}`;
 
     // Check if the ref already exists, if so we will need to fast forward it.
