@@ -31,8 +31,8 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const actionUtils = require('./.github/actions/action-utils.js')
-            const [major, minor] = actionUtils.splitVersionTag(context.payload.release.tag_name)
+            const actionUtils = require('./.github/actions/action-utils.js');
+            const [major, minor] = actionUtils.splitVersionTag(context.payload.release.tag_name);
             return `shipped/v${major}.${minor}`;
 
       - name: Create or update shipped branch
@@ -40,36 +40,9 @@ jobs:
         with:
           script: |
             const branchName = `${{ steps.calculate-branch-name.outputs.result }}`;
-            const refName = `heads/${branchName}`;
 
-            // Check if the ref already exists, if so we will need to fast forward it.
-            let needToCreateRef = true;
-            try {
-              await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: refName
-              });
-              needToCreateRef = false;
-            } catch {
-            }
-
-            if (needToCreateRef) {
-              await github.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: context.sha,
-                ref: `refs/${refName}`
-              });
-            } else {
-              await github.rest.git.updateRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: context.sha,
-                ref: refName,
-                force: true
-              });
-            }
+            const createOrUpdateRef = require('./.github/actions/gh-script-utils/create-or-update-ref.js');
+            await createOrUpdateRef({github, context, context.sha, branchName});
 
             //
             // Trigger branch mirror, empty commits and new refs will **not** trigger mirroring.
@@ -110,9 +83,50 @@ jobs:
           supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
           echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
 
+  # Always run this job regardless of the triggering event to keep this workflow simple.
+  ensure-target-ref-exists:
+    name: 'Ensure target ref exists'
+    runs-on: ubuntu-latest
+    env:
+      BASE_BRANCH: manage-released-versions
+      TARGET_BRANCH_POSTFIX: release-info/on-release
+    permissions:
+      contents: write
+
+    # Spin a managed build and analyze the output to determine the supported frameworks for a given commit.
+    # It's simpler than trying to parse our `eng/Versions.prop` due to the conditionals in it.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        with:
+          persist-credentials: false
+          ref: ${{ env.BASE_BRANCH }} # JSFIX: remove
+
+      - name: Ensure ref exists
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        with:
+          retries: 3
+          script: |
+            const branchName = `bot/${process.env.TARGET_BRANCH_POSTFIX}`;
+
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${branchName}`,
+              base: process.env.BASE_BRANCH
+            });
+
+            if (prs !== undefined && prs.length > 0) {
+              return;
+            }
+
+            const createOrUpdateRef = require('./.github/actions/gh-script-utils/create-or-update-ref.js');
+            await createOrUpdateRef({github, context, context.sha, branchName});
+
   register-release-information:
     name: 'Register new release'
-    needs: calculate-supported-frameworks
+    needs: [calculate-supported-frameworks, ensure-target-ref-exists]
     runs-on: ubuntu-latest
     env:
       BASE_BRANCH: manage-released-versions
@@ -123,37 +137,11 @@ jobs:
       discussions: write
 
     steps:
-      - name: Check for SxS release
-        id: SxS-check
-        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
-        with:
-          retries: 3
-          result-encoding: json
-          script: |
-            try {
-              const prs = await github.paginate(github.rest.pulls.list, {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'open',
-                head: `${context.repo.owner}:bot/${process.env.TARGET_BRANCH_POSTFIX}`,
-                base: process.env.BASE_BRANCH
-              });
-
-              if (prs !== undefined && prs.length > 0) {
-                core.exportVariable('BASE_BRANCH', `bot/${process.env.TARGET_BRANCH_POSTFIX}`);
-                return true;
-              }
-            } catch (error) {
-              console.log(error);
-            }
-
-            return false;
-
       - name: Checkout
         uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
         with:
-          persist-credentials: true # We need to persist credentials inorder to open a PR.
-          ref: ${{ env.BASE_BRANCH }}
+          persist-credentials: false # We need to persist credentials inorder to open a PR.
+          ref: bot/${{ env.TARGET_BRANCH_POSTFIX }}
 
       - name: Update releases.json
         uses: ./.github/actions/update-releases-json
@@ -177,6 +165,6 @@ jobs:
           commit_message: Register ${{ github.ref_name }} release information
           body: Register new release information.
           branch_name: ${{ env.TARGET_BRANCH_POSTFIX }}
-          fail_if_files_unchanged: ${{ github.event_name == 'release' }} # If we're responding to a release, we must have updates.
-          update_if_already_exists: ${{ steps.SxS-check.outputs.result }}
+          fail_if_files_unchanged: true # If we're responding to a release, we must have updates.
+          update_if_already_exists: true
           auth_token: ${{ secrets.GITHUB_TOKEN }}
