@@ -81,12 +81,13 @@ jobs:
       - name: Build
         id: build
         run: |
-          ./build.sh -ci -c Release -skipnative
+          # ./build.sh -ci -c Release -skipnative
 
       - name: Scan supported frameworks
         id: scan
         run: |
-          supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
+          supported_frameworks="net5.0"
+          #supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
           echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
 
   # Always run this job regardless of the triggering event to keep this workflow simple.
