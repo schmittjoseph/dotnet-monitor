@@ -47,18 +47,8 @@ jobs:
           retries: 3
           script: |
             const branchName = '${{ steps.calculate-branch-name.outputs.result }}';
-            const baseRefName = `heads/${process.env.BASE_BRANCH}`
-
-            const baseRef = await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: baseRefName
-            });
-
-            console.log(baseRef);
-
             const createOrUpdateRef = require('./.github/actions/gh-script-utils/create-or-update-ref.js');
-            await createOrUpdateRef(github, context, baseRef.object.sha, branchName);
+            await createOrUpdateRef(github, context, context.sha, branchName);
 
             //
             // Trigger branch mirror, empty commits and new refs will **not** trigger mirroring.
@@ -141,8 +131,16 @@ jobs:
               return;
             }
 
+            const baseRefName = `heads/${process.env.BASE_BRANCH}`
+
+            const baseRef = await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: baseRefName
+            });
+
             const createOrUpdateRef = require('./.github/actions/gh-script-utils/create-or-update-ref.js');
-            await createOrUpdateRef(github, context, context.sha, branchName);
+            await createOrUpdateRef(github, context, baseRef.data.object.sha, branchName);
 
   register-release-information:
     name: 'Register new release'
