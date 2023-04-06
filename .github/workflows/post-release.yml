@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BASE_BRANCH: main
+  BASE_BRANCH: debug-releases
   TARGET_BRANCH_POSTFIX: release-info/on-release
 
 permissions: {}
