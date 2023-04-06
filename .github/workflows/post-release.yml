@@ -13,7 +13,7 @@ concurrency:
 
 env:
   BASE_BRANCH: debug-releases
-  TARGET_BRANCH_POSTFIX: release-info/on-release
+  TARGET_BRANCH_POSTFIX: debug/release-info/on-release
 
 permissions: {}
 
@@ -79,12 +79,13 @@ jobs:
       - name: Build
         id: build
         run: |
-          ./build.sh -ci -c Release -skipnative
+          # ./build.sh -ci -c Release -skipnative
 
       - name: Scan supported frameworks
         id: scan
         run: |
-          supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
+          # supported_frameworks=$(ls ./artifacts/bin/dotnet-monitor/Release | grep "net" | xargs)
+          supported_frameworks="net5.0"
           echo "supported_frameworks=$supported_frameworks" >> "$GITHUB_OUTPUT"
 
   ensure-target-ref-exists:
