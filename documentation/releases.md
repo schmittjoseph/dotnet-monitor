@@ -7,7 +7,8 @@
 
 | Version | Original Release Date | Latest Patch Version | Patch Release Date | End of Support | Runtime Frameworks |
 | --- | --- | --- | --- | --- | --- |
-| 20.0 | April 6, 2023 | [20.0.1](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v20.0.1) | April 6, 2023 |  | net5.0 |
+| 20.1 | April 6, 2023 | [20.1.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v20.1.0) | April 6, 2023 |  | net5.0 |
+| 20.0 | April 6, 2023 | [20.0.1](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v20.0.1) | April 6, 2023 | July 6, 2023 | net5.0 |
 | 7.1 | March 14, 2023 | [7.1.0](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v7.1.0) | March 14, 2023 |  | net6.0<br/>net7.0 |
 | 7.0 | November 11, 2022 | [7.0.2](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v7.0.2) | February 14, 2023 | June 14, 2023 | net6.0<br/>net7.0 |
 | 6.3 | October 11, 2022 | [6.3.2](https://github.com/schmittjoseph/dotnet-monitor/releases/tag/v6.3.2) | February 14, 2023 |  | netcoreapp3.1 (with major roll forward)<br/>net6.0 |
