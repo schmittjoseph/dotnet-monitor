@@ -86,7 +86,7 @@
       ]
     },
     "20.0": {
-      "tag": "v20.0.0",
+      "tag": "v20.0.1",
       "minorReleaseDate": "2023-04-06T00:00:00.000Z",
       "patchReleaseDate": "2023-04-06T00:00:00.000Z",
       "supportedFrameworks": [
