@@ -29,6 +29,7 @@ set(SOURCES
     Stacks/StacksEventProvider.cpp
     Stacks/StackSampler.cpp
     Snapshot/Snapshot.cpp
+    Snapshot/ILRewriter.cpp
     Utilities/NameCache.cpp
     Utilities/ThreadNameCache.cpp
     Utilities/ThreadUtilities.cpp

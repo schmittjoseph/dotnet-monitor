@@ -28,11 +28,14 @@ private:
     std::shared_ptr<EnvironmentHelper> m_pEnvironmentHelper;
     std::shared_ptr<ILogger> m_pLogger;
     std::shared_ptr<ThreadNameCache> _threadNameCache;
+
+    std::unordered_map<tstring, FunctionID> _functionNames;
+    std::mutex _mutex;
+
 #ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
     std::shared_ptr<ThreadDataManager> _threadDataManager;
     std::unique_ptr<ExceptionTracker> _exceptionTracker;
 #endif // DOTNETMONITOR_FEATURE_EXCEPTIONS
-
     std::unique_ptr<Snapshot> m_pSnapshotter;
 
     BOOL m_isMainProfiler;
@@ -52,10 +55,9 @@ public:
     STDMETHOD(ExceptionUnwindFunctionEnter)(FunctionID functionId) override;
     STDMETHOD(InitializeForAttach)(IUnknown* pCorProfilerInfoUnk, void* pvClientData, UINT cbClientData) override;
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
+    STDMETHOD(JITCompilationStarted)(FunctionID functionId, BOOL fIsSafeToBlock) override;
+    STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
 
-    STDMETHOD(EnterCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
-    STDMETHOD(LeaveCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
-    STDMETHOD(TailcallCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
     STDMETHOD_(BSTR, GetLogMessage)(PINT32 level);
 
 private:
@@ -66,6 +68,9 @@ private:
     HRESULT InitializeCommandServer();
     HRESULT MessageCallback(const IpcMessage& message);
     HRESULT ProcessCallstackMessage();
+    tstring MainProfiler::GetFunctionIDName(FunctionID funcId);
+    tstring MainProfiler::GetClassIDName(ClassID classId);
+
 private:
     std::unique_ptr<CommandServer> _commandServer;
 };

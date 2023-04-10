@@ -15,39 +15,29 @@
 
 class Snapshot
 {
-    private:
-        std::shared_ptr<std::list<FunctionID>> m_pPartialStack;
-        std::unordered_map<ThreadID, std::shared_ptr<std::forward_list<FunctionID>>> m_pShadowStacks;
+    public:
+        static std::shared_ptr<Snapshot> s_snapshotter;
 
+    private:
         ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
         BOOL m_enabled;
 
-
-
-        const DWORD m_dwLowEventMask = COR_PRF_MONITOR::COR_PRF_ENABLE_FUNCTION_ARGS |
-            COR_PRF_ENABLE_FUNCTION_RETVAL |
-            COR_PRF_ENABLE_FRAME_INFO |
-            COR_PRF_MONITOR_ENTERLEAVE;
-
-        const DWORD m_dwHighEventMask = 0;
     public:
         Snapshot(
             const std::shared_ptr<ILogger>& logger,
             ICorProfilerInfo12* profilerInfo);
 
-        HRESULT Enable();
-        HRESULT Disable();
-        HRESULT Toggle();
+        HRESULT Enable(FunctionID funcId);
+        HRESULT Disable(FunctionID funcId);
+        HRESULT Toggle(FunctionID funcId);
 
         void AddProfilerEventMask(DWORD& eventsLow);
-        HRESULT STDMETHODCALLTYPE EnterCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
-        HRESULT STDMETHODCALLTYPE LeaveCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
-        HRESULT STDMETHODCALLTYPE TailcallCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
+        HRESULT STDMETHODCALLTYPE EnterCallback(FunctionID functionId);
+        HRESULT STDMETHODCALLTYPE LeaveCallback(FunctionID functionId);
+
+        HRESULT STDMETHODCALLTYPE ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
 
         mdMethodDef GetMethodDefForFunction(FunctionID functionId);
         ModuleID GetModuleIDForFunction(FunctionID functionId);
-
-    private:
-        HRESULT UpdateEventMask(DWORD deltaLowMask, DWORD deltaHighMask, BOOL invert);
 };

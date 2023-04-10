@@ -20,7 +20,6 @@ using namespace std;
 #define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
 
 shared_ptr<MainProfiler> MainProfiler::s_profiler;
-volatile static BOOL s_enableHooks = TRUE;
 
 GUID MainProfiler::GetClsid()
 {
@@ -154,27 +153,6 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
     return S_OK;
 }
 
-#define PROFILER_STUB static void STDMETHODCALLTYPE
-PROFILER_STUB EnterStub(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
-{
-    if (s_enableHooks) {
-        MainProfiler::s_profiler->EnterCallback(functionId, eltInfo);
-    }
-}
-
-PROFILER_STUB LeaveStub(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
-{
-    if (s_enableHooks) {
-        MainProfiler::s_profiler->LeaveCallback(functionId, eltInfo);
-    }
-}
-
-PROFILER_STUB TailcallStub(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
-{
-    if (s_enableHooks) {
-        MainProfiler::s_profiler->TailcallCallback(functionId, eltInfo);
-    }
-}
 
 HRESULT MainProfiler::InitializeCommon()
 {
@@ -222,27 +200,12 @@ HRESULT MainProfiler::InitializeCommon()
     _threadNameCache = make_shared<ThreadNameCache>();
 
     if (m_isMainProfiler) {
-        m_pLogger->Log(LogLevel::Warning, _LS("Setting up ELT support (unhooked)"));
         m_pSnapshotter->AddProfilerEventMask(eventsLow);
-    } else if(!s_enableHooks) {
-        m_pLogger->Log(LogLevel::Warning, _LS("Setting up ReJIT support"));
-        eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
     }
 
     IfFailLogRet(m_pCorProfilerInfo->SetEventMask2(
         eventsLow,
         COR_PRF_HIGH_MONITOR::COR_PRF_HIGH_MONITOR_NONE));
-
-    if (s_enableHooks) {
-        m_pLogger->Log(LogLevel::Warning, _LS("Setting up ELT hooks"));
-        IfFailLogRet(m_pCorProfilerInfo->SetEnterLeaveFunctionHooks3WithInfo(
-            &EnterStub,
-            &LeaveStub,
-            &TailcallStub
-        ));
-
-        // IfFailLogRet(m_pSnapshotter->Enable());
-    }
 
     //Initialize this last. The CommandServer creates secondary threads, which will be difficult to cleanup if profiler initialization fails.
     IfFailLogRet(InitializeCommandServer());
@@ -326,9 +289,23 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
 
     if (message.MessageType == MessageType::Callstack)
     {
-        // IfFailLogRet(m_pSnapshotter->Enable());
+        {
+            tstring expected = _T("Benchmarks.Controllers.JsonController!JsonNk");
+            std::lock_guard<std::mutex> lock(_mutex);
+
+            auto const& it = _functionNames.find(expected);
+            if (it != _functionNames.end())
+            {
+                m_pLogger->Log(LogLevel::Warning, _LS("Resolved user method to hook"));
+                IfFailLogRet(m_pSnapshotter->Toggle(it->second));
+            } else {
+                m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve FunctionID"));
+            }
+            // Make a string
+            // Benchmarks.Controllers.JsonController!JsonNk
+
+        }
         // IfFailLogRet(m_pSnapshotter->Disable());
-        IfFailLogRet(m_pSnapshotter->Toggle());
         //Currently we do not have any options for this message
         return ProcessCallstackMessage();
     }
@@ -382,19 +359,220 @@ HRESULT MainProfiler::ProcessCallstackMessage()
     return S_OK;
 }
 
-inline HRESULT STDMETHODCALLTYPE MainProfiler::EnterCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
-{
-    return m_pSnapshotter->EnterCallback(functionId, eltInfo);
+bool hasEnding (std::wstring const &fullString, std::wstring const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
 }
 
-inline HRESULT STDMETHODCALLTYPE MainProfiler::LeaveCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
+
+HRESULT STDMETHODCALLTYPE MainProfiler::JITCompilationStarted(FunctionID functionId, BOOL fIsSafeToBlock)
 {
-    return m_pSnapshotter->LeaveCallback(functionId, eltInfo);
+    tstring name;
+
+    name = GetFunctionIDName(functionId);
+
+    if (0 != name.compare(0, 3, _T("Sys")) &&
+        0 != name.compare(0, 1, _T(".")) &&
+        0 != name.compare(0, 1, _T("<")) &&
+        0 != name.compare(0, 3, _T("Mic"))) {
+        // m_pLogger->Log(LogLevel::Debug, name);
+    }
+
+    // Stash a copy of the friendly name -> this info.
+
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    // Make a string
+    _functionNames[std::move(name)] = functionId;
+
+
+    return S_OK;
 }
 
-inline HRESULT STDMETHODCALLTYPE MainProfiler::TailcallCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
+#define SHORT_LENGTH    32
+#define STRING_LENGTH  256
+#define LONG_LENGTH   1024
+tstring MainProfiler::GetClassIDName(ClassID classId)
 {
-    return m_pSnapshotter->TailcallCallback(functionId, eltInfo);
+    ModuleID modId;
+    mdTypeDef classToken;
+    ClassID parentClassID;
+    ULONG32 nTypeArgs;
+    ClassID typeArgs[SHORT_LENGTH];
+    HRESULT hr = S_OK;
+
+    if (classId == NULL)
+    {
+        printf("FAIL: Null ClassID passed in\n");
+        return _T("");
+    }
+
+    hr = m_pCorProfilerInfo->GetClassIDInfo2(classId,
+                                           &modId,
+                                           &classToken,
+                                           &parentClassID,
+                                           SHORT_LENGTH,
+                                           &nTypeArgs,
+                                           typeArgs);
+    if (CORPROF_E_CLASSID_IS_ARRAY == hr)
+    {
+        // We have a ClassID of an array.
+        return _T("ArrayClass");
+    }
+    else if (CORPROF_E_CLASSID_IS_COMPOSITE == hr)
+    {
+        // We have a composite class
+        return _T("CompositeClass");
+    }
+    else if (CORPROF_E_DATAINCOMPLETE == hr)
+    {
+        // type-loading is not yet complete. Cannot do anything about it.
+        return _T("DataIncomplete");
+    }
+    else if (FAILED(hr))
+    {
+        printf("FAIL: GetClassIDInfo returned 0x%x for ClassID %x\n", hr, (unsigned int)classId);
+        return _T("GetClassIDNameFailed");
+    }
+
+    ComPtr<IMetaDataImport> pMDImport;
+    hr = m_pCorProfilerInfo->GetModuleMetaData(modId,
+                                             (ofRead | ofWrite),
+                                             IID_IMetaDataImport,
+                                             (IUnknown **)&pMDImport );
+    if (FAILED(hr))
+    {
+        printf("FAIL: GetModuleMetaData call failed with hr=0x%x\n", hr);
+        return _T("ClassIDLookupFailed");
+    }
+
+    WCHAR wName[LONG_LENGTH];
+    DWORD dwTypeDefFlags = 0;
+    hr = pMDImport->GetTypeDefProps(classToken,
+                                         wName,
+                                         LONG_LENGTH,
+                                         NULL,
+                                         &dwTypeDefFlags,
+                                         NULL);
+    if (FAILED(hr))
+    {
+        printf("FAIL: GetModuleMetaData call failed with hr=0x%x\n", hr);
+        return _T("ClassIDLookupFailed");
+    }
+
+    tstring name = wName;
+    if (nTypeArgs > 0)
+        name += _T("<");
+
+    for(ULONG32 i = 0; i < nTypeArgs; i++)
+    {
+
+        tstring typeArgClassName;
+        typeArgClassName.clear();
+        name += GetClassIDName(typeArgs[i]);
+
+        if ((i + 1) != nTypeArgs)
+            name += _T(", ");
+    }
+
+    if (nTypeArgs > 0)
+        name += _T(">");
+
+    return name;
+}
+
+tstring MainProfiler::GetFunctionIDName(FunctionID funcId)
+{
+    // If the FunctionID is 0, we could be dealing with a native function.
+    if (funcId == 0)
+    {
+        return _T("Unknown_Native_Function");
+    }
+
+    tstring name;
+
+    ClassID classId = NULL;
+    ModuleID moduleId = NULL;
+    mdToken token = NULL;
+    ULONG32 nTypeArgs = NULL;
+    ClassID typeArgs[SHORT_LENGTH];
+    COR_PRF_FRAME_INFO frameInfo = NULL;
+
+    HRESULT hr = S_OK;
+    hr = m_pCorProfilerInfo->GetFunctionInfo2(funcId,
+                                            frameInfo,
+                                            &classId,
+                                            &moduleId,
+                                            &token,
+                                            SHORT_LENGTH,
+                                            &nTypeArgs,
+                                            typeArgs);
+    if (FAILED(hr))
+    {
+        printf("FAIL: GetFunctionInfo2 call failed with hr=0x%x\n", hr);
+        return _T("FuncNameLookupFailed");
+    }
+
+    ComPtr<IMetaDataImport> pIMDImport;
+    hr = m_pCorProfilerInfo->GetModuleMetaData(moduleId,
+                                             ofRead,
+                                             IID_IMetaDataImport,
+                                             (IUnknown **)&pIMDImport);
+    if (FAILED(hr))
+    {
+        printf("FAIL: GetModuleMetaData call failed with hr=0x%x\n", hr);
+        return _T("FuncNameLookupFailed");
+    }
+
+    WCHAR funcName[STRING_LENGTH];
+    hr = pIMDImport->GetMethodProps(token,
+                                    NULL,
+                                    funcName,
+                                    STRING_LENGTH,
+                                    0,
+                                    0,
+                                    NULL,
+                                    NULL,
+                                    NULL,
+                                    NULL);
+    if (FAILED(hr))
+    {
+        printf("FAIL: GetMethodProps call failed with hr=0x%x", hr);
+        return _T("FuncNameLookupFailed");
+    }
+
+
+    if (classId != NULL) {
+        name += GetClassIDName(classId);
+        name += _T("!");
+    }
+
+    name += funcName;
+
+    // Fill in the type parameters of the generic method
+    if (nTypeArgs > 0)
+        name += _T("<");
+
+    for(ULONG32 i = 0; i < nTypeArgs; i++)
+    {
+        name += GetClassIDName(typeArgs[i]);
+
+        if ((i + 1) != nTypeArgs)
+            name += _T(", ");
+    }
+
+    if (nTypeArgs > 0)
+        name += _T(">");
+
+    return name;
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
+{
+    return m_pSnapshotter->ReJITHandler(moduleId, methodId, pFunctionControl);
 }
 
 BSTR STDMETHODCALLTYPE MainProfiler::GetLogMessage(PINT32 level)
