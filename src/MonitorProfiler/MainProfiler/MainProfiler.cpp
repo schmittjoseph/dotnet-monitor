@@ -20,6 +20,7 @@ using namespace std;
 #define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
 
 shared_ptr<MainProfiler> MainProfiler::s_profiler;
+volatile static BOOL s_enableHooks = TRUE;
 
 GUID MainProfiler::GetClsid()
 {
@@ -32,6 +33,8 @@ STDMETHODIMP MainProfiler::Initialize(IUnknown *pICorProfilerInfoUnk)
     ExpectedPtr(pICorProfilerInfoUnk);
 
     HRESULT hr = S_OK;
+
+    m_Level = 0;
 
     // These should always be initialized first
     IfFailRet(ProfilerBase::Initialize(pICorProfilerInfoUnk));
@@ -145,7 +148,8 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
 {
     ExpectedPtr(pbNotificationOnly);
 
-    *pbNotificationOnly = !m_isMainProfiler;
+    // JSFIX: This is called before init.
+    *pbNotificationOnly = FALSE;
 
     return S_OK;
 }
@@ -153,17 +157,23 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
 #define PROFILER_STUB static void STDMETHODCALLTYPE
 PROFILER_STUB EnterStub(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
-    MainProfiler::s_profiler->EnterCallback(functionId, eltInfo);
+    if (s_enableHooks) {
+        MainProfiler::s_profiler->EnterCallback(functionId, eltInfo);
+    }
 }
 
 PROFILER_STUB LeaveStub(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
-    MainProfiler::s_profiler->LeaveCallback(functionId, eltInfo);
+    if (s_enableHooks) {
+        MainProfiler::s_profiler->LeaveCallback(functionId, eltInfo);
+    }
 }
 
 PROFILER_STUB TailcallStub(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
-    MainProfiler::s_profiler->TailcallCallback(functionId, eltInfo);
+    if (s_enableHooks) {
+        MainProfiler::s_profiler->TailcallCallback(functionId, eltInfo);
+    }
 }
 
 HRESULT MainProfiler::InitializeCommon()
@@ -176,17 +186,19 @@ HRESULT MainProfiler::InitializeCommon()
     IfFailRet(InitializeEnvironmentHelper());
 
     // Decide what kind of profiler we will be.
-    BOOL isMainProfiler = FALSE;
+    BOOL isMainProfiler = FALSE; // JSFIX
     if (SUCCEEDED(m_pEnvironmentHelper->GetIsMainProfiler(isMainProfiler))) {
         m_isMainProfiler = isMainProfiler;
     }
 
     // Logging is initialized and can now be used
-    if (isMainProfiler) {
+    if (m_isMainProfiler) {
         m_pLogger->Log(LogLevel::Warning, _LS("Initializing as main profiler"));
         // Enable snapshotting
         m_pSnapshotter.reset(new (nothrow) Snapshot(m_pLogger, m_pCorProfilerInfo));
         IfNullRet(m_pSnapshotter);
+    } else {
+        m_pLogger->Log(LogLevel::Warning, _LS("Initializing as notify-only profiler"));
     }
 
 #ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
@@ -209,24 +221,31 @@ HRESULT MainProfiler::InitializeCommon()
     StackSampler::AddProfilerEventMask(eventsLow);
     _threadNameCache = make_shared<ThreadNameCache>();
 
-    if (isMainProfiler) {
+    if (m_isMainProfiler) {
+        m_pLogger->Log(LogLevel::Warning, _LS("Setting up ELT support (unhooked)"));
         m_pSnapshotter->AddProfilerEventMask(eventsLow);
+    } else if(!s_enableHooks) {
+        m_pLogger->Log(LogLevel::Warning, _LS("Setting up ReJIT support"));
+        eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
     }
 
-    IfFailRet(m_pCorProfilerInfo->SetEventMask2(
+    IfFailLogRet(m_pCorProfilerInfo->SetEventMask2(
         eventsLow,
         COR_PRF_HIGH_MONITOR::COR_PRF_HIGH_MONITOR_NONE));
 
-    //Initialize this last. The CommandServer creates secondary threads, which will be difficult to cleanup if profiler initialization fails.
-    IfFailLogRet(InitializeCommandServer());
-
-    if (m_isMainProfiler) {
-        m_pCorProfilerInfo->SetEnterLeaveFunctionHooks3WithInfo(
+    if (s_enableHooks) {
+        m_pLogger->Log(LogLevel::Warning, _LS("Setting up ELT hooks"));
+        IfFailLogRet(m_pCorProfilerInfo->SetEnterLeaveFunctionHooks3WithInfo(
             &EnterStub,
             &LeaveStub,
             &TailcallStub
-        );
+        ));
+
+        // IfFailLogRet(m_pSnapshotter->Enable());
     }
+
+    //Initialize this last. The CommandServer creates secondary threads, which will be difficult to cleanup if profiler initialization fails.
+    IfFailLogRet(InitializeCommandServer());
 
     return S_OK;
 }
@@ -302,10 +321,14 @@ HRESULT MainProfiler::InitializeCommandServer()
 
 HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
 {
+    HRESULT hr = S_OK;
     m_pLogger->Log(LogLevel::Information, _LS("Message received from client: %d %d"), message.MessageType, message.Parameters);
 
     if (message.MessageType == MessageType::Callstack)
     {
+        // IfFailLogRet(m_pSnapshotter->Enable());
+        // IfFailLogRet(m_pSnapshotter->Disable());
+        IfFailLogRet(m_pSnapshotter->Toggle());
         //Currently we do not have any options for this message
         return ProcessCallstackMessage();
     }
@@ -366,10 +389,30 @@ inline HRESULT STDMETHODCALLTYPE MainProfiler::EnterCallback(FunctionIDOrClientI
 
 inline HRESULT STDMETHODCALLTYPE MainProfiler::LeaveCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
-    return m_pSnapshotter->EnterCallback(functionId, eltInfo);
+    return m_pSnapshotter->LeaveCallback(functionId, eltInfo);
 }
 
 inline HRESULT STDMETHODCALLTYPE MainProfiler::TailcallCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
-    return m_pSnapshotter->EnterCallback(functionId, eltInfo);
+    return m_pSnapshotter->TailcallCallback(functionId, eltInfo);
+}
+
+BSTR STDMETHODCALLTYPE MainProfiler::GetLogMessage(PINT32 level)
+{
+    m_Level++;
+    if (m_Level > 5) {
+        m_Level = 0;
+    }
+    *level = m_Level;
+
+    return ::SysAllocString(L"Hello from the profiler!");
+}
+
+#ifndef DLLEXPORT
+#define DLLEXPORT
+#endif // DLLEXPORT
+
+STDAPI_(BSTR) DLLEXPORT GetLogMessage(PINT32 level)
+{
+    return MainProfiler::s_profiler->GetLogMessage(level);
 }

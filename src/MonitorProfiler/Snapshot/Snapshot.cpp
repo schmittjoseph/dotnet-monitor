@@ -8,10 +8,15 @@
 
 using namespace std;
 
+#define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
+
+static volatile bool s_keepHooks = true;
+
 Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo)
 {
     m_pLogger = logger;
     m_pCorProfilerInfo = profilerInfo;
+    m_enabled = TRUE;
 }
 
 
@@ -21,7 +26,7 @@ HRESULT Snapshot::UpdateEventMask(DWORD deltaLowMask, DWORD deltaHighMask, BOOL 
     DWORD eventsLow = 0;
     DWORD eventsHigh = 0;
 
-    IfFailRet(m_pCorProfilerInfo->GetEventMask2(&eventsLow, &eventsHigh));
+    IfFailLogRet(m_pCorProfilerInfo->GetEventMask2(&eventsLow, &eventsHigh));
 
     if (invert) {
         eventsLow &= ~deltaLowMask;
@@ -31,35 +36,157 @@ HRESULT Snapshot::UpdateEventMask(DWORD deltaLowMask, DWORD deltaHighMask, BOOL 
         eventsHigh |= deltaHighMask;
     }
 
-    IfFailRet(m_pCorProfilerInfo->SetEventMask2(eventsLow, eventsHigh));
+    IfFailLogRet(m_pCorProfilerInfo->SetEventMask2(eventsLow, eventsHigh));
 
     return S_OK;
 }
 
 HRESULT Snapshot::Enable()
 {
-    m_pLogger->Log(LogLevel::Debug, _LS("Enabling snapshotter"));
-    return UpdateEventMask(m_dwLowEventMask, m_dwHighEventMask, FALSE);
+    m_pLogger->Log(LogLevel::Warning, _LS("Enabling snapshotter"));
+    m_enabled = TRUE;
+    return UpdateEventMask(COR_PRF_MONITOR_ENTERLEAVE, m_dwHighEventMask, FALSE);
 }
+
 
 HRESULT Snapshot::Disable()
 {
-    m_pLogger->Log(LogLevel::Debug, _LS("Disabling snapshotter"));
-    return UpdateEventMask(m_dwLowEventMask, m_dwHighEventMask, TRUE);
+    m_pLogger->Log(LogLevel::Warning, _LS("Disabling snapshotter"));
+    // s_keepHooks = FALSE;
+    m_enabled = FALSE;
+    return UpdateEventMask(COR_PRF_MONITOR_ENTERLEAVE, m_dwHighEventMask, TRUE);
+}
+
+HRESULT Snapshot::Toggle()
+{
+    HRESULT hr = S_OK;
+    if (m_enabled) {
+        hr = Disable();
+    } else {
+        hr = Enable();
+    }
+
+    m_pLogger->Log(LogLevel::Warning, _LS("hr: %0x"), hr);
+
+    return hr;
+}
+
+UINT_PTR FunctionMapper(FunctionID functionId, BOOL *pbHookFunction)
+{
+    *pbHookFunction = s_keepHooks;
+    return functionId;
 }
 
 
 void Snapshot::AddProfilerEventMask(DWORD& eventsLow)
 {
-    eventsLow |=
-        COR_PRF_MONITOR::COR_PRF_ENABLE_FUNCTION_ARGS |
-        COR_PRF_ENABLE_FUNCTION_RETVAL |
-        COR_PRF_ENABLE_FRAME_INFO |
-        COR_PRF_MONITOR_ENTERLEAVE;
+    eventsLow |= m_dwLowEventMask;
+
+    // m_pCorProfilerInfo->SetFunctionIDMapper(&FunctionMapper);
+}
+
+#define SHORT_LENGTH    32
+
+mdMethodDef Snapshot::GetMethodDefForFunction(FunctionID functionId)
+{
+    ClassID classId = NULL;
+    ModuleID moduleId = NULL;
+    mdToken token = NULL;
+    ULONG32 nTypeArgs = NULL;
+    ClassID typeArgs[SHORT_LENGTH];
+    COR_PRF_FRAME_INFO frameInfo = NULL;
+
+    HRESULT hr = S_OK;
+    hr = m_pCorProfilerInfo->GetFunctionInfo2(functionId,
+                                            frameInfo,
+                                            &classId,
+                                            &moduleId,
+                                            &token,
+                                            SHORT_LENGTH,
+                                            &nTypeArgs,
+                                            typeArgs);
+    if (FAILED(hr))
+    {
+        printf("Call to GetFunctionInfo2 failed with hr=0x%x\n", hr);
+        return mdTokenNil;
+    }
+
+    return token;
+}
+
+ModuleID Snapshot::GetModuleIDForFunction(FunctionID functionId)
+{
+    ClassID classId = NULL;
+    ModuleID moduleId = NULL;
+    mdToken token = NULL;
+    ULONG32 nTypeArgs = NULL;
+    ClassID typeArgs[SHORT_LENGTH];
+    COR_PRF_FRAME_INFO frameInfo = NULL;
+
+    HRESULT hr = S_OK;
+    hr = m_pCorProfilerInfo->GetFunctionInfo2(functionId,
+                                            frameInfo,
+                                            &classId,
+                                            &moduleId,
+                                            &token,
+                                            SHORT_LENGTH,
+                                            &nTypeArgs,
+                                            typeArgs);
+    return moduleId;
 }
 
 HRESULT STDMETHODCALLTYPE Snapshot::EnterCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
+    HRESULT hr = S_OK;
+
+    if (!m_enabled) {
+        return S_OK;
+    }
+
+
+    // Turn off
+    // m_pLogger->Log(LogLevel::Debug, _LS("Enter Hook!"));
+
+// Removes ELT hooks from a function. Works but "no guarentees".
+/*
+    if (!m_enabled) {
+
+        ModuleID targetModuleId = GetModuleIDForFunction(functionId.functionID);
+        mdMethodDef targetMethodDef = GetMethodDefForFunction(functionId.functionID);
+        // Still running a function with the hooks jitted in. Request a rejit to revet them.
+        m_pLogger->Log(LogLevel::Warning, _LS("Rejitting method to remove hooks!"));
+        if (s_remappedID == 0) {
+            s_remappedID = functionId.functionID;
+        }
+        IfFailLogRet(m_pCorProfilerInfo->RequestReJITWithInliners(COR_PRF_REJIT_BLOCK_INLINING, 1, &targetModuleId, &targetMethodDef));
+    }
+*/
+
+/*
+    ThreadID threadId;
+    IfFailLogRet(m_pCorProfilerInfo->GetCurrentThreadID(&threadId));
+
+    
+    DataMapIterator iterator = m_pShadowStacks.find(threadId);
+    IfFalseLogRet(iterator != _dataMap.end(), E_UNEXPECTED);
+
+    threadData = iterator->second;
+
+    auto foo = m_pPartialStack->cbegin();
+    FunctionID nextFunctionWeWant = *foo;
+
+    if (functionId.functionID == nextFunctionWeWant) {
+        // We're here. Advance the iterator and wait for the next function.
+        foo++;
+    } else if (foo != m_pPartialStack->) {
+        // Werent even tracking a shadow stack, no-op. 
+        foo = m_pPartialStack->cbegin();
+    } else {
+        // Swing-and-a-miss, reset the shadow stack.
+        // --- not true, we need to track pops to determine resetting it.
+        // We need a list so that we 
+    }
+
     // https://github.com/dotnet/runtime/issues/10797#issuecomment-727042054
     // All volatile registers will be preserved when using SetEnterLeaveFunctionHooks3.
     //
@@ -69,11 +196,22 @@ HRESULT STDMETHODCALLTYPE Snapshot::EnterCallback(FunctionIDOrClientID functionI
     // DWORD lastError = GetLastError();
     // SetLastError(lastError);
 
+    // We need to go **fast**, use a combination of a dirty cache and a cache line to avoid needing to take any locks
+    // in our callbacks.
+
+
+    // Grab the cache-line.
+
+    // Thread created, update the dirty cache.
+
+*/
     return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE Snapshot::LeaveCallback(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo)
 {
+    // if not matching partial stack, no-op.
+    // If we are *AND* we're leaving the current, pop up on the list.
     return S_OK;
 }
 

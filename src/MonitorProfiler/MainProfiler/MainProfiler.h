@@ -36,6 +36,7 @@ private:
     std::unique_ptr<Snapshot> m_pSnapshotter;
 
     BOOL m_isMainProfiler;
+    INT32 m_Level;
 
 
 public:
@@ -55,6 +56,7 @@ public:
     STDMETHOD(EnterCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
     STDMETHOD(LeaveCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
     STDMETHOD(TailcallCallback)(FunctionIDOrClientID functionId, COR_PRF_ELT_INFO eltInfo);
+    STDMETHOD_(BSTR, GetLogMessage)(PINT32 level);
 
 private:
     HRESULT InitializeCommon();
