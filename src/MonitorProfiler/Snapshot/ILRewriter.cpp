@@ -750,19 +750,64 @@ HRESULT AddProbe(
         pNewInstr->m_Arg32 = methodSignature;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
     } else {
-        constexpr auto CEE_LDC_I = CEE_LDC_I4;
+        /* Func Id */
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4;
+        pNewInstr->m_Arg32 = (INT32)functionId;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        // pNewInstr = pilr->NewILInstr();
-        // pNewInstr->m_opcode = CEE_LDC_I8;
-        // pNewInstr->m_Arg64 = probeFunctionId;
-        // pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        /* Args */
+
+        // Size of array
+        const INT32 numArgs = 4;
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4;
+        pNewInstr->m_Arg32 = numArgs;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+        // Create the array
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_NEWARR;
+        pNewInstr->m_Arg32 = mdTokenNil; // JSFIX: Type token for [System.Runtime]System.Object;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+        for (INT32 i = 0; i < numArgs; i++) {
+            // New entry on the evaluation stack
+            pNewInstr = pilr->NewILInstr();
+            pNewInstr->m_opcode = CEE_DUP;
+            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+            // Index to set
+            pNewInstr = pilr->NewILInstr();
+            pNewInstr->m_opcode = CEE_LDC_I4;
+            pNewInstr->m_Arg32 = i;
+            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+            // Load arg
+            pNewInstr = pilr->NewILInstr();
+            pNewInstr->m_opcode = CEE_LDARG; // JSFIX: CEE_LDARG_S and Arglist support
+            pNewInstr->m_Arg32 = i;
+            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+            // JSFIX: Decision: Box?
+#ifdef boxing_support
+            pNewInstr = pilr->NewILInstr();
+            pNewInstr->m_opcode = CEE_BOX;
+            pNewInstr->m_Arg32 = mdTokenNil; // JSFIX: Type token for arg
+            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+#endif
+
+            // Replace the i'th element in our new array with what we just pushed on the stack
+            pNewInstr = pilr->NewILInstr();
+            pNewInstr->m_opcode = CEE_STELEM_REF;
+            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        }
 
         pNewInstr = pilr->NewILInstr();
         pNewInstr->m_opcode = CEE_CALL;
         pNewInstr->m_Arg32 = probeFunctionId;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
     }
-
 
     return S_OK;
 }

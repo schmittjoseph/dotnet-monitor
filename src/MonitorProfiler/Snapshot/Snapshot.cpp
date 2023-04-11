@@ -199,7 +199,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         functionId,
         enterDef,
         leaveDef,
-        enterDef,
+        0,
         FALSE));
 #endif
     return S_OK;
