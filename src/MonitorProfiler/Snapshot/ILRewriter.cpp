@@ -725,28 +725,44 @@ public:
 HRESULT AddProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    UINT_PTR methodAddress,
+    mdMethodDef probeFunctionId,
     ULONG32 methodSignature,
-    ILInstr * pInsertProbeBeforeThisInstr)
+    ILInstr * pInsertProbeBeforeThisInstr,
+    BOOL isNative)
 {
     ILInstr * pNewInstr = nullptr;
 
-    constexpr auto CEE_LDC_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : sizeof(size_t) == 4 ? CEE_LDC_I4 : throw std::logic_error("size_t must be defined as 8 or 4");
+    if (isNative) {
+        constexpr auto CEE_LDC_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : sizeof(size_t) == 4 ? CEE_LDC_I4 : throw std::logic_error("size_t must be defined as 8 or 4");
+        
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I;
+        pNewInstr->m_Arg64 = functionId;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-    pNewInstr = pilr->NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I;
-    pNewInstr->m_Arg64 = functionId;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I;
+        // pNewInstr->m_Arg64 = methodAddress;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-    pNewInstr = pilr->NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I;
-    pNewInstr->m_Arg64 = methodAddress;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_CALLI;
+        pNewInstr->m_Arg32 = methodSignature;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    } else {
+        constexpr auto CEE_LDC_I = CEE_LDC_I4;
 
-    pNewInstr = pilr->NewILInstr();
-    pNewInstr->m_opcode = CEE_CALLI;
-    pNewInstr->m_Arg32 = methodSignature;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        // pNewInstr = pilr->NewILInstr();
+        // pNewInstr->m_opcode = CEE_LDC_I8;
+        // pNewInstr->m_Arg64 = probeFunctionId;
+        // pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_CALL;
+        pNewInstr->m_Arg32 = probeFunctionId;
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    }
+
 
     return S_OK;
 }
@@ -754,20 +770,22 @@ HRESULT AddProbe(
 HRESULT AddEnterProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    UINT_PTR methodAddress,
-    ULONG32 methodSignature)
+    mdMethodDef probeFunctionId,
+    ULONG32 methodSignature,
+    BOOL isNative)
 {
     ILInstr * pFirstOriginalInstr = pilr->GetILList()->m_pNext;
 
-    return AddProbe(pilr, functionId, methodAddress, methodSignature, pFirstOriginalInstr);
+    return AddProbe(pilr, functionId, probeFunctionId, methodSignature, pFirstOriginalInstr, isNative);
 }
 
 
 HRESULT AddExitProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    UINT_PTR methodAddress,
-    ULONG32 methodSignature)
+    mdMethodDef probeFunctionId,
+    ULONG32 methodSignature,
+    BOOL isNative)
 {
     HRESULT hr;
     BOOL fAtLeastOneProbeAdded = FALSE;
@@ -795,7 +813,7 @@ HRESULT AddExitProbe(
             pilr->InsertAfter(pInstr, pNewRet);
 
             // Add now insert the epilog before the new RET
-            hr = AddProbe(pilr, functionId, methodAddress, methodSignature, pNewRet);
+            hr = AddProbe(pilr, functionId, probeFunctionId, methodSignature, pNewRet, isNative);
             if (FAILED(hr))
                 return hr;
             fAtLeastOneProbeAdded = TRUE;
@@ -825,18 +843,18 @@ HRESULT RewriteIL(
     ModuleID moduleID,
     mdMethodDef methodDef,
     FunctionID functionId,
-    UINT_PTR enterMethodAddress,
-    UINT_PTR exitMethodAddress,
-
-    ULONG32 methodSignature)
+    mdMethodDef enterMethodAddress,
+    mdMethodDef exitMethodAddress,
+    ULONG32 methodSignature,
+    BOOL isNative)
 {
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
 
     IfFailRet(rewriter.Import());
     {
         // Adds enter/exit probes
-        IfFailRet(AddEnterProbe(&rewriter, functionId, enterMethodAddress, methodSignature));
-        // IfFailRet(AddExitProbe(&rewriter, functionId, exitMethodAddress, methodSignature));
+        IfFailRet(AddEnterProbe(&rewriter, functionId, enterMethodAddress, methodSignature, isNative));
+        IfFailRet(AddExitProbe(&rewriter, functionId, exitMethodAddress, methodSignature, isNative));
     }
     IfFailRet(rewriter.Export());
 

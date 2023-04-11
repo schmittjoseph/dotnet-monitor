@@ -22,15 +22,18 @@ class Snapshot
         ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
         BOOL m_enabled;
+        
+        FunctionID m_enterHookId;
+        FunctionID m_leaveHookId;
 
     public:
         Snapshot(
             const std::shared_ptr<ILogger>& logger,
             ICorProfilerInfo12* profilerInfo);
 
-        HRESULT Enable(FunctionID funcId);
+        HRESULT Enable(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId);
         HRESULT Disable(FunctionID funcId);
-        HRESULT Toggle(FunctionID funcId);
+        HRESULT Toggle(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId);
 
         void AddProfilerEventMask(DWORD& eventsLow);
         HRESULT STDMETHODCALLTYPE EnterCallback(FunctionID functionId);

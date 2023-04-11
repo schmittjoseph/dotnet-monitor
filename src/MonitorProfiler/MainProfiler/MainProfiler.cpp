@@ -291,13 +291,37 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     {
         {
             tstring expected = _T("Benchmarks.Controllers.JsonController!JsonNk");
+            tstring enterHook = _T("Mvc.Program!EnterHook");
+            tstring leaveHook = _T("Mvc.Program!LeaveHook");
+
             std::lock_guard<std::mutex> lock(_mutex);
 
-            auto const& it = _functionNames.find(expected);
+            FunctionID enterHookId;
+            FunctionID leaveHookId;
+
+            auto const& it = _functionNames.find(enterHook);
             if (it != _functionNames.end())
             {
+                enterHookId = it->second;
+            } else {
+                m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve managed enter hook"));
+                return E_FAIL;
+            }
+
+            auto const& it2 = _functionNames.find(leaveHook);
+            if (it2 != _functionNames.end())
+            {
+                leaveHookId = it2->second;
+            } else {
+                m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve managed leave hook"));
+                return E_FAIL;
+            }
+
+            auto const& it3 = _functionNames.find(expected);
+            if (it3 != _functionNames.end())
+            {
                 m_pLogger->Log(LogLevel::Warning, _LS("Resolved user method to hook"));
-                IfFailLogRet(m_pSnapshotter->Toggle(it->second));
+                IfFailLogRet(m_pSnapshotter->Toggle(enterHookId, leaveHookId, it3->second));
             } else {
                 m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve FunctionID"));
             }

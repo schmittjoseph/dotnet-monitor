@@ -21,9 +21,12 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     Snapshot::s_snapshotter = shared_ptr<Snapshot>(this);
 }
 
-HRESULT Snapshot::Enable(FunctionID funcId)
+HRESULT Snapshot::Enable(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId)
 {
     HRESULT hr = S_OK;
+
+    m_enterHookId = enterHookId;
+    m_leaveHookId = leaveHookId;
 
     m_pLogger->Log(LogLevel::Warning, _LS("Enabling snapshotter"));
 
@@ -59,13 +62,13 @@ HRESULT Snapshot::Disable(FunctionID funcId)
     return S_OK;
 }
 
-HRESULT Snapshot::Toggle(FunctionID funcId)
+HRESULT Snapshot::Toggle(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId)
 {
     HRESULT hr = S_OK;
     if (m_enabled) {
         hr = Disable(funcId);
     } else {
-        hr = Enable(funcId);
+        hr = Enable(enterHookId, leaveHookId, funcId);
     }
 
     return hr;
@@ -167,11 +170,38 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     IfFailLogRet(metadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&metadataEmit)));
 
 
+// #define NATIVE_HOOK
+#ifdef NATIVE_HOOK
+
     mdSignature enterLeaveMethodSignatureToken;
     IfFailLogRet(metadataEmit->GetTokenFromSig(enterLeaveMethodSignature, sizeof(enterLeaveMethodSignature), &enterLeaveMethodSignatureToken));
 
-    IfFailLogRet(RewriteIL(m_pCorProfilerInfo, pFunctionControl, moduleId, methodId, functionId, reinterpret_cast<ULONGLONG>(EnterMethodAddress), reinterpret_cast<ULONGLONG>(LeaveMethodAddress), enterLeaveMethodSignatureToken));
+    IfFailLogRet(RewriteIL(
+        m_pCorProfilerInfo,
+        pFunctionControl,
+        moduleId,
+        methodId,
+        functionId,
+        reinterpret_cast<ULONGLONG>(EnterMethodAddress),
+        reinterpret_cast<ULONGLONG>(LeaveMethodAddress),
+        enterLeaveMethodSignatureToken,
+        TRUE));
+#else
 
+    mdMethodDef enterDef = GetMethodDefForFunction(m_enterHookId);
+    mdMethodDef leaveDef = GetMethodDefForFunction(m_leaveHookId);
+
+    IfFailLogRet(RewriteIL(
+        m_pCorProfilerInfo,
+        pFunctionControl,
+        moduleId,
+        methodId,
+        functionId,
+        enterDef,
+        leaveDef,
+        enterDef,
+        FALSE));
+#endif
     return S_OK;
 }
 
