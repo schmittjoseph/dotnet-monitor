@@ -722,92 +722,80 @@ public:
     }
 };
 
+
 HRESULT AddProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    mdMethodDef probeFunctionId,
+    mdMethodDef probeFunctionDef,
+    mdTypeDef sysObjectTypeDef,
     ULONG32 methodSignature,
-    ILInstr * pInsertProbeBeforeThisInstr,
-    BOOL isNative)
+    ILInstr * pInsertProbeBeforeThisInstr)
 {
     ILInstr * pNewInstr = nullptr;
 
-    if (isNative) {
-        constexpr auto CEE_LDC_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : sizeof(size_t) == 4 ? CEE_LDC_I4 : throw std::logic_error("size_t must be defined as 8 or 4");
-        
+    /* Func Id */
+    pNewInstr = pilr->NewILInstr();
+    pNewInstr->m_opcode = CEE_LDC_I4;
+    pNewInstr->m_Arg32 = (INT32)functionId;
+    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    /* Has This */
+    pNewInstr = pilr->NewILInstr();
+    pNewInstr->m_opcode = CEE_LDC_I4;
+    pNewInstr->m_Arg32 = (INT32)1; // JSFIX: Calculate this
+    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    /* Args */
+
+    // Size of array
+    const INT32 numArgs = 1;
+    pNewInstr = pilr->NewILInstr();
+    pNewInstr->m_opcode = CEE_LDC_I4;
+    pNewInstr->m_Arg32 = numArgs;
+    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    // Create the array
+    pNewInstr = pilr->NewILInstr();
+    pNewInstr->m_opcode = CEE_NEWARR;
+    pNewInstr->m_Arg32 = sysObjectTypeDef;
+    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    for (INT32 i = 0; i < numArgs; i++) {
+        // New entry on the evaluation stack
         pNewInstr = pilr->NewILInstr();
-        pNewInstr->m_opcode = CEE_LDC_I;
-        pNewInstr->m_Arg64 = functionId;
+        pNewInstr->m_opcode = CEE_DUP;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        pNewInstr = pilr->NewILInstr();
-        pNewInstr->m_opcode = CEE_LDC_I;
-        // pNewInstr->m_Arg64 = methodAddress;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-        pNewInstr = pilr->NewILInstr();
-        pNewInstr->m_opcode = CEE_CALLI;
-        pNewInstr->m_Arg32 = methodSignature;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-    } else {
-        /* Func Id */
+        // Index to set
         pNewInstr = pilr->NewILInstr();
         pNewInstr->m_opcode = CEE_LDC_I4;
-        pNewInstr->m_Arg32 = (INT32)functionId;
+        pNewInstr->m_Arg32 = i;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        /* Args */
-
-        // Size of array
-        const INT32 numArgs = 4;
+        // Load arg
         pNewInstr = pilr->NewILInstr();
-        pNewInstr->m_opcode = CEE_LDC_I4;
-        pNewInstr->m_Arg32 = numArgs;
+        pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
+        pNewInstr->m_Arg32 = i;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        // Create the array
-        pNewInstr = pilr->NewILInstr();
-        pNewInstr->m_opcode = CEE_NEWARR;
-        pNewInstr->m_Arg32 = mdTokenNil; // JSFIX: Type token for [System.Runtime]System.Object;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-        for (INT32 i = 0; i < numArgs; i++) {
-            // New entry on the evaluation stack
-            pNewInstr = pilr->NewILInstr();
-            pNewInstr->m_opcode = CEE_DUP;
-            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-            // Index to set
-            pNewInstr = pilr->NewILInstr();
-            pNewInstr->m_opcode = CEE_LDC_I4;
-            pNewInstr->m_Arg32 = i;
-            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-            // Load arg
-            pNewInstr = pilr->NewILInstr();
-            pNewInstr->m_opcode = CEE_LDARG; // JSFIX: CEE_LDARG_S and Arglist support
-            pNewInstr->m_Arg32 = i;
-            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-            // JSFIX: Decision: Box?
+        // JSFIX: Decision: Box?
 #ifdef boxing_support
-            pNewInstr = pilr->NewILInstr();
-            pNewInstr->m_opcode = CEE_BOX;
-            pNewInstr->m_Arg32 = mdTokenNil; // JSFIX: Type token for arg
-            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        pNewInstr = pilr->NewILInstr();
+        pNewInstr->m_opcode = CEE_BOX;
+        pNewInstr->m_Arg32 = mdTokenNil; // JSFIX: Type token for arg
+        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 #endif
 
-            // Replace the i'th element in our new array with what we just pushed on the stack
-            pNewInstr = pilr->NewILInstr();
-            pNewInstr->m_opcode = CEE_STELEM_REF;
-            pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-        }
-
+        // Replace the i'th element in our new array with what we just pushed on the stack
         pNewInstr = pilr->NewILInstr();
-        pNewInstr->m_opcode = CEE_CALL;
-        pNewInstr->m_Arg32 = probeFunctionId;
+        pNewInstr->m_opcode = CEE_STELEM_REF;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
     }
+
+    pNewInstr = pilr->NewILInstr();
+    pNewInstr->m_opcode = CEE_CALL;
+    pNewInstr->m_Arg32 = probeFunctionDef;
+    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     return S_OK;
 }
@@ -815,22 +803,21 @@ HRESULT AddProbe(
 HRESULT AddEnterProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    mdMethodDef probeFunctionId,
-    ULONG32 methodSignature,
-    BOOL isNative)
+    mdMethodDef probeFunctionDef,
+    mdTypeDef sysObjectTypeDef,
+    ULONG32 methodSignature)
 {
     ILInstr * pFirstOriginalInstr = pilr->GetILList()->m_pNext;
 
-    return AddProbe(pilr, functionId, probeFunctionId, methodSignature, pFirstOriginalInstr, isNative);
+    return AddProbe(pilr, functionId, probeFunctionDef, sysObjectTypeDef, methodSignature, pFirstOriginalInstr);
 }
 
 
 HRESULT AddExitProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    mdMethodDef probeFunctionId,
-    ULONG32 methodSignature,
-    BOOL isNative)
+    mdMethodDef probeFunctionDef,
+    ULONG32 methodSignature)
 {
     HRESULT hr;
     BOOL fAtLeastOneProbeAdded = FALSE;
@@ -858,7 +845,7 @@ HRESULT AddExitProbe(
             pilr->InsertAfter(pInstr, pNewRet);
 
             // Add now insert the epilog before the new RET
-            hr = AddProbe(pilr, functionId, probeFunctionId, methodSignature, pNewRet, isNative);
+            hr = AddProbe(pilr, functionId, probeFunctionDef, mdTokenNil, methodSignature, pNewRet);
             if (FAILED(hr))
                 return hr;
             fAtLeastOneProbeAdded = TRUE;
@@ -888,18 +875,18 @@ HRESULT RewriteIL(
     ModuleID moduleID,
     mdMethodDef methodDef,
     FunctionID functionId,
-    mdMethodDef enterMethodAddress,
-    mdMethodDef exitMethodAddress,
-    ULONG32 methodSignature,
-    BOOL isNative)
+    mdMethodDef enterProbeDef,
+    mdMethodDef leaveProbeDef,
+    mdTypeDef sysObjectTypeDef,
+    ULONG32 methodSignature)
 {
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
 
     IfFailRet(rewriter.Import());
     {
         // Adds enter/exit probes
-        IfFailRet(AddEnterProbe(&rewriter, functionId, enterMethodAddress, methodSignature, isNative));
-        IfFailRet(AddExitProbe(&rewriter, functionId, exitMethodAddress, methodSignature, isNative));
+        IfFailRet(AddEnterProbe(&rewriter, functionId, enterProbeDef, sysObjectTypeDef, methodSignature));
+        // IfFailRet(AddExitProbe(&rewriter, functionId, leaveProbeDef, methodSignature));
     }
     IfFailRet(rewriter.Export());
 

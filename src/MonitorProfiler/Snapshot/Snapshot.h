@@ -36,8 +36,6 @@ class Snapshot
         HRESULT Toggle(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId);
 
         void AddProfilerEventMask(DWORD& eventsLow);
-        HRESULT STDMETHODCALLTYPE EnterCallback(FunctionID functionId);
-        HRESULT STDMETHODCALLTYPE LeaveCallback(FunctionID functionId);
 
         HRESULT STDMETHODCALLTYPE ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
 

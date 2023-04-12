@@ -130,34 +130,12 @@ ModuleID Snapshot::GetModuleIDForFunction(FunctionID functionId)
     return moduleId;
 }
 
-#define PROFILER_STUB static void STDMETHODCALLTYPE
-PROFILER_STUB EnterStub(FunctionID functionId)
-{
-    Snapshot::s_snapshotter->EnterCallback(functionId);
-}
-
-PROFILER_STUB LeaveStub(FunctionID functionId)
-{
-    Snapshot::s_snapshotter->LeaveCallback(functionId);
-}
-
-COR_SIGNATURE enterLeaveMethodSignature             [] = { IMAGE_CEE_CS_CALLCONV_STDCALL, 0x01, ELEMENT_TYPE_VOID, ELEMENT_TYPE_I };
-void(STDMETHODCALLTYPE *EnterMethodAddress)(FunctionID) = &EnterStub;
-void(STDMETHODCALLTYPE *LeaveMethodAddress)(FunctionID) = &LeaveStub;
-
-HRESULT STDMETHODCALLTYPE Snapshot::EnterCallback(FunctionID functionId)
-{
-    HRESULT hr = S_OK;
-
-    // Turn off
-    m_pLogger->Log(LogLevel::Debug, _LS("Enter Hook!"));
-
-    return S_OK;
-}
-
 HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
+
+#pragma region resolve_method_defs
+
     FunctionID functionId;
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromToken(moduleId,
                                                 methodId,
@@ -170,26 +148,103 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     IfFailLogRet(metadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&metadataEmit)));
 
 
-// #define NATIVE_HOOK
-#ifdef NATIVE_HOOK
-
-    mdSignature enterLeaveMethodSignatureToken;
-    IfFailLogRet(metadataEmit->GetTokenFromSig(enterLeaveMethodSignature, sizeof(enterLeaveMethodSignature), &enterLeaveMethodSignatureToken));
-
-    IfFailLogRet(RewriteIL(
-        m_pCorProfilerInfo,
-        pFunctionControl,
-        moduleId,
-        methodId,
-        functionId,
-        reinterpret_cast<ULONGLONG>(EnterMethodAddress),
-        reinterpret_cast<ULONGLONG>(LeaveMethodAddress),
-        enterLeaveMethodSignatureToken,
-        TRUE));
-#else
-
     mdMethodDef enterDef = GetMethodDefForFunction(m_enterHookId);
     mdMethodDef leaveDef = GetMethodDefForFunction(m_leaveHookId);
+#pragma endregion
+
+#pragma region resolve_mscorlib
+    // Find mscorlib
+    ModuleID corLibId = 0;
+
+    ComPtr<ICorProfilerModuleEnum> pEnum = NULL;
+    ModuleID curModule;
+    mdTypeDef sysObjectTypeDef = mdTypeDefNil;
+
+    // ref: ildasm
+    // https://github.com/dotnet/runtime/blob/887c043eb94be364188e2b23a87efa214ea57f1e/src/coreclr/ildasm/dasm.cpp#L876
+    IfFailLogRet(m_pCorProfilerInfo->EnumModules(&pEnum));
+    while (pEnum->Next(1, &curModule, NULL) == S_OK) {
+        //
+        // In the CoreCLR with reference assemblies and redirection it is more difficult to determine if
+        // a particular Assembly is the System assembly, like mscorlib.dll is for the Desktop CLR.
+        // In the CoreCLR runtimes, the System assembly can be System.Private.CoreLib.dll, System.Runtime.dll
+        // or netstandard.dll and in the future a different Assembly name could be used.
+        // We now determine the identity of the System assembly by querying if the Assembly defines the
+        // well known type System.Object as that type must be defined by the System assembly
+        //
+        mdTypeDef tkObjectTypeDef = mdTypeDefNil;
+
+        // Get the System.Object typedef
+        ComPtr<IMetaDataImport> curMetadataImporter;
+        IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(curModule, ofRead | ofWrite, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&curMetadataImporter)));
+
+        if (curMetadataImporter->FindTypeDefByName(_T("System.Object"), mdTokenNil, &tkObjectTypeDef) != S_OK) {
+            continue;
+        }
+
+        // We have a type definition for System.Object in this assembly
+        //
+        DWORD dwClassAttrs = 0;
+        mdToken tkExtends = mdTokenNil;
+        if (curMetadataImporter->GetTypeDefProps(tkObjectTypeDef, NULL, NULL, 0, &dwClassAttrs, &tkExtends) != S_OK) {
+            continue;
+        }
+
+        bool bExtends = curMetadataImporter->IsValidToken(tkExtends);
+        bool isClass = ((dwClassAttrs & tdClassSemanticsMask) == tdClass);
+
+        // We also check the type properties to make sure that we have a class and not a Value type definition
+        // and that this type definition isn't extending another type.
+        if (isClass & !bExtends)
+        {
+            m_pLogger->Log(LogLevel::Debug, _LS("Resolved base mscorlib.dll!System.Object assembly and type def 0x%0x"), tkObjectTypeDef);
+            corLibId = curModule;
+            sysObjectTypeDef = tkObjectTypeDef;
+            break;
+        }
+    }
+
+    if (sysObjectTypeDef == mdTypeDefNil) {
+        m_pLogger->Log(LogLevel::Warning, _LS("Unable to resolve mscorlib.dll!System.Object!"));
+        return E_FAIL;
+    }
+
+    if (moduleId == corLibId) {
+        m_pLogger->Log(LogLevel::Warning, _LS("Refusing to patch mscorlib.dll!"));
+        return E_FAIL;
+    }
+
+#pragma endregion
+
+#pragma region emit_assembly_ref
+#define NETCORECORLIB _T("System.Private.CoreLib")
+#define NETCORECORASSEMBLYNAME NETCORECORLIB
+    mdTypeRef inAssemblyTypeRef = mdTypeRefNil;
+    ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
+    IfFailLogRet(metadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
+
+    BYTE publicKeyToken[] = { 0x7c, 0xec, 0x85, 0xd7, 0xbe, 0xa7, 0x79, 0x8e };
+    ASSEMBLYMETADATA corLibMetadata{};
+    corLibMetadata.usMajorVersion = 4;
+
+    mdAssemblyRef corlibAssemblyRef = mdAssemblyRefNil;
+
+    IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
+        publicKeyToken,
+        8,
+        NETCORECORASSEMBLYNAME,
+        &corLibMetadata,
+        nullptr,
+        0,
+        afContentType_Default,
+        &corlibAssemblyRef));
+    m_pLogger->Log(LogLevel::Debug, _LS("Defined mscorlib.dll ref in target assembly."));
+
+    // Need to emit a type ref
+    IfFailLogRet(metadataEmit->DefineTypeRefByName(corlibAssemblyRef, _T("System.Object"), &inAssemblyTypeRef));
+    m_pLogger->Log(LogLevel::Debug, _LS("Defined System.Object ref in target assembly."));
+
+#pragma endregion
 
     IfFailLogRet(RewriteIL(
         m_pCorProfilerInfo,
@@ -199,17 +254,8 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         functionId,
         enterDef,
         leaveDef,
-        0,
-        FALSE));
-#endif
-    return S_OK;
-}
+        inAssemblyTypeRef,
+        0));
 
-HRESULT STDMETHODCALLTYPE Snapshot::LeaveCallback(FunctionID functionId)
-{
-    m_pLogger->Log(LogLevel::Debug, _LS("Leave Hook!"));
-
-    // if not matching partial stack, no-op.
-    // If we are *AND* we're leaving the current, pop up on the list.
     return S_OK;
 }

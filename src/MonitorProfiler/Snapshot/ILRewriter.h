@@ -9,7 +9,7 @@ HRESULT RewriteIL(
     ModuleID moduleID,
     mdMethodDef methodDef,
     FunctionID functionId,
-    mdMethodDef enterMethodAddress,
-    mdMethodDef exitMethodAddress,
-    ULONG32 methodSignature,
-    BOOL isNative);
+    mdMethodDef enterProbeDef,
+    mdMethodDef leaveProbeDef,
+    mdTypeDef sysObjectTypeDef,
+    ULONG32 methodSignature);
