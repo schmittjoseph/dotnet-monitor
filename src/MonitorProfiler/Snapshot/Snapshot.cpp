@@ -5,7 +5,7 @@
 #include "Snapshot.h"
 #include <functional>
 #include <memory>
-#include "ILRewriter.h"
+#include "InsertProbes.h"
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
@@ -299,7 +299,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     m_pLogger->Log(LogLevel::Debug, _LS("Emitted necessary assembly and type refs and into target assembly"));  
 
     // Todo: Pass all primitive tokens.
-    IfFailLogRet(RewriteIL(
+    IfFailLogRet(InsertProbes(
         m_pCorProfilerInfo,
         pFunctionControl,
         moduleId,
@@ -307,7 +307,6 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         functionId,
         enterDef,
         leaveDef,
-        0,
         sigParam,
         cbSigParam,
         &tokens));
