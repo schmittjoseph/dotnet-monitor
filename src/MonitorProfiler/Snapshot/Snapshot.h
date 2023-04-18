@@ -11,34 +11,61 @@
 
 #include <unordered_map>
 #include <list>
+
 #include <forward_list>
+
+#include "CorLibTypeTokens.h"
 
 class Snapshot
 {
-    public:
-        static std::shared_ptr<Snapshot> s_snapshotter;
-
     private:
         ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
-        BOOL m_enabled;
         
         FunctionID m_enterHookId;
         FunctionID m_leaveHookId;
+        ModuleID m_resolvedCorLibId;
+
+        std::vector<ModuleID> m_EnabledModuleIds;
+        std::vector<mdToken> m_EnabledMethodDefs;
+
+        HRESULT Snapshot::GetTokenForType(
+            ComPtr<IMetaDataImport> pMetadataImport,
+            ComPtr<IMetaDataEmit> pMetadataEmit,
+            mdToken tkResolutionScope,
+            tstring name,
+            mdToken* ptkType);
+
+        HRESULT EmitNecessaryCorLibTypeTokens(
+            ComPtr<IMetaDataImport> pMetadataImport,
+            ComPtr<IMetaDataEmit> pMetadataEmit,
+            struct CorLibTypeTokens * pCorLibTypeTokens);
+
+        HRESULT ResolveAllProbes();
+        HRESULT ResolveCorLib(ModuleID *pCorLibModuleId);
+        HRESULT GetTokenForExistingCorLibAssemblyRef(
+            ComPtr<IMetaDataImport> pMetadataImport,
+            ComPtr<IMetaDataEmit> pMetadataEmit,
+            mdAssemblyRef* pTkMscorlibAssemblyRef);
+
+#ifdef NAME_RESOLVER
+        HRESULT GetFunctionIDFromName(tstring name, FunctionID* pFuncId);
+#endif
 
     public:
         Snapshot(
             const std::shared_ptr<ILogger>& logger,
             ICorProfilerInfo12* profilerInfo);
 
-        HRESULT Enable(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId);
-        HRESULT Disable(FunctionID funcId);
-        HRESULT Toggle(FunctionID enterHookId, FunctionID leaveHookId, FunctionID funcId);
+        HRESULT Enable(tstring methodName);
+        HRESULT Disable();
+        BOOL IsEnabled();
+
+        HRESULT RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID);
 
         void AddProfilerEventMask(DWORD& eventsLow);
 
         HRESULT STDMETHODCALLTYPE ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
 
         mdMethodDef GetMethodDefForFunction(FunctionID functionId);
-        ModuleID GetModuleIDForFunction(FunctionID functionId);
 };

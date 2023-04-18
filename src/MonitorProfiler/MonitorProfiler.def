@@ -6,3 +6,4 @@ EXPORTS
     DllMain                 PRIVATE
     TestHook                PRIVATE
     GetLogMessage           PRIVATE
+    RegisterFunctionProbes  PRIVATE

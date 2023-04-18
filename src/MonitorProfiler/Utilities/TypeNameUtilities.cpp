@@ -255,3 +255,50 @@ HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId
 
     return S_OK;
 }
+
+
+HRESULT TypeNameUtilities::GetModuleName(ModuleID moduleId, tstring& name)
+{
+    if (moduleId == 0)
+    {
+        return E_INVALIDARG;
+    }
+
+    HRESULT hr;
+
+    WCHAR moduleFullName[256];
+    ULONG nameLength = 0;
+    AssemblyID assemblyID;
+
+    IfFailRet(_profilerInfo->GetModuleInfo(moduleId,
+        nullptr,
+        256,
+        &nameLength,
+        moduleFullName,
+        &assemblyID));
+
+    WCHAR* ptr = nullptr;
+
+    int pathSeparatorIndex = nameLength - 1;
+    while (pathSeparatorIndex >= 0)
+    {
+        if (moduleFullName[pathSeparatorIndex] == '\\' || moduleFullName[pathSeparatorIndex] == '/')
+        {
+            break;
+        }
+        pathSeparatorIndex--;
+    }
+
+    tstring moduleName;
+    if (pathSeparatorIndex < 0)
+    {
+        moduleName = moduleFullName;
+    }
+    else
+    {
+        moduleName = tstring(moduleFullName, pathSeparatorIndex + 1, nameLength - pathSeparatorIndex - 1);
+    }
+
+    name = std::move(moduleName);
+    return S_OK;
+}

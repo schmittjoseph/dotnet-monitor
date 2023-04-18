@@ -29,9 +29,6 @@ private:
     std::shared_ptr<ILogger> m_pLogger;
     std::shared_ptr<ThreadNameCache> _threadNameCache;
 
-    std::unordered_map<tstring, FunctionID> _functionNames;
-    std::mutex _mutex;
-
 #ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
     std::shared_ptr<ThreadDataManager> _threadDataManager;
     std::unique_ptr<ExceptionTracker> _exceptionTracker;
@@ -59,6 +56,7 @@ public:
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
 
     STDMETHOD_(BSTR, GetLogMessage)(PINT32 level);
+    STDMETHOD(RegisterFunctionProbes)(FunctionID enterProbeID, FunctionID leaveProbeID);
 
 private:
     HRESULT InitializeCommon();
@@ -68,8 +66,6 @@ private:
     HRESULT InitializeCommandServer();
     HRESULT MessageCallback(const IpcMessage& message);
     HRESULT ProcessCallstackMessage();
-    tstring MainProfiler::GetFunctionIDName(FunctionID funcId);
-    tstring MainProfiler::GetClassIDName(ClassID classId);
 
 private:
     std::unique_ptr<CommandServer> _commandServer;

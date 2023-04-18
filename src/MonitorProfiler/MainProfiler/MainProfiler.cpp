@@ -14,6 +14,8 @@
 #include "corhlpr.h"
 #include "macros.h"
 #include <memory>
+#include "../Utilities/NameCache.h"
+#include "../Utilities/TypeNameUtilities.h"
 
 using namespace std;
 
@@ -290,44 +292,11 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     if (message.MessageType == MessageType::Callstack)
     {
         {
-            tstring expected = _T("Benchmarks.Controllers.JsonController!JsonNk");
-            tstring enterHook = _T("Mvc.Program!EnterHook");
-            tstring leaveHook = _T("Mvc.Program!LeaveHook");
-
-            std::lock_guard<std::mutex> lock(_mutex);
-
-            FunctionID enterHookId;
-            FunctionID leaveHookId;
-
-            auto const& it = _functionNames.find(enterHook);
-            if (it != _functionNames.end())
-            {
-                enterHookId = it->second;
+            if (m_pSnapshotter->IsEnabled()) {
+                IfFailLogRet(m_pSnapshotter->Disable());
             } else {
-                m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve managed enter hook"));
-                return E_FAIL;
+                IfFailLogRet(m_pSnapshotter->Enable(_T("Benchmarks.Controllers.JsonController!JsonNk")));
             }
-
-            auto const& it2 = _functionNames.find(leaveHook);
-            if (it2 != _functionNames.end())
-            {
-                leaveHookId = it2->second;
-            } else {
-                m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve managed leave hook"));
-                return E_FAIL;
-            }
-
-            auto const& it3 = _functionNames.find(expected);
-            if (it3 != _functionNames.end())
-            {
-                m_pLogger->Log(LogLevel::Warning, _LS("Resolved user method to hook"));
-                IfFailLogRet(m_pSnapshotter->Toggle(enterHookId, leaveHookId, it3->second));
-            } else {
-                m_pLogger->Log(LogLevel::Warning, _LS("Could not resolve FunctionID"));
-            }
-            // Make a string
-            // Benchmarks.Controllers.JsonController!JsonNk
-
         }
         // IfFailLogRet(m_pSnapshotter->Disable());
         //Currently we do not have any options for this message
@@ -383,220 +352,34 @@ HRESULT MainProfiler::ProcessCallstackMessage()
     return S_OK;
 }
 
-bool hasEnding (std::wstring const &fullString, std::wstring const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
-}
-
-
-HRESULT STDMETHODCALLTYPE MainProfiler::JITCompilationStarted(FunctionID functionId, BOOL fIsSafeToBlock)
-{
-    tstring name;
-
-    name = GetFunctionIDName(functionId);
-
-    if (0 != name.compare(0, 3, _T("Sys")) &&
-        0 != name.compare(0, 1, _T(".")) &&
-        0 != name.compare(0, 1, _T("<")) &&
-        0 != name.compare(0, 3, _T("Mic"))) {
-        // m_pLogger->Log(LogLevel::Debug, name);
-    }
-
-    // Stash a copy of the friendly name -> this info.
-
-    std::lock_guard<std::mutex> lock(_mutex);
-
-    // Make a string
-    _functionNames[std::move(name)] = functionId;
-
-
-    return S_OK;
-}
-
-#define SHORT_LENGTH    32
-#define STRING_LENGTH  256
-#define LONG_LENGTH   1024
-tstring MainProfiler::GetClassIDName(ClassID classId)
-{
-    ModuleID modId;
-    mdTypeDef classToken;
-    ClassID parentClassID;
-    ULONG32 nTypeArgs;
-    ClassID typeArgs[SHORT_LENGTH];
-    HRESULT hr = S_OK;
-
-    if (classId == NULL)
-    {
-        printf("FAIL: Null ClassID passed in\n");
-        return _T("");
-    }
-
-    hr = m_pCorProfilerInfo->GetClassIDInfo2(classId,
-                                           &modId,
-                                           &classToken,
-                                           &parentClassID,
-                                           SHORT_LENGTH,
-                                           &nTypeArgs,
-                                           typeArgs);
-    if (CORPROF_E_CLASSID_IS_ARRAY == hr)
-    {
-        // We have a ClassID of an array.
-        return _T("ArrayClass");
-    }
-    else if (CORPROF_E_CLASSID_IS_COMPOSITE == hr)
-    {
-        // We have a composite class
-        return _T("CompositeClass");
-    }
-    else if (CORPROF_E_DATAINCOMPLETE == hr)
-    {
-        // type-loading is not yet complete. Cannot do anything about it.
-        return _T("DataIncomplete");
-    }
-    else if (FAILED(hr))
-    {
-        printf("FAIL: GetClassIDInfo returned 0x%x for ClassID %x\n", hr, (unsigned int)classId);
-        return _T("GetClassIDNameFailed");
-    }
-
-    ComPtr<IMetaDataImport> pMDImport;
-    hr = m_pCorProfilerInfo->GetModuleMetaData(modId,
-                                             (ofRead | ofWrite),
-                                             IID_IMetaDataImport,
-                                             (IUnknown **)&pMDImport );
-    if (FAILED(hr))
-    {
-        printf("FAIL: GetModuleMetaData call failed with hr=0x%x\n", hr);
-        return _T("ClassIDLookupFailed");
-    }
-
-    WCHAR wName[LONG_LENGTH];
-    DWORD dwTypeDefFlags = 0;
-    hr = pMDImport->GetTypeDefProps(classToken,
-                                         wName,
-                                         LONG_LENGTH,
-                                         NULL,
-                                         &dwTypeDefFlags,
-                                         NULL);
-    if (FAILED(hr))
-    {
-        printf("FAIL: GetModuleMetaData call failed with hr=0x%x\n", hr);
-        return _T("ClassIDLookupFailed");
-    }
-
-    tstring name = wName;
-    if (nTypeArgs > 0)
-        name += _T("<");
-
-    for(ULONG32 i = 0; i < nTypeArgs; i++)
-    {
-
-        tstring typeArgClassName;
-        typeArgClassName.clear();
-        name += GetClassIDName(typeArgs[i]);
-
-        if ((i + 1) != nTypeArgs)
-            name += _T(", ");
-    }
-
-    if (nTypeArgs > 0)
-        name += _T(">");
-
-    return name;
-}
-
-tstring MainProfiler::GetFunctionIDName(FunctionID funcId)
-{
-    // If the FunctionID is 0, we could be dealing with a native function.
-    if (funcId == 0)
-    {
-        return _T("Unknown_Native_Function");
-    }
-
-    tstring name;
-
-    ClassID classId = NULL;
-    ModuleID moduleId = NULL;
-    mdToken token = NULL;
-    ULONG32 nTypeArgs = NULL;
-    ClassID typeArgs[SHORT_LENGTH];
-    COR_PRF_FRAME_INFO frameInfo = NULL;
-
-    HRESULT hr = S_OK;
-    hr = m_pCorProfilerInfo->GetFunctionInfo2(funcId,
-                                            frameInfo,
-                                            &classId,
-                                            &moduleId,
-                                            &token,
-                                            SHORT_LENGTH,
-                                            &nTypeArgs,
-                                            typeArgs);
-    if (FAILED(hr))
-    {
-        printf("FAIL: GetFunctionInfo2 call failed with hr=0x%x\n", hr);
-        return _T("FuncNameLookupFailed");
-    }
-
-    ComPtr<IMetaDataImport> pIMDImport;
-    hr = m_pCorProfilerInfo->GetModuleMetaData(moduleId,
-                                             ofRead,
-                                             IID_IMetaDataImport,
-                                             (IUnknown **)&pIMDImport);
-    if (FAILED(hr))
-    {
-        printf("FAIL: GetModuleMetaData call failed with hr=0x%x\n", hr);
-        return _T("FuncNameLookupFailed");
-    }
-
-    WCHAR funcName[STRING_LENGTH];
-    hr = pIMDImport->GetMethodProps(token,
-                                    NULL,
-                                    funcName,
-                                    STRING_LENGTH,
-                                    0,
-                                    0,
-                                    NULL,
-                                    NULL,
-                                    NULL,
-                                    NULL);
-    if (FAILED(hr))
-    {
-        printf("FAIL: GetMethodProps call failed with hr=0x%x", hr);
-        return _T("FuncNameLookupFailed");
-    }
-
-
-    if (classId != NULL) {
-        name += GetClassIDName(classId);
-        name += _T("!");
-    }
-
-    name += funcName;
-
-    // Fill in the type parameters of the generic method
-    if (nTypeArgs > 0)
-        name += _T("<");
-
-    for(ULONG32 i = 0; i < nTypeArgs; i++)
-    {
-        name += GetClassIDName(typeArgs[i]);
-
-        if ((i + 1) != nTypeArgs)
-            name += _T(", ");
-    }
-
-    if (nTypeArgs > 0)
-        name += _T(">");
-
-    return name;
-}
-
 HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
 {
     return m_pSnapshotter->ReJITHandler(moduleId, methodId, pFunctionControl);
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::JITCompilationStarted(FunctionID functionId, BOOL fIsSafeToBlock)
+{
+/*
+    HRESULT hr = S_OK;
+    tstring name;
+
+    TypeNameUtilities typeNameUtilities(m_pCorProfilerInfo);
+    NameCache cache;
+
+    IfFailLogRet(typeNameUtilities.CacheNames(cache, functionId, NULL));
+    IfFailLogRet(cache.GetFullyQualifiedName(functionId, name));
+
+    tstring newName = tstring(_T("Microsoft.Diagnostics.Monitoring.StartupHook"));
+    if (0 == name.compare(0, newName.length(), newName)) {
+        m_pLogger->Log(LogLevel::Warning, _LS("jit: %s"), name);
+    }
+*/
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
+{
+    return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
 }
 
 BSTR STDMETHODCALLTYPE MainProfiler::GetLogMessage(PINT32 level)
@@ -617,4 +400,9 @@ BSTR STDMETHODCALLTYPE MainProfiler::GetLogMessage(PINT32 level)
 STDAPI_(BSTR) DLLEXPORT GetLogMessage(PINT32 level)
 {
     return MainProfiler::s_profiler->GetLogMessage(level);
+}
+
+STDAPI DLLEXPORT RegisterFunctionProbes(UINT64 enterProbeID, UINT64 leaveProbeID)
+{
+    return MainProfiler::s_profiler->RegisterFunctionProbes((FunctionID)enterProbeID, (FunctionID)leaveProbeID);
 }

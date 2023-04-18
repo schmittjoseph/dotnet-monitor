@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "CorLibTypeTokens.h"
+
 HRESULT RewriteIL(
     ICorProfilerInfo * pICorProfilerInfo,
     ICorProfilerFunctionControl * pICorProfilerFunctionControl,
@@ -11,5 +13,7 @@ HRESULT RewriteIL(
     FunctionID functionId,
     mdMethodDef enterProbeDef,
     mdMethodDef leaveProbeDef,
-    mdTypeDef sysObjectTypeDef,
-    ULONG32 methodSignature);
+    ULONG32 methodSignature,
+    PCCOR_SIGNATURE sigParam,
+    ULONG cbSigParam,
+    struct CorLibTypeTokens * pCorLibTypeTokens);

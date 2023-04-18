@@ -2,20 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions;
+using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
+
+// [assembly: HostingStartup(typeof(InProcLogger))]
 
 internal sealed class StartupHook
 {
-    private static CurrentAppDomainExceptionProcessor s_exceptionProcessor = new();
-
     public static void Initialize()
     {
-        try
+        AbstractInProcFeature[] features = new AbstractInProcFeature[] { new ExceptionsFeature(), new SnapshotterFeature() };
+
+        // Request aspnet to load our startup assembly for in-proc-logging.
+
+        foreach (AbstractInProcFeature feature in features)
         {
-            s_exceptionProcessor.Start();
-        }
-        catch
-        {
-            // TODO: Log failure
+            feature.TryInit();
         }
     }
 }
