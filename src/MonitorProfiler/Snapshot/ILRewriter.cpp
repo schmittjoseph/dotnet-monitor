@@ -969,7 +969,6 @@ HRESULT AddProbe(
     ILRewriter * pilr,
     FunctionID functionId,
     mdMethodDef probeFunctionDef,
-    ULONG32 methodSignature,
     ILInstr * pInsertProbeBeforeThisInstr,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
@@ -1066,7 +1065,6 @@ HRESULT AddExitProbe(
     FunctionID functionId,
     mdMethodDef probeFunctionDef,
     mdTypeDef sysObjectTypeDef,
-    ULONG32 methodSignature,
     ILInstr * pInsertProbeBeforeThisInstr)
 {
     ILInstr * pNewInstr = nullptr;
@@ -1090,22 +1088,20 @@ HRESULT AddEnterProbe(
     ILRewriter * pilr,
     FunctionID functionId,
     mdMethodDef probeFunctionDef,
-    ULONG32 methodSignature,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
     struct CorLibTypeTokens * pCorLibTypeTokens)
 {
     ILInstr * pFirstOriginalInstr = pilr->GetILList()->m_pNext;
 
-    return AddProbe(pilr, functionId, probeFunctionDef, methodSignature, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens);
+    return AddProbe(pilr, functionId, probeFunctionDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens);
 }
 
 
 HRESULT AddExitProbe(
     ILRewriter * pilr,
     FunctionID functionId,
-    mdMethodDef probeFunctionDef,
-    ULONG32 methodSignature)
+    mdMethodDef probeFunctionDef)
 {
     HRESULT hr;
     BOOL fAtLeastOneProbeAdded = FALSE;
@@ -1133,7 +1129,7 @@ HRESULT AddExitProbe(
             pilr->InsertAfter(pInstr, pNewRet);
 
             // Add now insert the epilog before the new RET
-            hr = AddExitProbe(pilr, functionId, probeFunctionDef, mdTokenNil, methodSignature, pNewRet);
+            hr = AddExitProbe(pilr, functionId, probeFunctionDef, mdTokenNil, pNewRet);
             if (FAILED(hr))
                 return hr;
             fAtLeastOneProbeAdded = TRUE;
@@ -1165,7 +1161,6 @@ HRESULT RewriteIL(
     FunctionID functionId,
     mdMethodDef enterProbeDef,
     mdMethodDef leaveProbeDef,
-    ULONG32 methodSignature,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
     struct CorLibTypeTokens * pCorLibTypeTokens)
@@ -1175,9 +1170,9 @@ HRESULT RewriteIL(
     IfFailRet(rewriter.Import());
     {
         // Adds enter/exit probes
-        IfFailRet(AddEnterProbe(&rewriter, functionId, enterProbeDef, methodSignature, sigParam, cbSigParam, pCorLibTypeTokens));
+        IfFailRet(AddEnterProbe(&rewriter, functionId, enterProbeDef, sigParam, cbSigParam, pCorLibTypeTokens));
         // JSFIX: Re-enable probe.
-        //IfFailRet(AddExitProbe(&rewriter, functionId, leaveProbeDef, methodSignature));
+        //IfFailRet(AddExitProbe(&rewriter, functionId, leaveProbeDef));
     }
     IfFailRet(rewriter.Export());
 

@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 Array? arrayValue = value as Array;
                 if (arrayValue == null)
                 {
-                    stringBuilder.Append("{internal error");
+                    stringBuilder.Append("{internal error}");
                     return;
                 }
 
@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
                     if (j > 10)
                     {
-                        stringBuilder.Append(", {...truncated}");
+                        stringBuilder.Append("{...truncated}");
                         break;
                     }
 

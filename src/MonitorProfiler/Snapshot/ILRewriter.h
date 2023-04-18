@@ -13,7 +13,6 @@ HRESULT RewriteIL(
     FunctionID functionId,
     mdMethodDef enterProbeDef,
     mdMethodDef leaveProbeDef,
-    ULONG32 methodSignature,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
     struct CorLibTypeTokens * pCorLibTypeTokens);
