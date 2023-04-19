@@ -19,4 +19,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Microsoft.Diagnostics.Monitoring.StartupHook.UnitTests" />
   </ItemGroup>
+
 </Project>

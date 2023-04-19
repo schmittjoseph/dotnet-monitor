@@ -160,7 +160,6 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     IfFailRet(EmitNecessaryCorLibTypeTokens(metadataImport, metadataEmit, &tokens));
     m_pLogger->Log(LogLevel::Debug, _LS("Emitted necessary assembly and type refs and into target assembly"));  
 
-    // Todo: Pass all primitive tokens.
     IfFailLogRet(InsertProbes(
         m_pCorProfilerInfo,
         pFunctionControl,
@@ -310,8 +309,6 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
     BYTE publicKeyToken[] = { 0x7c, 0xec, 0x85, 0xd7, 0xbe, 0xa7, 0x79, 0x8e };
     ASSEMBLYMETADATA corLibMetadata{};
     corLibMetadata.usMajorVersion = 4;
-
-    /* Get and check */
 
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
         publicKeyToken,
