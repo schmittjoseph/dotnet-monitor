@@ -158,7 +158,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
             else
             {
-                // Convert.ToString will try using IConvertible and IFormattable before calling .ToString
                 if (value is IConvertible ic)
                 {
                     stringBuilder.Append(ic.ToString(null));
