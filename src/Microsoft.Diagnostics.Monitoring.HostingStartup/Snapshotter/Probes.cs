@@ -6,17 +6,44 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System;
-using Microsoft.Diagnostics.Monitoring.HostingStartup;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Microsoft.Diagnostics.Monitoring.HostingStartup;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
-    internal sealed class Probes
+
+    internal static class Probes
     {
+        private static readonly ConcurrentDictionary<uint, MethodBase?> funcIdToMethodBase = new();
+
+        // Signal: turn off hook.
+
+        public static void ResetProbeCache()
+        {
+            funcIdToMethodBase.Clear();
+        }
+
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static MethodBase? GetMethodBase(uint funcId)
+        {
+            if (funcIdToMethodBase.TryGetValue(funcId, out MethodBase? methodBase))
+            {
+                return methodBase;
+            }
+
+            // Skip the ourselves and the probe calling us (guarenteed order via as we won't be inlined).
+            methodBase = new StackFrame(2, needFileInfo: false)?.GetMethod();
+            _ = funcIdToMethodBase.TryAdd(funcId, methodBase);
+
+            return methodBase;
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static void LeaveProbe(uint funcId)
         {
-            MethodBase? methodBase = new StackFrame(1, needFileInfo: false)?.GetMethod();
+            MethodBase? methodBase = GetMethodBase(funcId);
             if (methodBase == null)
             {
                 return;
@@ -30,7 +57,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static void EnterProbe(uint funcId, bool hasThis, object[] args)
         {
-            MethodBase? methodBase = new StackFrame(1, needFileInfo: false).GetMethod();
+            MethodBase? methodBase = GetMethodBase(funcId);
             if (methodBase == null)
             {
                 return;
