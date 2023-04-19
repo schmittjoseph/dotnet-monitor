@@ -25,7 +25,7 @@ public:
 
 private:
     std::shared_ptr<IEnvironment> m_pEnvironment;
-    std::shared_ptr<EnvironmentHelper> m_pEnvironmentHelper;
+    std::shared_ptr<EnvironmentHelper> _environmentHelper;
     std::shared_ptr<ILogger> m_pLogger;
     std::shared_ptr<ThreadNameCache> _threadNameCache;
 
@@ -52,7 +52,6 @@ public:
     STDMETHOD(InitializeForAttach)(IUnknown* pCorProfilerInfoUnk, void* pvClientData, UINT cbClientData) override;
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
-
     STDMETHOD(RegisterFunctionProbes)(FunctionID enterProbeID, FunctionID leaveProbeID);
 
 private:
@@ -63,7 +62,6 @@ private:
     HRESULT InitializeCommandServer();
     HRESULT MessageCallback(const IpcMessage& message);
     HRESULT ProcessCallstackMessage();
-
 private:
     std::unique_ptr<CommandServer> _commandServer;
 };

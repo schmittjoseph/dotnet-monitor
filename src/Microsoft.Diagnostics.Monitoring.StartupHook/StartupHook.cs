@@ -3,7 +3,6 @@
 
 using Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions;
 using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
-// using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
 
 
 internal sealed class StartupHook

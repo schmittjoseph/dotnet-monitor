@@ -18,7 +18,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup
 
             snapshotterFeature.DoInit();
 
-            Console.WriteLine("[hosting-startup]dbug: Configuring.");
             builder.ConfigureServices(services =>
             {
                 services.AddHostedService<InProcLoggerService>();

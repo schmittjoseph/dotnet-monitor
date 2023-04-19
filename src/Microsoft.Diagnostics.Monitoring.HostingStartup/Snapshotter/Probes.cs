@@ -12,18 +12,10 @@ using Microsoft.Diagnostics.Monitoring.HostingStartup;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
-
     internal static class Probes
     {
+        // JSFIX: Cache eviction
         private static readonly ConcurrentDictionary<uint, MethodBase?> funcIdToMethodBase = new();
-
-        // Signal: turn off hook.
-
-        public static void ResetProbeCache()
-        {
-            funcIdToMethodBase.Clear();
-        }
-
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static MethodBase? GetMethodBase(uint funcId)
@@ -33,8 +25,18 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 return methodBase;
             }
 
-            // Skip the ourselves and the probe calling us (guarenteed order via as we won't be inlined).
+            // Skip the ourself and the invoked probe to find what MethodBase corresponds with this function id.
             methodBase = new StackFrame(2, needFileInfo: false)?.GetMethod();
+            if (methodBase != null)
+            {
+                if ((uint)methodBase.MethodHandle.Value.ToInt64() != funcId)
+                {
+                    InProcLoggerService.Log("Internal error: Could not resolve method", LogLevel.Warning);
+                    // Could not resolve.
+                    return null;
+                }
+            }
+
             _ = funcIdToMethodBase.TryAdd(funcId, methodBase);
 
             return methodBase;
@@ -66,14 +68,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             StringBuilder stringBuilder = new StringBuilder();
             StringBuilder argValueBuilder = new StringBuilder();
 
-            // JSFIX: Performance
-            // 1. call back into the profiler to resolve the function ids to strings.
-            // 2. 
-
-
-            // Convert the handle from the profiler into a methodbase.
-
-            // JSFIX: Either cache this and ask later on
             stringBuilder.Append($"[enter] {methodBase.Module}!{methodBase.DeclaringType?.FullName}.{methodBase.Name}");
             stringBuilder.Append('(');
             var parameters = methodBase.GetParameters();
@@ -108,16 +102,11 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                         stringBuilder.Append("{internal error}");
                     }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Console.WriteLine("===== HOOK ERROR =====");
-                    Console.WriteLine($"func: {funcId}");
-                    Console.WriteLine($"args: {args.Length}");
-                    foreach (object arg in args)
-                    {
-                        Console.WriteLine(arg.GetType());
-                    }
-                    Console.WriteLine(e);
+                    InProcLoggerService.Log($"Internal hook error: {ex}", LogLevel.Critical);
+                    // JSFIX: Call into the profiler to rip out the probes.
+                    // Something's wrong with the hooks, inform the profiler.
                 }
             }
             stringBuilder.Append(')');

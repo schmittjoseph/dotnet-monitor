@@ -13,24 +13,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup
     internal sealed class InProcLoggerService : BackgroundService
     {
         private static ILogger? _logger;
-        private static ManualResetEventSlim _loggerReady = new(initialState: false);
 
         public InProcLoggerService(IServiceProvider services)
         {
-
-            ILogger? logger = services.GetService<ILogger<InProcLoggerService>>();
-
-            if (logger != null)
-            {
-                _logger = logger;
-                _loggerReady.Set();
-            }
+            _logger = services.GetService<ILogger<InProcLoggerService>>();
             Log("Ready", LogLevel.Warning);
         }
 
         public static void Log(string message, LogLevel level = LogLevel.Critical)
         {
-            if (_loggerReady.IsSet && _logger != null)
+            if (_logger != null)
             {
                 _logger.Log(level, message);
             }

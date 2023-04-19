@@ -165,7 +165,7 @@ HRESULT MainProfiler::InitializeCommon()
 
     // Decide what kind of profiler we will be.
     BOOL isMainProfiler = FALSE; // JSFIX
-    if (SUCCEEDED(m_pEnvironmentHelper->GetIsMainProfiler(isMainProfiler))) {
+    if (SUCCEEDED(_environmentHelper->GetIsMainProfiler(isMainProfiler))) {
         m_isMainProfiler = isMainProfiler;
     }
 
@@ -189,7 +189,7 @@ HRESULT MainProfiler::InitializeCommon()
     // Set product version environment variable to allow discovery of if the profiler
     // as been applied to a target process. Diagnostic tools must use the diagnostic
     // communication channel's GetProcessEnvironment command to get this value.
-    IfFailLogRet(m_pEnvironmentHelper->SetProductVersion());
+    IfFailLogRet(_environmentHelper->SetProductVersion());
 
     DWORD eventsLow = COR_PRF_MONITOR::COR_PRF_MONITOR_NONE;
 #ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
@@ -227,7 +227,7 @@ HRESULT MainProfiler::InitializeEnvironmentHelper()
 {
     IfNullRet(m_pEnvironment);
 
-    m_pEnvironmentHelper = make_shared<EnvironmentHelper>(m_pEnvironment, m_pLogger);
+    _environmentHelper = make_shared<EnvironmentHelper>(m_pEnvironment, m_pLogger);
 
     return S_OK;
 }
@@ -263,7 +263,7 @@ HRESULT MainProfiler::InitializeCommandServer()
     HRESULT hr = S_OK;
 
     tstring instanceId;
-    IfFailRet(m_pEnvironmentHelper->GetRuntimeInstanceId(instanceId));
+    IfFailRet(_environmentHelper->GetRuntimeInstanceId(instanceId));
 
 #if TARGET_UNIX
     tstring separator = _T("/");
@@ -272,7 +272,7 @@ HRESULT MainProfiler::InitializeCommandServer()
 #endif
 
     tstring sharedPath;
-    IfFailRet(m_pEnvironmentHelper->GetSharedPath(sharedPath));
+    IfFailRet(_environmentHelper->GetSharedPath(sharedPath));
 
     _commandServer = std::unique_ptr<CommandServer>(new CommandServer(m_pLogger, m_pCorProfilerInfo));
     tstring socketPath = sharedPath + separator + instanceId + _T(".sock");
