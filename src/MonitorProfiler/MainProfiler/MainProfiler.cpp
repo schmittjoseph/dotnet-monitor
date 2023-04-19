@@ -357,26 +357,6 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
     return m_pSnapshotter->ReJITHandler(moduleId, methodId, pFunctionControl);
 }
 
-HRESULT STDMETHODCALLTYPE MainProfiler::JITCompilationStarted(FunctionID functionId, BOOL fIsSafeToBlock)
-{
-/*
-    HRESULT hr = S_OK;
-    tstring name;
-
-    TypeNameUtilities typeNameUtilities(m_pCorProfilerInfo);
-    NameCache cache;
-
-    IfFailLogRet(typeNameUtilities.CacheNames(cache, functionId, NULL));
-    IfFailLogRet(cache.GetFullyQualifiedName(functionId, name));
-
-    tstring newName = tstring(_T("Microsoft.Diagnostics.Monitoring.StartupHook"));
-    if (0 == name.compare(0, newName.length(), newName)) {
-        m_pLogger->Log(LogLevel::Warning, _LS("jit: %s"), name);
-    }
-*/
-    return S_OK;
-}
-
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
 {
     return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);

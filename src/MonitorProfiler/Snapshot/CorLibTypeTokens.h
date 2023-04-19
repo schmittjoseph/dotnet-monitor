@@ -16,8 +16,6 @@ struct CorLibTypeTokens {
         tkSystemUInt16Type,
         tkSystemUInt32Type,
         tkSystemUInt64Type,
-
-        // JSFIX: Not so primitive
         tkSystemIntPtrType,
         tkSystemUIntPtrType;
 };

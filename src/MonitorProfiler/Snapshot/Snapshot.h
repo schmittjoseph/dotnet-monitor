@@ -48,10 +48,6 @@ class Snapshot
             ComPtr<IMetaDataEmit> pMetadataEmit,
             mdAssemblyRef* pTkMscorlibAssemblyRef);
 
-#ifdef NAME_RESOLVER
-        HRESULT GetFunctionIDFromName(tstring name, FunctionID* pFuncId);
-#endif
-
     public:
         Snapshot(
             const std::shared_ptr<ILogger>& logger,
