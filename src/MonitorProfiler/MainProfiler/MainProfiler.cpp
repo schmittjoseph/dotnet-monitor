@@ -35,8 +35,6 @@ STDMETHODIMP MainProfiler::Initialize(IUnknown *pICorProfilerInfoUnk)
 
     HRESULT hr = S_OK;
 
-    m_Level = 0;
-
     // These should always be initialized first
     IfFailRet(ProfilerBase::Initialize(pICorProfilerInfoUnk));
 
@@ -362,25 +360,9 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterP
     return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
 }
 
-BSTR STDMETHODCALLTYPE MainProfiler::GetLogMessage(PINT32 level)
-{
-    m_Level++;
-    if (m_Level > 5) {
-        m_Level = 0;
-    }
-    *level = m_Level;
-
-    return ::SysAllocString(L"Hello from the profiler!");
-}
-
 #ifndef DLLEXPORT
 #define DLLEXPORT
 #endif // DLLEXPORT
-
-STDAPI_(BSTR) DLLEXPORT GetLogMessage(PINT32 level)
-{
-    return MainProfiler::s_profiler->GetLogMessage(level);
-}
 
 STDAPI DLLEXPORT RegisterFunctionProbes(UINT64 enterProbeID, UINT64 leaveProbeID)
 {

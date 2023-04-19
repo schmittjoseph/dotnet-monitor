@@ -36,7 +36,6 @@ private:
     std::unique_ptr<Snapshot> m_pSnapshotter;
 
     BOOL m_isMainProfiler;
-    INT32 m_Level;
 
 
 public:
@@ -54,7 +53,6 @@ public:
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
 
-    STDMETHOD_(BSTR, GetLogMessage)(PINT32 level);
     STDMETHOD(RegisterFunctionProbes)(FunctionID enterProbeID, FunctionID leaveProbeID);
 
 private:
