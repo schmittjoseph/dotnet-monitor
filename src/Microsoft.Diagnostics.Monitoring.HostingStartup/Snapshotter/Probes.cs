@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System;
+using Microsoft.Diagnostics.Monitoring.HostingStartup;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
@@ -20,7 +22,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 return;
             }
 
-            LoggerProxy.Log($"[leave] {methodBase.Module}!{methodBase.DeclaringType?.FullName}.{methodBase.Name}", LogLevel.Warning);
+            InProcLoggerService.Log($"[leave] {methodBase.Module}!{methodBase.DeclaringType?.FullName}.{methodBase.Name}", LogLevel.Warning);
 
             return;
         }
@@ -93,7 +95,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
             stringBuilder.Append(')');
 
-            LoggerProxy.Log(stringBuilder.ToString());
+            InProcLoggerService.Log(stringBuilder.ToString());
 
             return;
         }

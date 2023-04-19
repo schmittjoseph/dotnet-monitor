@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Intentionally pinned. This feature is supported in projects targeting 6.0 or newer.-->
+    <TargetFramework>net6.0</TargetFramework>
+    <IsShippingAssembly>true</IsShippingAssembly>
+    <OutputType>Library</OutputType>
+    <IsPackable>true</IsPackable>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

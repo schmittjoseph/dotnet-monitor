@@ -3,7 +3,6 @@
 
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using System;
-using static Microsoft.Diagnostics.Monitoring.StartupHook.InProcLogger;
 
 internal abstract class AbstractInProcFeature
 {
@@ -17,12 +16,12 @@ internal abstract class AbstractInProcFeature
         try
         {
             DoInit();
-            InProcLogger.Log($"Initialized {Name()}", LogLevel.Debug);
+            LoggerProxy.Log($"Initialized {Name()}", LogLevel.Debug);
             return true;
         }
         catch (Exception ex)
         {
-            InProcLogger.Log(ex.ToString(), LogLevel.Warning);
+            LoggerProxy.Log(ex.ToString(), LogLevel.Warning);
             return false;
         }
     }

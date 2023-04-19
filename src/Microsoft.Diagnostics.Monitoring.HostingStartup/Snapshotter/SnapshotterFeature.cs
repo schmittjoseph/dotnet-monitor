@@ -2,13 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
-    internal sealed class SnapshotterFeature : AbstractInProcFeature
+    internal sealed class SnapshotterFeature
     {
         public delegate void EnterProbePointer(uint funcId, bool hasThis, object[] args);
         public delegate void LeaveProbePointer(uint funcId);
@@ -57,11 +56,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         }
     */
 
-        protected override void DoInit()
+        public void DoInit()
         {
-
-            AspNetHostingStartupHelper.RegisterHostingStartup();
-            /*
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
             static extern int RegisterFunctionProbes(long enterProbeID, long leaveProbeID);
 
@@ -72,13 +68,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             _ = RegisterFunctionProbes(enterFunctionId, leaveFunctionId);
 
             Task.Run(DoWork);
-            */
-        }
-
-
-        protected override string Name()
-        {
-            return "Snapshotter";
         }
     }
 }

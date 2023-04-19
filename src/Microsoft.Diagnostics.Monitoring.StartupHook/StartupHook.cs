@@ -3,8 +3,8 @@
 
 using Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions;
 using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
+// using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
 
-// [assembly: HostingStartup(typeof(InProcLogger))]
 
 internal sealed class StartupHook
 {
