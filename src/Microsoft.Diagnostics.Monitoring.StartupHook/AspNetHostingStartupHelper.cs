@@ -28,7 +28,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook
             LoggerProxy.Log($"Registering hosting startup: {assembly}");
             AppendToEnvironmentVariable(HostingStartupEnvVariable, assembly);
 
-           // AppendToEnvironmentVariable(SharedStoreEnvVariable, "C:\\Users\\joschmit\\work\\dotnet-monitor\\store\\");
 
             // Must also update the runtime store.
         }
