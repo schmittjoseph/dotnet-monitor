@@ -11,6 +11,7 @@
 #include "../Stacks/StackSampler.h"
 #include "../Snapshot/Snapshot.h"
 #include "../Utilities/ThreadUtilities.h"
+#include "../Utilities/EnvironmentBlockUtilities.h"
 #include "corhlpr.h"
 #include "macros.h"
 #include <memory>
@@ -147,8 +148,15 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
 {
     ExpectedPtr(pbNotificationOnly);
 
-    // JSFIX: This is called before init.
-    *pbNotificationOnly = FALSE;
+    HRESULT hr;
+
+    BOOL isSet = FALSE;
+    hr = EnvironmentBlockUtilities::IsStartupSwitchSet(_T("DotnetMonitor_Profiler_IsMainProfiler"), isSet);
+    if (hr == S_OK) {
+        m_isMainProfiler = isSet;
+        *pbNotificationOnly = !isSet;
+    }
+
 
     return S_OK;
 }
@@ -163,13 +171,6 @@ HRESULT MainProfiler::InitializeCommon()
     IfFailRet(InitializeLogging());
     IfFailRet(InitializeEnvironmentHelper());
 
-    // Decide what kind of profiler we will be.
-    BOOL isMainProfiler = FALSE; // JSFIX
-    if (SUCCEEDED(_environmentHelper->GetIsMainProfiler(isMainProfiler))) {
-        m_isMainProfiler = isMainProfiler;
-    }
-
-    // Logging is initialized and can now be used
     if (m_isMainProfiler) {
         m_pLogger->Log(LogLevel::Warning, _LS("Initializing as main profiler"));
         // Enable snapshotting
@@ -290,10 +291,12 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     if (message.MessageType == MessageType::Callstack)
     {
         {
-            if (m_pSnapshotter->IsEnabled()) {
-                IfFailLogRet(m_pSnapshotter->Disable());
-            } else {
-                IfFailLogRet(m_pSnapshotter->Enable(_T("Benchmarks.Controllers.JsonController!JsonNk")));
+            if (m_isMainProfiler) {
+                if (m_pSnapshotter->IsEnabled()) {
+                    IfFailLogRet(m_pSnapshotter->Disable());
+                } else {
+                    IfFailLogRet(m_pSnapshotter->Enable(_T("Benchmarks.Controllers.JsonController!JsonNk")));
+                }
             }
         }
         // IfFailLogRet(m_pSnapshotter->Disable());
@@ -357,7 +360,11 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
 {
-    return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
+    if (m_isMainProfiler) {
+        return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
+    } else {
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    }
 }
 
 #ifndef DLLEXPORT

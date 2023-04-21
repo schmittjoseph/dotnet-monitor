@@ -22,9 +22,6 @@ private:
     static constexpr LPCWSTR RuntimeInstanceEnvVar = _T("DotnetMonitor_Profiler_RuntimeInstanceId");
     static constexpr LPCWSTR SharedPathEnvVar = _T("DotnetMonitor_Profiler_SharedPath");
     static constexpr LPCWSTR StdErrLoggerLevelEnvVar = _T("DotnetMonitor_Profiler_StdErrLogger_Level");
-    static constexpr LPCWSTR IsMainProfilerEnvVar = _T("DotnetMonitor_Profiler_IsMainProfiler");
-
-    static constexpr LPCWSTR EnvVarEnabledValue = _T("1");
 
     std::shared_ptr<IEnvironment> _environment;
     std::shared_ptr<ILogger> _logger;
@@ -65,6 +62,4 @@ public:
     HRESULT GetStdErrLoggerLevel(LogLevel& level);
 
     HRESULT GetTempFolder(tstring& tempFolder);
-
-    HRESULT GetIsMainProfiler(BOOL& isMainProfiler);
 };

@@ -15,6 +15,8 @@
 #include <forward_list>
 
 #include "CorLibTypeTokens.h"
+#include <condition_variable>
+#include <mutex>
 
 class Snapshot
 {
@@ -28,6 +30,11 @@ class Snapshot
 
         std::vector<ModuleID> m_EnabledModuleIds;
         std::vector<mdToken> m_EnabledMethodDefs;
+
+        std::condition_variable _rejitFinished;
+        std::mutex _rejitMutex;
+        bool _rejitDidFinish;
+
 
         HRESULT Snapshot::GetTokenForType(
             ComPtr<IMetaDataImport> pMetadataImport,
