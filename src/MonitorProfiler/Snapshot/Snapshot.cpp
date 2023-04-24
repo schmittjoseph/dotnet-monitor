@@ -36,6 +36,11 @@ HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID lea
 HRESULT Snapshot::RequestFunctionProbeShutdown()
 {
     HRESULT hr;
+
+    if (!IsReady()) {
+        return S_FALSE;
+    }
+
     m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
     // JSFIX: Queue this work to run on *our* native-only thread.
     // JSFIX: Block until probes are truly gone.
@@ -44,11 +49,16 @@ HRESULT Snapshot::RequestFunctionProbeShutdown()
     return S_OK;
 }
 
+BOOL Snapshot::IsReady()
+{
+    return m_enterHookId != 0 && m_leaveHookId != 0;
+}
+
 HRESULT Snapshot::Enable()
 {
     HRESULT hr = S_OK;
 
-    if (IsEnabled()) {
+    if (!IsReady() || IsEnabled()) {
         return E_FAIL;
     }
 
@@ -388,6 +398,12 @@ HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
 {
     HRESULT hr = S_OK;
 
+    mdAssemblyRef tkCorlibAssemblyRef = mdAssemblyRefNil;
+    IfFailLogRet(GetTokenForExistingCorLibAssemblyRef(
+        pMetadataImport,
+        pMetadataEmit,
+        &tkCorlibAssemblyRef));
+
 #define GET_OR_DEFINE_TYPE_TOKEN(name, pToken) \
     IfFailRet(GetTokenForType( \
         pMetadataImport, \
@@ -395,12 +411,6 @@ HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
         tkCorlibAssemblyRef, \
         name, \
         pToken))
-
-    mdAssemblyRef tkCorlibAssemblyRef = mdAssemblyRefNil;
-    IfFailLogRet(GetTokenForExistingCorLibAssemblyRef(
-        pMetadataImport,
-        pMetadataEmit,
-        &tkCorlibAssemblyRef));
 
     GET_OR_DEFINE_TYPE_TOKEN(_T("System.Boolean"), &pCorLibTypeTokens->tkSystemBooleanType);
     GET_OR_DEFINE_TYPE_TOKEN(_T("System.Byte"), &pCorLibTypeTokens->tkSystemByteType);

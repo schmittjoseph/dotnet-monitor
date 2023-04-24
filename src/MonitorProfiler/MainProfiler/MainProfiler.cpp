@@ -291,7 +291,7 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     if (message.MessageType == MessageType::Callstack)
     {
         {
-            if (m_isMainProfiler) {
+            if (m_isMainProfiler && m_pSnapshotter->IsReady()) {
                 if (m_pSnapshotter->IsEnabled()) {
                     IfFailLogRet(m_pSnapshotter->Disable());
                 } else {

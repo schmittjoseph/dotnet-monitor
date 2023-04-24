@@ -67,6 +67,7 @@ class Snapshot
         HRESULT Enable();
         HRESULT Disable();
         BOOL IsEnabled();
+        BOOL IsReady();
 
         HRESULT RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID);
 
