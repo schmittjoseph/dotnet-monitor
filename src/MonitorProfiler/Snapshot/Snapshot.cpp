@@ -169,7 +169,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
                                                 &functionId));
 
     ComPtr<IMetaDataImport> pMetadataImport;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead | ofWrite, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
+    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
 
     PCCOR_SIGNATURE sigParam;
     ULONG cbSigParam;
