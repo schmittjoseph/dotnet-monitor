@@ -20,6 +20,8 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     m_pLogger = logger;
     m_pCorProfilerInfo = profilerInfo;
     m_resolvedCorLibId = 0;
+    m_enterHookId = 0;
+    m_leaveHookId = 0;
     _isRejitting = false;
 }
 
