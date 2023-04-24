@@ -13,6 +13,7 @@
 #include <list>
 
 #include <forward_list>
+#include <unordered_map>
 
 #include "CorLibTypeTokens.h"
 #include <condition_variable>
@@ -30,10 +31,9 @@ class Snapshot
 
         std::vector<ModuleID> m_EnabledModuleIds;
         std::vector<mdToken> m_EnabledMethodDefs;
+        std::unordered_map<ModuleID, struct CorLibTypeTokens> m_ModuleTokens;
 
-        std::condition_variable _rejitFinished;
-        std::mutex _rejitMutex;
-        bool _rejitDidFinish;
+        bool _isRejitting;
 
 
         HRESULT Snapshot::GetTokenForType(
@@ -43,12 +43,16 @@ class Snapshot
             tstring name,
             mdToken* ptkType);
 
+
+
         HRESULT EmitNecessaryCorLibTypeTokens(
             ComPtr<IMetaDataImport> pMetadataImport,
             ComPtr<IMetaDataEmit> pMetadataEmit,
             struct CorLibTypeTokens * pCorLibTypeTokens);
+        HRESULT PrepareAssemblyForProbes(
+            ModuleID moduleId,
+            mdMethodDef methodId);
 
-        HRESULT ResolveAllProbes();
         HRESULT ResolveCorLib(ModuleID *pCorLibModuleId);
         HRESULT GetTokenForExistingCorLibAssemblyRef(
             ComPtr<IMetaDataImport> pMetadataImport,

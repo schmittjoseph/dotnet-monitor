@@ -20,7 +20,7 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     m_pLogger = logger;
     m_pCorProfilerInfo = profilerInfo;
     m_resolvedCorLibId = 0;
-    _rejitDidFinish = false;
+    _isRejitting = false;
 }
 
 HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
@@ -33,16 +33,10 @@ HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID lea
     return S_OK;
 }
 
-HRESULT Snapshot::ResolveAllProbes()
-{
-    return S_OK;
-}
-
 HRESULT Snapshot::Enable(tstring name)
 {
     HRESULT hr = S_OK;
-
-    IfFailLogRet(ResolveAllProbes());
+    _isRejitting = true;
 
     m_pLogger->Log(LogLevel::Warning, _LS("Enabling snapshotter"));
 
@@ -64,10 +58,8 @@ HRESULT Snapshot::Enable(tstring name)
                                             NULL,
                                             NULL));
 
+    IfFailLogRet(PrepareAssemblyForProbes(moduleId, methodDef));
 
-    // Now wait for the rejits to occur.
-    std::unique_lock<std::mutex> lock(_rejitMutex);
-    _rejitDidFinish = false;
     m_EnabledModuleIds.push_back(moduleId);
     m_EnabledMethodDefs.push_back(methodDef);
 
@@ -76,11 +68,33 @@ HRESULT Snapshot::Enable(tstring name)
         (ULONG)m_EnabledModuleIds.size(),
         m_EnabledModuleIds.data(),
         m_EnabledMethodDefs.data()));
-    
-    _rejitFinished.wait(lock, [this]() { return _rejitDidFinish; });
 
-    // Store the module ids & method defs so we know what needs to be backed out.
-    m_pLogger->Log(LogLevel::Warning, _LS("Done"));
+    return S_OK;
+}
+
+HRESULT Snapshot::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId)
+{
+    HRESULT hr;
+
+    auto const& it = m_ModuleTokens.find(moduleId);
+    if (it != m_ModuleTokens.end())
+    {
+        return S_OK;
+    }
+
+    ComPtr<IMetaDataImport> pMetadataImport;
+    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(
+        moduleId,
+        ofRead | ofWrite,
+        IID_IMetaDataImport,
+        reinterpret_cast<IUnknown **>(&pMetadataImport)));
+
+    ComPtr<IMetaDataEmit> pMetadataEmit;
+    IfFailLogRet(pMetadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&pMetadataEmit)));
+
+    struct CorLibTypeTokens corLibTypeTokens;
+    IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &corLibTypeTokens));
+    m_ModuleTokens[moduleId] = corLibTypeTokens;
 
     return S_OK;
 }
@@ -90,7 +104,10 @@ HRESULT Snapshot::Disable()
 {
     HRESULT hr = S_OK;
 
-    std::lock_guard<std::mutex> lock(_rejitMutex);
+    if (_isRejitting) {
+        return S_FALSE;
+    }
+
     m_pLogger->Log(LogLevel::Warning, _LS("Disabling snapshotter"));
 
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
@@ -139,67 +156,28 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     HRESULT hr = S_OK;
     m_pLogger->Log(LogLevel::Warning, _LS("REJITTING: 0x%0x - 0x%0x."), moduleId, methodId);
 
-#pragma region resolve_method_defs
+    struct CorLibTypeTokens typeTokens;
+    auto const& it = m_ModuleTokens.find(moduleId);
+    if (it == m_ModuleTokens.end())
+    {
+        return E_FAIL;
+    }
+    typeTokens = it->second;
 
     FunctionID functionId;
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromToken(moduleId,
                                                 methodId,
                                                 &functionId));
-    m_pLogger->Log(LogLevel::Warning, _LS("--> 1 - 0x%0x"), functionId);
 
-    ComPtr<IMetaDataImport> metadataImport;
-    try {
-        ComPtr<IUnknown> test;
-        HRESULT unknownHr = 0x1e41430;
-
-        //  facility: 0x1e4 code: 0x1430
-        //  facility: 484 code: 5168
-        
-        // 0x80131430
-
-        // internal error:0x80131506
-
-        // May return this unknown hr, or cascade and cause COR_E_EXECUTIONENGINE
-        hr = m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, &test);
-        if (hr == unknownHr) {
-            m_pLogger->Log(LogLevel::Warning, _LS("--> INVALID STATE REACHED - 0x%0x"), hr);
-            return hr;
-        } else if (hr != S_OK) {
-            m_pLogger->Log(LogLevel::Warning, _LS("--> WHAT - 0x%0x"), hr);
-            return hr;
-        }
-
-        hr = m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead | ofWrite, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&metadataImport));
-        if (hr != S_OK) {
-            return hr;
-        }
-
-        m_pLogger->Log(LogLevel::Warning, _LS("--> 2"));
-    } catch (...) {
-        m_pLogger->Log(LogLevel::Warning, _LS("--> 2 -- EXCEPTION"));
-    }
+    ComPtr<IMetaDataImport> pMetadataImport;
+    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead | ofWrite, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
 
     PCCOR_SIGNATURE sigParam;
     ULONG cbSigParam;
-    IfFailLogRet(metadataImport->GetMethodProps(methodId, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
-    m_pLogger->Log(LogLevel::Warning, _LS("--> 3"));
-
-    ComPtr<IMetaDataEmit> metadataEmit;
-    IfFailLogRet(metadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&metadataEmit)));
-    m_pLogger->Log(LogLevel::Warning, _LS("--> 4"));
-
-
+    IfFailLogRet(pMetadataImport->GetMethodProps(methodId, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
 
     mdMethodDef enterDef = GetMethodDefForFunction(m_enterHookId);
     mdMethodDef leaveDef = GetMethodDefForFunction(m_leaveHookId);
-    m_pLogger->Log(LogLevel::Warning, _LS("--> 5"));
-
-#pragma endregion
-
-
-    struct CorLibTypeTokens tokens;
-    IfFailRet(EmitNecessaryCorLibTypeTokens(metadataImport, metadataEmit, &tokens));
-    m_pLogger->Log(LogLevel::Warning, _LS("--> 6"));
 
     IfFailLogRet(InsertProbes(
         m_pCorProfilerInfo,
@@ -211,12 +189,12 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         leaveDef,
         sigParam,
         cbSigParam,
-        &tokens));
+        &typeTokens));
+
     m_pLogger->Log(LogLevel::Warning, _LS("DONE."));
 
     // Fix: Always set this, even on error.
-    _rejitDidFinish = true;
-    _rejitFinished.notify_all();
+    _isRejitting = false;
 
     return S_OK;
 }
@@ -323,7 +301,6 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
     // We only need a buffer of equal size to NETCORECORLIB.
     const ULONG expectedLength = NETCORECORLIB_NAME_LENGTH;
     TCHAR assemblyName[expectedLength]; 
-    m_pLogger->Log(LogLevel::Debug, _LS("----> a "));  
 
     while ((hr = pMetadataAssemblyImport->EnumAssemblyRefs(&hEnum, mdRefs, ENUM_BUFFER_SIZE, &count)) == S_OK)
     {
@@ -345,8 +322,6 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
             if (hr == CLDB_S_TRUNCATION) {
                 continue;
             } else if (hr != S_OK) {
-                    m_pLogger->Log(LogLevel::Debug, _LS("----> b "));  
-
                 return hr;
             }
 
@@ -357,15 +332,12 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
             tstring assemblyNameStr = tstring(assemblyName);
 
             if (assemblyNameStr == expectedName) {
-                    m_pLogger->Log(LogLevel::Debug, _LS("----> c "));  
-
                 pMetadataAssemblyImport->CloseEnum(hEnum);
                 *pTkMscorlibAssemblyRef = curRef;
                 return S_OK;
             }
         }
     }
-                    m_pLogger->Log(LogLevel::Debug, _LS("----> d "));  
 
     if (hEnum) {
         pMetadataAssemblyImport->CloseEnum(hEnum);
@@ -388,7 +360,6 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
         0,
         afContentType_Default,
         pTkMscorlibAssemblyRef));
-    m_pLogger->Log(LogLevel::Debug, _LS("!! Added new assembly ref!! "));  
 
     return S_OK;
 }
@@ -401,124 +372,37 @@ HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
 {
     HRESULT hr = S_OK;
 
+#define GET_OR_DEFINE_TYPE_TOKEN(name, pToken) \
+    IfFailRet(GetTokenForType( \
+        pMetadataImport, \
+        pMetadataEmit, \
+        tkCorlibAssemblyRef, \
+        name, \
+        pToken))
+
     mdAssemblyRef tkCorlibAssemblyRef = mdAssemblyRefNil;
     IfFailLogRet(GetTokenForExistingCorLibAssemblyRef(
         pMetadataImport,
         pMetadataEmit,
         &tkCorlibAssemblyRef));
-/*
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Boolean"),
-        &pCorLibTypeTokens->tkSystemBooleanType));
 
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Byte"),
-        &pCorLibTypeTokens->tkSystemByteType));
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Boolean"), &pCorLibTypeTokens->tkSystemBooleanType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Byte"), &pCorLibTypeTokens->tkSystemByteType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Char"), &pCorLibTypeTokens->tkSystemCharType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Double"), &pCorLibTypeTokens->tkSystemDoubleType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int16"), &pCorLibTypeTokens->tkSystemInt16Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int32"), &pCorLibTypeTokens->tkSystemInt32Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int64"), &pCorLibTypeTokens->tkSystemInt64Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Object"), &pCorLibTypeTokens->tkSystemObjectType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.SByte"), &pCorLibTypeTokens->tkSystemSByteType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Single"), &pCorLibTypeTokens->tkSystemSingleType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.String"), &pCorLibTypeTokens->tkSystemStringType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt16"), &pCorLibTypeTokens->tkSystemUInt16Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt32"), &pCorLibTypeTokens->tkSystemUInt32Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt64"), &pCorLibTypeTokens->tkSystemUInt64Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.IntPtr"), &pCorLibTypeTokens->tkSystemIntPtrType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UIntPtr"), &pCorLibTypeTokens->tkSystemUIntPtrType);
 
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Char"),
-        &pCorLibTypeTokens->tkSystemCharType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Double"),
-        &pCorLibTypeTokens->tkSystemDoubleType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Int16"),
-        &pCorLibTypeTokens->tkSystemInt16Type));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Int32"),
-        &pCorLibTypeTokens->tkSystemInt32Type));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Int64"),
-        &pCorLibTypeTokens->tkSystemInt64Type));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Object"),
-        &pCorLibTypeTokens->tkSystemObjectType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.SByte"),
-        &pCorLibTypeTokens->tkSystemSByteType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.Single"),
-        &pCorLibTypeTokens->tkSystemSingleType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.String"),
-        &pCorLibTypeTokens->tkSystemStringType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.UInt16"),
-        &pCorLibTypeTokens->tkSystemUInt16Type));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.UInt32"),
-        &pCorLibTypeTokens->tkSystemUInt32Type));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.UInt64"),
-        &pCorLibTypeTokens->tkSystemUInt64Type));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.IntPtr"),
-        &pCorLibTypeTokens->tkSystemIntPtrType));
-
-    IfFailRet(GetTokenForType(
-        pMetadataImport,
-        pMetadataEmit,
-        tkCorlibAssemblyRef,
-        _T("System.UIntPtr"),
-        &pCorLibTypeTokens->tkSystemUIntPtrType));
-*/
     return S_OK;
 }
 
@@ -542,8 +426,6 @@ HRESULT Snapshot::GetTokenForType(
 
     if (FAILED(hr) || tkType == mdTokenNil)
     {
-        m_pLogger->Log(LogLevel::Debug, _LS("!! Added type ref :%s!! "), name);  
-
         IfFailRet(pMetadataEmit->DefineTypeRefByName(
             tkResolutionScope,
             name.c_str(),

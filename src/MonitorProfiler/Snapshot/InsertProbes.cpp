@@ -178,11 +178,10 @@ HRESULT ProcessArgs(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, C
     return S_OK;
 }
 
-HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens * pCorLibTypeTokens) {
-    HRESULT hr = S_OK;
+HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens * pCorLibTypeTokens)
+{
     *ptkBoxedType = mdTypeDefNil;
 
-    // JSFIX: Support more complex elements
     switch (elementType)
     {
     case ELEMENT_TYPE_ARRAY: // Arrays do not need to be boxed
@@ -196,6 +195,9 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
     case ELEMENT_TYPE_CLASS: // Class; does not need to be boxed
         break;
     case ELEMENT_TYPE_FNPTR: // Delegate; does not need to be boxed
+        break;
+    case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
+        // JSFIX
         break;
     case ELEMENT_TYPE_I: // IntPtr
         *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
@@ -211,6 +213,9 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
         break;
     case ELEMENT_TYPE_I8: // Long
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
+        break;
+    case ELEMENT_TYPE_MVAR: // Generic method parameter
+        // JSFIX
         break;
     case ELEMENT_TYPE_OBJECT: // Object; does not need to be boxed
         break;
@@ -240,6 +245,12 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
         break;
     case ELEMENT_TYPE_U8: // ULong
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
+        break;
+    case ELEMENT_TYPE_VALUETYPE: // Other value types (e.g. struct, enum, etc)
+        // JSFIX
+        break;
+    case ELEMENT_TYPE_VAR: // Generic type parameter
+        // JSFIX
         break;
     default:
         return E_FAIL;
