@@ -64,11 +64,13 @@ class Snapshot
             const std::shared_ptr<ILogger>& logger,
             ICorProfilerInfo12* profilerInfo);
 
-        HRESULT Enable(tstring methodName);
+        HRESULT Enable();
         HRESULT Disable();
         BOOL IsEnabled();
 
         HRESULT RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID);
+
+        HRESULT RequestUninstallProbes();
 
         void AddProfilerEventMask(DWORD& eventsLow);
 

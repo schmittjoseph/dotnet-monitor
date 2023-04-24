@@ -6,3 +6,4 @@ EXPORTS
     DllMain                 PRIVATE
     TestHook                PRIVATE
     RegisterFunctionProbes  PRIVATE
+    RequestUninstallProbes  PRIVATE

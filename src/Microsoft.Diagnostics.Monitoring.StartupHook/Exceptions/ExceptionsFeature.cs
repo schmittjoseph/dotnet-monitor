@@ -11,10 +11,5 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions
         {
             exceptionProcessor.Start();
         }
-
-        protected override string Name()
-        {
-            return "Exceptions";
-        }
     }
 }

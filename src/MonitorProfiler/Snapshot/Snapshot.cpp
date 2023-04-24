@@ -33,9 +33,24 @@ HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID lea
     return S_OK;
 }
 
-HRESULT Snapshot::Enable(tstring name)
+HRESULT Snapshot::RequestUninstallProbes()
+{
+    HRESULT hr;
+    m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
+    // JSFIX: Queue this work to run on *our* native-only thread.
+
+    IfFailLogRet(Disable());
+    return S_OK;
+}
+
+HRESULT Snapshot::Enable()
 {
     HRESULT hr = S_OK;
+
+    if (IsEnabled()) {
+        return E_FAIL;
+    }
+
     _isRejitting = true;
 
     m_pLogger->Log(LogLevel::Warning, _LS("Enabling snapshotter"));
@@ -104,12 +119,13 @@ HRESULT Snapshot::Disable()
 {
     HRESULT hr = S_OK;
 
-    if (_isRejitting) {
+    if (!IsEnabled() || _isRejitting) {
         return S_FALSE;
     }
 
     m_pLogger->Log(LogLevel::Warning, _LS("Disabling snapshotter"));
 
+    // TODO: Check output status
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
         (ULONG)m_EnabledModuleIds.size(),
         m_EnabledModuleIds.data(),

@@ -11,13 +11,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         protected override void DoInit()
         {
+            // The snapshotter feature is entirely handled in the HostingStartup assembly, ensure we attempt to load it.
             AspNetHostingStartupHelper.RegisterHostingStartup();
-        }
-
-
-        protected override string Name()
-        {
-            return "Snapshotter";
         }
     }
 }

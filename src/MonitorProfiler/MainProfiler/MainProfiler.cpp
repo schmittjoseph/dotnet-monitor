@@ -295,7 +295,7 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
                 if (m_pSnapshotter->IsEnabled()) {
                     IfFailLogRet(m_pSnapshotter->Disable());
                 } else {
-                    IfFailLogRet(m_pSnapshotter->Enable(_T("Benchmarks.Controllers.JsonController!JsonNk")));
+                    IfFailLogRet(m_pSnapshotter->Enable());
                 }
             }
         }
@@ -358,6 +358,15 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
     return m_pSnapshotter->ReJITHandler(moduleId, methodId, pFunctionControl);
 }
 
+HRESULT STDMETHODCALLTYPE MainProfiler::RequestUninstallProbes()
+{
+    if (m_isMainProfiler) {
+        return m_pSnapshotter->RequestUninstallProbes();
+    } else {
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    }
+}
+
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
 {
     if (m_isMainProfiler) {
@@ -374,4 +383,9 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterP
 STDAPI DLLEXPORT RegisterFunctionProbes(UINT64 enterProbeID, UINT64 leaveProbeID)
 {
     return MainProfiler::s_profiler->RegisterFunctionProbes((FunctionID)enterProbeID, (FunctionID)leaveProbeID);
+}
+
+STDAPI DLLEXPORT RequestUninstallProbes()
+{
+    return MainProfiler::s_profiler->RequestUninstallProbes();
 }

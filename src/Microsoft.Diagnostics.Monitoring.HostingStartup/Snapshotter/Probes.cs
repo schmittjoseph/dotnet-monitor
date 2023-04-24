@@ -9,6 +9,8 @@ using System;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Diagnostics.Monitoring.HostingStartup;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
@@ -16,6 +18,37 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
     {
         // JSFIX: Cache eviction
         private static readonly ConcurrentDictionary<uint, MethodBase?> funcIdToMethodBase = new();
+
+        [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
+        static extern int RequestUninstallProbes();
+
+
+        private static ManualResetEventSlim requestProbeStopEvent = new(initialState: false);
+
+        public static void InitBackgroundService()
+        {
+            ThreadPool.QueueUserWorkItem(ProbeHandler);
+        }
+
+        private static void ProbeHandler(object? state)
+        {
+            while (true)
+            {
+                requestProbeStopEvent.Wait();
+
+                try
+                {
+                    RequestUninstallProbes();
+                }
+                catch (Exception ex)
+                {
+                    InProcLoggerService.Log($"Internal error: Failed to uninstall probes: {ex}", LogLevel.Critical);
+                }
+
+                requestProbeStopEvent.Reset();
+            }
+        }
+
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static MethodBase? GetMethodBase(uint funcId)
@@ -105,8 +138,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 catch (Exception ex)
                 {
                     InProcLoggerService.Log($"Internal hook error: {ex}", LogLevel.Critical);
-                    // JSFIX: Call into the profiler to rip out the probes.
-                    // Something's wrong with the hooks, inform the profiler.
+                    requestProbeStopEvent.Set();
                 }
             }
             stringBuilder.Append(')');
@@ -125,8 +157,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
             else if (value.GetType().IsArray)
             {
-                // JSFIX: Upper-bound for perf reasons
-                // [a, b, c, d, ...]12345 <- how to indicate length on truncate/always?
                 // JSFIX: Enumerables...
                 int j = 0;
                 Array? arrayValue = value as Array;

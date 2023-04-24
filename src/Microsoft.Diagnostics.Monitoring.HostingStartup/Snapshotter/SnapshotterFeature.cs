@@ -66,6 +66,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             long leaveFunctionId = PinnedTestFunc.Method.MethodHandle.Value.ToInt64();
 
             _ = RegisterFunctionProbes(enterFunctionId, leaveFunctionId);
+            Probes.InitBackgroundService();
 
             Task.Run(DoWork);
         }
