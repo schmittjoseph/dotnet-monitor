@@ -74,5 +74,5 @@ class Snapshot
 
         HRESULT STDMETHODCALLTYPE ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
 
-        mdMethodDef GetMethodDefForFunction(FunctionID functionId);
+        HRESULT GetMethodDefForFunction(FunctionID functionId, mdMethodDef* pMethodDef);
 };

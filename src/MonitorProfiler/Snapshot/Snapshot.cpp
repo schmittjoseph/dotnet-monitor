@@ -133,22 +133,21 @@ void Snapshot::AddProfilerEventMask(DWORD& eventsLow)
     eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
 }
 
-mdMethodDef Snapshot::GetMethodDefForFunction(FunctionID functionId)
+HRESULT Snapshot::GetMethodDefForFunction(FunctionID functionId, mdMethodDef* pMethodDef)
 {
-    mdToken token = mdTokenNil;
+    HRESULT hr;
+    *pMethodDef = mdTokenNil;
 
-    HRESULT hr = S_OK;
-    // JSFIX: Check ret
     hr = m_pCorProfilerInfo->GetFunctionInfo2(functionId,
                                             NULL,
                                             NULL,
                                             NULL,
-                                            &token,
+                                            pMethodDef,
                                             0,
                                             NULL,
                                             NULL);
 
-    return token;
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
@@ -176,8 +175,10 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     ULONG cbSigParam;
     IfFailLogRet(pMetadataImport->GetMethodProps(methodId, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
 
-    mdMethodDef enterDef = GetMethodDefForFunction(m_enterHookId);
-    mdMethodDef leaveDef = GetMethodDefForFunction(m_leaveHookId);
+    mdMethodDef enterDef;
+    mdMethodDef leaveDef;
+    IfFailLogRet(GetMethodDefForFunction(m_enterHookId, &enterDef));
+    IfFailLogRet(GetMethodDefForFunction(m_leaveHookId, &leaveDef));
 
     IfFailLogRet(InsertProbes(
         m_pCorProfilerInfo,
@@ -278,7 +279,6 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
 
 HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadataImport, ComPtr<IMetaDataEmit> pMetadataEmit, mdAssemblyRef* pTkMscorlibAssemblyRef)
 {
-    
     // #define NETCORECORLIB _T("System.Private.CoreLib") // JSFIX: Not true,  need to calculate this from ResolveCorLib
     #define NETCORECORLIB _T("System.Runtime")
     #define NETCORECORLIB_NAME_LENGTH (sizeof(NETCORECORLIB)/sizeof(WCHAR))
