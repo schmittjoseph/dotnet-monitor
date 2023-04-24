@@ -16,11 +16,10 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     internal static class Probes
     {
-        // JSFIX: Cache eviction
         private static readonly ConcurrentDictionary<uint, MethodBase?> funcIdToMethodBase = new();
 
         [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
-        static extern int RequestUninstallProbes();
+        static extern int RequestFunctionProbeShutdown();
 
 
         private static ManualResetEventSlim requestProbeStopEvent = new(initialState: false);
@@ -38,7 +37,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
                 try
                 {
-                    RequestUninstallProbes();
+                    RequestFunctionProbeShutdown();
+                    funcIdToMethodBase.Clear();
                 }
                 catch (Exception ex)
                 {

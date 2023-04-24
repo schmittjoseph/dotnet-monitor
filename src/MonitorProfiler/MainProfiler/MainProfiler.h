@@ -53,7 +53,7 @@ public:
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
     STDMETHOD(RegisterFunctionProbes)(FunctionID enterProbeID, FunctionID leaveProbeID);
-    STDMETHOD(RequestUninstallProbes)();
+    STDMETHOD(RequestFunctionProbeShutdown)();
 private:
     HRESULT InitializeCommon();
     HRESULT InitializeEnvironment();

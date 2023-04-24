@@ -33,11 +33,12 @@ HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID lea
     return S_OK;
 }
 
-HRESULT Snapshot::RequestUninstallProbes()
+HRESULT Snapshot::RequestFunctionProbeShutdown()
 {
     HRESULT hr;
     m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
     // JSFIX: Queue this work to run on *our* native-only thread.
+    // JSFIX: Block until probes are truly gone.
 
     IfFailLogRet(Disable());
     return S_OK;

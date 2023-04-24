@@ -358,10 +358,10 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
     return m_pSnapshotter->ReJITHandler(moduleId, methodId, pFunctionControl);
 }
 
-HRESULT STDMETHODCALLTYPE MainProfiler::RequestUninstallProbes()
+HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeShutdown()
 {
     if (m_isMainProfiler) {
-        return m_pSnapshotter->RequestUninstallProbes();
+        return m_pSnapshotter->RequestFunctionProbeShutdown();
     } else {
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
@@ -385,7 +385,7 @@ STDAPI DLLEXPORT RegisterFunctionProbes(UINT64 enterProbeID, UINT64 leaveProbeID
     return MainProfiler::s_profiler->RegisterFunctionProbes((FunctionID)enterProbeID, (FunctionID)leaveProbeID);
 }
 
-STDAPI DLLEXPORT RequestUninstallProbes()
+STDAPI DLLEXPORT RequestFunctionProbeShutdown()
 {
-    return MainProfiler::s_profiler->RequestUninstallProbes();
+    return MainProfiler::s_profiler->RequestFunctionProbeShutdown();
 }

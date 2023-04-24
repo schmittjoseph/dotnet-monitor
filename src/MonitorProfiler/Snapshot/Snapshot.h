@@ -70,7 +70,7 @@ class Snapshot
 
         HRESULT RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID);
 
-        HRESULT RequestUninstallProbes();
+        HRESULT RequestFunctionProbeShutdown();
 
         void AddProfilerEventMask(DWORD& eventsLow);
 
