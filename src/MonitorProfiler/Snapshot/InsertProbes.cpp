@@ -308,7 +308,8 @@ HRESULT AddProbe(
     pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     INT32 typeIndex = (hasThis) ? -1 : 0;
-    for (INT32 i = 0; i < numArgs; i++) {
+    for (INT32 i = 0; i < numArgs; i++)
+    {
         // New entry on the evaluation stack
         pNewInstr = pilr->NewILInstr();
         pNewInstr->m_opcode = CEE_DUP;
@@ -326,12 +327,14 @@ HRESULT AddProbe(
         pNewInstr->m_Arg32 = i;
         pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        // Check if it's a Value Type, if so we box.
-        if (typeIndex >= 0) { // JSFIX: Validate -- this never needs to be boxed?
+        // JSFIX: Validate -- this never needs to be boxed?
+        if (typeIndex >= 0)
+        { 
             mdTypeDef tkBoxedType = mdTypeDefNil;
             IfFailRet(GetTypeToBoxWith(argTypes[typeIndex], &tkBoxedType, pCorLibTypeTokens));
 
-            if (tkBoxedType != mdTypeDefNil) {
+            if (tkBoxedType != mdTypeDefNil)
+            {
                 pNewInstr = pilr->NewILInstr();
                 pNewInstr->m_opcode = CEE_BOX;
                 pNewInstr->m_Arg32 = tkBoxedType;

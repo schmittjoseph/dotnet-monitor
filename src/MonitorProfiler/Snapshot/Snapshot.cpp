@@ -58,7 +58,6 @@ HRESULT Snapshot::Enable()
 
     // JSFIX: Using leave hook as the test func.
     FunctionID funcId = m_leaveHookId;
-    // JSFIX: Ensure we jit the function first before attempting a rejit.
 
     const long numberOfFunctions = 1;
 

@@ -161,7 +161,6 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
     return S_OK;
 }
 
-
 HRESULT MainProfiler::InitializeCommon()
 {
     HRESULT hr = S_OK;
@@ -198,6 +197,7 @@ HRESULT MainProfiler::InitializeCommon()
     _exceptionTracker->AddProfilerEventMask(eventsLow);
 #endif // DOTNETMONITOR_FEATURE_EXCEPTIONS
     StackSampler::AddProfilerEventMask(eventsLow);
+
     _threadNameCache = make_shared<ThreadNameCache>();
 
     if (m_isMainProfiler) {
@@ -299,7 +299,6 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
                 }
             }
         }
-        // IfFailLogRet(m_pSnapshotter->Disable());
         //Currently we do not have any options for this message
         return ProcessCallstackMessage();
     }
