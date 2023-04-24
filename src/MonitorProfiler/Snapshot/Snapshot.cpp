@@ -43,7 +43,8 @@ HRESULT Snapshot::RequestFunctionProbeShutdown()
 {
     HRESULT hr;
 
-    if (!IsReady()) {
+    if (!IsReady())
+    {
         return S_FALSE;
     }
 
@@ -64,7 +65,8 @@ HRESULT Snapshot::Enable()
 {
     HRESULT hr = S_OK;
 
-    if (!IsReady() || IsEnabled()) {
+    if (!IsReady() || IsEnabled())
+    {
         return E_FAIL;
     }
 
@@ -135,7 +137,8 @@ HRESULT Snapshot::Disable()
 {
     HRESULT hr = S_OK;
 
-    if (!IsEnabled() || _isRejitting) {
+    if (!IsEnabled() || _isRejitting)
+    {
         return S_FALSE;
     }
 
@@ -234,7 +237,8 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
 
 HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
 {
-    if (m_resolvedCorLibId != 0) {
+    if (m_resolvedCorLibId != 0)
+    {
         *pCorLibModuleId = m_resolvedCorLibId;
         return S_OK;
     }
@@ -247,9 +251,9 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
     mdTypeDef sysObjectTypeDef = mdTypeDefNil;
 
     IfFailLogRet(m_pCorProfilerInfo->EnumModules(&pEnum));
-    while (pEnum->Next(1, &curModule, NULL) == S_OK) {
+    while (pEnum->Next(1, &curModule, NULL) == S_OK)
+    {
         //
-        
         // In the CoreCLR with reference assemblies and redirection it is difficult to determine if
         // a particular Assembly is the System assembly.
         //
@@ -264,13 +268,15 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
         ComPtr<IMetaDataImport> curMetadataImporter;
         IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(curModule, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&curMetadataImporter)));
 
-        if (curMetadataImporter->FindTypeDefByName(_T("System.Object"), mdTokenNil, &tkObjectTypeDef) != S_OK) {
+        if (curMetadataImporter->FindTypeDefByName(_T("System.Object"), mdTokenNil, &tkObjectTypeDef) != S_OK)
+        {
             continue;
         }
 
         DWORD dwClassAttrs = 0;
         mdToken tkExtends = mdTokenNil;
-        if (curMetadataImporter->GetTypeDefProps(tkObjectTypeDef, NULL, NULL, 0, &dwClassAttrs, &tkExtends) != S_OK) {
+        if (curMetadataImporter->GetTypeDefProps(tkObjectTypeDef, NULL, NULL, 0, &dwClassAttrs, &tkExtends) != S_OK)
+        {
             continue;
         }
 
@@ -287,7 +293,8 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
         }
     }
 
-    if (sysObjectTypeDef == mdTypeDefNil) {
+    if (sysObjectTypeDef == mdTypeDefNil)
+    {
         return E_FAIL;
     }
 
@@ -351,13 +358,17 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
                 NULL); // flags
 
             // Current assembly's name is longer than corlib's
-            if (hr == CLDB_S_TRUNCATION) {
+            if (hr == CLDB_S_TRUNCATION)
+            {
                 continue;
-            } else if (hr != S_OK) {
+            }
+            else if (hr != S_OK)
+            {
                 return hr;
             }
 
-            if (cchName != expectedLength) {
+            if (cchName != expectedLength)
+            {
                 continue;
             }
 
@@ -371,7 +382,8 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
         }
     }
 
-    if (hEnum) {
+    if (hEnum)
+    {
         pMetadataAssemblyImport->CloseEnum(hEnum);
     }
 

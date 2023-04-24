@@ -14,7 +14,8 @@ HRESULT GetOneElementType(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb
     ULONG ulData;
 
     cb = CorSigUncompressData(pbSigBlob, &ulData);
-    if (cb == ULONG(-1)) {
+    if (cb == ULONG(-1))
+    {
         return E_FAIL;
     }
 
@@ -23,19 +24,27 @@ HRESULT GetOneElementType(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb
     // Handle the modifiers.
     if (ulData & ELEMENT_TYPE_MODIFIER)
     {
-        if (ulData == ELEMENT_TYPE_SENTINEL) {
+        if (ulData == ELEMENT_TYPE_SENTINEL)
+        {
 
-        } else if (ulData == ELEMENT_TYPE_PINNED) {
+        }
+        else if (ulData == ELEMENT_TYPE_PINNED)
+        {
 
-        } else {
+        }
+        else
+        {
             return E_FAIL;
         }
         IfFailRet(GetOneElementType(&pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, elementType));
 
         cbCur += cb;
-        if (cbCur > ulSigBlob) {
+        if (cbCur > ulSigBlob)
+        {
             return E_FAIL;
-        } else {
+        }
+        else
+        {
             return S_OK;
         }
     }
@@ -57,9 +66,12 @@ HRESULT GetOneElementType(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb
         // The next byte represents which generic parameter is referred to.  We
         // do not currently use this information, so just bypass this byte.
         cbCur++;
-        if (cbCur > ulSigBlob) {
+        if (cbCur > ulSigBlob)
+        {
             return E_FAIL;
-        } else {
+        }
+        else
+        {
             return S_OK;
         }
     }
@@ -83,14 +95,19 @@ HRESULT GetOneElementType(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb
             IfFailRet(GetOneElementType(&pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL));
             cbCur += cb;
         }
-        if (cbCur > ulSigBlob) {
+
+        if (cbCur > ulSigBlob)
+        {
             return E_FAIL;
-        } else {
+        }
+        else
+        {
             return S_OK;
         }
     }
 
-    if (elementType != NULL) {
+    if (elementType != NULL)
+    {
         *elementType = static_cast<CorElementType>(ulData);
     }
 
@@ -110,20 +127,24 @@ HRESULT ProcessArgs(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, C
 
     cb = CorSigUncompressData(pbSigBlob, &ulData);
 
-    if (cb > ulSigBlob) {
+    if (cb > ulSigBlob)
+    {
         return E_FAIL;
     }
     cbCur += cb;
     ulSigBlob -= cb;
 
-    if (ulData & IMAGE_CEE_CS_CALLCONV_HASTHIS) {
+    if (ulData & IMAGE_CEE_CS_CALLCONV_HASTHIS)
+    {
         *hasThis = TRUE;
     }
-    if (ulData & IMAGE_CEE_CS_CALLCONV_EXPLICITTHIS) {
+    if (ulData & IMAGE_CEE_CS_CALLCONV_EXPLICITTHIS)
+    {
         *hasThis = TRUE;
     }
 
-    if (isCallConv(ulData, IMAGE_CEE_CS_CALLCONV_FIELD)) {
+    if (isCallConv(ulData, IMAGE_CEE_CS_CALLCONV_FIELD))
+    {
         // Do nothing
         return S_OK;
     }
@@ -131,8 +152,8 @@ HRESULT ProcessArgs(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, C
     cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulArgs);
     *numArgs = ulArgs; // JSFIX: vargs
 
-    if (cb > ulSigBlob) {
-
+    if (cb > ulSigBlob)
+    {
         return E_FAIL;
     }
     cbCur += cb;
@@ -143,7 +164,8 @@ HRESULT ProcessArgs(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, C
         // Return type.
         IfFailRet(GetOneElementType(&pbSigBlob[cbCur], ulSigBlob, &cb, NULL)); // JSFIX;
 
-        if (cb > ulSigBlob) {
+        if (cb > ulSigBlob)
+        {
             return E_FAIL;
         }
 
@@ -162,7 +184,8 @@ HRESULT ProcessArgs(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, C
         CorElementType elementType = ELEMENT_TYPE_END;
         IfFailRet(GetOneElementType(&pbSigBlob[cbCur], ulSigBlob, &cb, &elementType));
 
-        if (cb > ulSigBlob) {
+        if (cb > ulSigBlob)
+        {
             return E_FAIL;
         }
 
@@ -277,7 +300,8 @@ HRESULT AddProbe(
     CorElementType argTypes[16];
     IfFailRet(ProcessArgs(sigParam, cbSigParam, &hasThis, argTypes, &numArgs));
 
-    if (hasThis) {
+    if (hasThis)
+    {
        numArgs++;
     }
 
@@ -395,7 +419,6 @@ HRESULT AddEnterProbe(
     return AddProbe(pilr, functionId, probeFunctionDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens);
 }
 
-
 HRESULT AddExitProbe(
     ILRewriter * pilr,
     FunctionID functionId,
@@ -429,7 +452,10 @@ HRESULT AddExitProbe(
             // Add now insert the epilog before the new RET
             hr = AddExitProbe(pilr, functionId, probeFunctionDef, mdTokenNil, pNewRet);
             if (FAILED(hr))
+            {
                 return hr;
+            }
+
             fAtLeastOneProbeAdded = TRUE;
 
             // Advance pInstr after all this gunk so the for loop continues properly
@@ -443,7 +469,9 @@ HRESULT AddExitProbe(
     }
 
     if (!fAtLeastOneProbeAdded)
+    {
         return E_FAIL;
+    }
 
     return S_OK;
 }
@@ -463,12 +491,9 @@ HRESULT InsertProbes(
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
 
     IfFailRet(rewriter.Import());
-    {
-        // Adds enter/exit probes
-        IfFailRet(AddEnterProbe(&rewriter, functionId, enterProbeDef, sigParam, cbSigParam, pCorLibTypeTokens));
-        // JSFIX: Re-enable probe.
-        //IfFailRet(AddExitProbe(&rewriter, functionId, leaveProbeDef));
-    }
+    IfFailRet(AddEnterProbe(&rewriter, functionId, enterProbeDef, sigParam, cbSigParam, pCorLibTypeTokens));
+    // JSFIX: Re-enable probe.
+    //IfFailRet(AddExitProbe(&rewriter, functionId, leaveProbeDef));
     IfFailRet(rewriter.Export());
 
     return S_OK;
