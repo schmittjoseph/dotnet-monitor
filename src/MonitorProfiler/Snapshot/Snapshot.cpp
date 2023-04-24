@@ -25,6 +25,12 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
 
 HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
 {
+    if (IsReady())
+    {
+        // Probes have already been pinned.
+        return E_FAIL;
+    }
+
     m_enterHookId = enterProbeID;
     m_leaveHookId = leaveProbeID;
 
