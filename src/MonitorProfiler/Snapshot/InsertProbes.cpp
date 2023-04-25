@@ -6,40 +6,334 @@
 #include "InsertProbes.h"
 #include "ILRewriter.h"
 #include <iostream>
-#include "MethodSigParamExtractor.h"
+#include <vector>
+// #include "MethodSigParamExtractor.h"
 
-HRESULT ProcessArgs2(IMetaDataImport* pMetadataImport, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
+HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb, CorElementType* pElementType, mdToken* ptkType)
 {
-    MethodSigParamExtractor extractor;
+    HRESULT     hr = S_OK;              // A result.
+    ULONG       cbCur = 0;
+    ULONG       cb;
+    ULONG       ulData = ELEMENT_TYPE_MAX;
+    ULONG       ulTemp;
+    int         iTemp = 0;
+    mdToken     tk;
 
-    if (!extractor.Parse((sig_byte *)pbSigBlob, ulSigBlob))
+    cb = CorSigUncompressData(pbSigBlob, &ulData);
+    cbCur += cb;
+
+    // Handle the modifiers.
+    if (ulData & ELEMENT_TYPE_MODIFIER)
     {
-        return E_FAIL;
-    }
+        if (ulData == ELEMENT_TYPE_SENTINEL)
+        {
 
-    std::vector<sig_elem_type> types = extractor.GetParamTypes();
-    if (extractor.GetParamCount() != types.size())
-    {
-        wprintf(L"Invalid number of args %d - %zu\n", extractor.GetParamCount(), types.size());
-        return E_FAIL;
-    }
-
-    *hasThis = extractor.GetHasThis();
-
-    std::vector<std::pair<sig_index_type, sig_index>> metadataInfo = extractor.GetExtendedParamMetadataInfo();
-
-    size_t pos = 0;
-    for (auto e: types) {
-        mdToken tkType = mdTokenNil;
-        if (e == ELEMENT_TYPE_VALUETYPE) {
-            std::pair<sig_index_type, sig_index> mdInfo = metadataInfo.at(pos);
-            // JSFIX: Set mdInfo.first as msb
-
-            tkType = 0x1000000 | mdInfo.second;
-            pos++;
         }
-        paramTypes.push_back({(CorElementType)e, tkType});
+        else if (ulData == ELEMENT_TYPE_PINNED)
+        {
+
+        }
+        else
+        {
+            hr = E_FAIL;
+            goto ErrExit;
+        }
+
+        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+        {
+            goto ErrExit;
+        }
+        cbCur += cb;
+        goto ErrExit;
     }
+
+
+    // Handle the underlying element types.
+    if (ulData >= ELEMENT_TYPE_MAX)
+    {
+        hr = E_FAIL;
+        goto ErrExit;
+    }
+    while (ulData == ELEMENT_TYPE_PTR || ulData == ELEMENT_TYPE_BYREF)
+    {
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
+        cbCur += cb;
+    }
+
+    if (CorIsPrimitiveType((CorElementType)ulData) ||
+        ulData == ELEMENT_TYPE_TYPEDBYREF ||
+        ulData == ELEMENT_TYPE_OBJECT ||
+        ulData == ELEMENT_TYPE_I ||
+        ulData == ELEMENT_TYPE_U)
+    {
+        // If this is a primitive type, we are done
+        if (pElementType != NULL)
+            *pElementType = static_cast<CorElementType>(ulData);
+
+        goto ErrExit;
+    }
+
+    if (ulData == ELEMENT_TYPE_VALUETYPE ||
+        ulData == ELEMENT_TYPE_CLASS ||
+        ulData == ELEMENT_TYPE_CMOD_REQD ||
+        ulData == ELEMENT_TYPE_CMOD_OPT)
+    {
+        cb = CorSigUncompressToken(&pbSigBlob[cbCur], &tk);
+        cbCur += cb;
+    
+        if (ulData == ELEMENT_TYPE_CMOD_REQD ||
+            ulData == ELEMENT_TYPE_CMOD_OPT)
+        {
+            if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+                goto ErrExit;
+            cbCur += cb;
+        }
+
+        if (pElementType != NULL)
+            *pElementType = static_cast<CorElementType>(ulData);
+        if (ptkType != NULL)
+            *ptkType = tk;
+
+        goto ErrExit;
+    }
+
+    if (ulData == ELEMENT_TYPE_SZARRAY)
+    {
+        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+            goto ErrExit;
+        cbCur += cb;
+
+        if (pElementType != NULL)
+            *pElementType = static_cast<CorElementType>(ulData);
+
+        goto ErrExit;
+    }
+
+    // instantiated type
+    if (ulData == ELEMENT_TYPE_GENERICINST)
+    {
+        // display the type constructor
+        // We need the nested type, but not the nested tk type.
+        CorElementType t = ELEMENT_TYPE_MAX;
+        mdToken tkCtor;
+
+        ULONG start = cbCur - cb; // -cb to account for the element type
+
+        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, &t, &tkCtor)))
+            goto ErrExit;
+
+        if (pElementType != NULL)
+            *pElementType = t;
+
+        cbCur += cb;
+        ULONG numArgs;
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &numArgs);
+        cbCur += cb;
+
+        while (numArgs > 0)
+        {
+            if (cbCur > ulSigBlob)
+                goto ErrExit;
+            if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+                goto ErrExit;
+            cbCur += cb;
+            --numArgs;
+        }
+
+        if (t == ELEMENT_TYPE_VALUETYPE)
+        {
+            // Need to also resolve the token
+            if (ptkType != NULL) {
+                mdTypeSpec tkTypeSpec = mdTokenNil;
+                hr = pMetadataEmit->GetTokenFromTypeSpec(&pbSigBlob[start], cbCur - start, &tkTypeSpec);
+                if (hr != S_OK) {
+                    std::wcout << L"ERRRRR\n";
+                    hr = E_FAIL;
+                    goto ErrExit;
+                }
+                *ptkType = tkTypeSpec;
+                // *ptkType = tkCtor;
+            }
+        }
+
+        goto ErrExit;
+    }
+
+    if (ulData == ELEMENT_TYPE_VAR)
+    {
+        ULONG index;
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &index);
+        cbCur += cb;
+        if (pElementType != NULL)
+            *pElementType = static_cast<CorElementType>(ulData);
+
+        goto ErrExit;
+    }
+    if (ulData == ELEMENT_TYPE_MVAR)
+    {
+        ULONG index;
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &index);
+        cbCur += cb;
+        if (pElementType != NULL)
+            *pElementType = static_cast<CorElementType>(ulData);
+
+        goto ErrExit;
+    }
+    if (ulData == ELEMENT_TYPE_FNPTR)
+    {
+        if (pElementType != NULL)
+            *pElementType = static_cast<CorElementType>(ulData);
+
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
+        cbCur += cb;
+    
+        // Get number of args
+        ULONG numArgs;
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &numArgs);
+        cbCur += cb;
+
+        // do return type
+        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+            goto ErrExit;
+        cbCur += cb;
+
+        while (numArgs > 0)
+        {
+            if (cbCur > ulSigBlob)
+                goto ErrExit;
+            if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+                goto ErrExit;
+            cbCur += cb;
+            --numArgs;
+        }
+        goto ErrExit;
+    }
+
+    if(ulData != ELEMENT_TYPE_ARRAY) return E_FAIL;
+
+    if (pElementType != NULL)
+        *pElementType = static_cast<CorElementType>(ulData);
+
+    // display the base type of SDARRAY
+    if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+        goto ErrExit;
+    cbCur += cb;
+
+    // display the rank of MDARRAY
+    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
+    cbCur += cb;
+    if (ulData == 0)
+        // we are done if no rank specified
+        goto ErrExit;
+
+    // how many dimensions have size specified?
+    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
+    cbCur += cb;
+    while (ulData)
+    {
+        cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulTemp);
+        cbCur += cb;
+        ulData--;
+    }
+    // how many dimensions have lower bounds specified?
+    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
+    cbCur += cb;
+    while (ulData)
+    {
+        cb = CorSigUncompressSignedInt(&pbSigBlob[cbCur], &iTemp);
+        cbCur += cb;
+        ulData--;
+    }
+
+ErrExit:
+    if (cbCur > ulSigBlob)
+    {
+        hr = E_FAIL;
+    }
+
+    *pcb = cbCur;
+    return hr;
+}
+
+HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
+{
+    ULONG       cbCur = 0;
+    ULONG       cb;
+    ULONG       ulData = NULL;
+    ULONG       ulArgs;
+    HRESULT     hr = S_OK;
+
+    *hasThis = FALSE;
+
+    cb = CorSigUncompressData(pbSigBlob, &ulData);
+
+    if (cb > ulSigBlob)
+    {
+        return E_FAIL;
+    }
+    cbCur += cb;
+    ulSigBlob -= cb;
+
+    if (ulData & IMAGE_CEE_CS_CALLCONV_HASTHIS ||
+        ulData & IMAGE_CEE_CS_CALLCONV_EXPLICITTHIS)
+    {
+        *hasThis = TRUE;
+    }
+
+    if (isCallConv(ulData, IMAGE_CEE_CS_CALLCONV_FIELD))
+    {
+        // Do nothing
+        return S_OK;
+    }
+
+    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulArgs);
+
+    if (cb > ulSigBlob)
+    {
+        return E_FAIL;
+    }
+    cbCur += cb;
+    ulSigBlob -= cb;
+
+    if (ulData != IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
+    {
+        // Return type.
+        IfFailRet(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob, &cb, NULL, NULL));
+
+        if (cb > ulSigBlob)
+        {
+            return E_FAIL;
+        }
+
+        cbCur += cb;
+        ulSigBlob -= cb;
+    }
+
+    ULONG i = 0;
+    while (i < ulArgs && ulSigBlob > 0)
+    {
+        ULONG ulDataUncompress;
+
+        // Handle the sentinel for varargs because it isn't counted in the args.
+        CorSigUncompressData(&pbSigBlob[cbCur], &ulDataUncompress);
+    
+        CorElementType elementType = ELEMENT_TYPE_END;
+        mdToken tkType = mdTokenNil;
+        IfFailRet(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob, &cb, &elementType, &tkType));
+
+        if (cb > ulSigBlob)
+        {
+            return E_FAIL;
+        }
+
+        paramTypes.push_back({elementType, tkType});
+
+        cbCur += cb;
+        ulSigBlob -= cb;
+        i++;
+    }
+
+    cb = 0;
 
     return S_OK;
 }
@@ -115,23 +409,24 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
     case ELEMENT_TYPE_VALUETYPE: { // Other value types (e.g. struct, enum, etc)
-            // WCHAR name[256];
-            // ULONG count = 0;
-            // IfFailRet(pMetadataImport->GetTypeDefProps(typeInfo.second, name, 256, &count, NULL, NULL));
-            // wprintf(L"typedef name: %s\n", name);
         WCHAR name[256];
         ULONG count = 0;
-        // Still need sig_index_type
-        
-        IfFailRet(pMetadataImport->GetTypeRefProps(typeInfo.second, NULL, name, 256, &count));
+        if (TypeFromToken(typeInfo.second) == mdtTypeSpec) {
+            wprintf(L"WE HAVE A TYPESPEC - 0x%0x\n", typeInfo.second);
+        } else if (TypeFromToken(typeInfo.second) == mdtTypeDef) {
+            wprintf(L"WE HAVE A TYPEDEF  - 0x%0x\n", typeInfo.second);
+            IfFailRet(pMetadataImport->GetTypeDefProps(typeInfo.second, name, 256, &count, NULL, NULL));
+            wprintf(L"valuetype name: %s\n", name);
+        } else if (TypeFromToken(typeInfo.second) == mdtTypeRef) {
+            wprintf(L"WE HAVE A TYPEREF - 0x%0x\n", typeInfo.second);
+            IfFailRet(pMetadataImport->GetTypeRefProps(typeInfo.second, NULL, name, 256, &count));
+            wprintf(L"valuetype name: %s\n", name);
+        } else {
+            return E_FAIL;
+        }
 
-        // test
-        wprintf(L"type name: %s - 0x%0x -- 0x%0x\n", name, typeInfo.second, pCorLibTypeTokens->tkSystemUInt64Type);
-
-        // ComPtr<ITokenType> pTokenType;
-        // IfFailRet(pType->QueryInterface(&pTokenType));
-        // IfFailRet(pTokenType->GetToken(ptkBoxedType));
         *ptkBoxedType = typeInfo.second;
+
         break;
     }
     case ELEMENT_TYPE_VAR: // Generic type parameter
@@ -148,6 +443,7 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
 HRESULT AddEnterProbe(
     ILRewriter * pilr,
     IMetaDataImport* pMetadataImport,
+    IMetaDataEmit* pMetadataEmit,
     FunctionID functionId,
     mdMethodDef probeFunctionDef,
     ILInstr * pInsertProbeBeforeThisInstr,
@@ -163,7 +459,7 @@ HRESULT AddEnterProbe(
     std::vector<std::pair<CorElementType, mdToken>> paramTypes;
 
     std::wcout << L"Trying to get args\n";
-    IfFailRet(ProcessArgs2(pMetadataImport, sigParam, cbSigParam, &hasThis, paramTypes));
+    IfFailRet(ProcessArgs(pMetadataImport, pMetadataEmit, sigParam, cbSigParam, &hasThis, paramTypes));
     std::wcout << L"--> Done\n";
 
     numArgs = (INT32)paramTypes.size();
@@ -254,6 +550,7 @@ HRESULT AddEnterProbe(
 HRESULT InsertProbes(
     ICorProfilerInfo * pICorProfilerInfo,
     IMetaDataImport* pMetadataImport,
+    IMetaDataEmit* pMetadataEmit,
     ICorProfilerFunctionControl * pICorProfilerFunctionControl,
     ModuleID moduleID,
     mdMethodDef methodDef,
@@ -268,7 +565,7 @@ HRESULT InsertProbes(
 
     IfFailRet(rewriter.Import());
     ILInstr* pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-    IfFailRet(AddEnterProbe(&rewriter, pMetadataImport, functionId, enterProbeDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens));
+    IfFailRet(AddEnterProbe(&rewriter, pMetadataImport, pMetadataEmit, functionId, enterProbeDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens));
     IfFailRet(rewriter.Export());
 
     return S_OK;

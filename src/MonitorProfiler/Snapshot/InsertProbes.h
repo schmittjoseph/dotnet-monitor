@@ -8,6 +8,7 @@
 HRESULT InsertProbes(
     ICorProfilerInfo* pICorProfilerInfo,
     IMetaDataImport* pMetadataImport,
+    IMetaDataEmit* pMetadataEmit,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
     ModuleID moduleID,
     mdMethodDef methodDef,

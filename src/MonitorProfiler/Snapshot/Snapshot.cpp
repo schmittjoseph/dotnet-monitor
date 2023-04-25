@@ -276,9 +276,15 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     IfFailLogRet(GetMethodDefForFunction(m_enterHookId, &enterDef));
     IfFailLogRet(GetMethodDefForFunction(m_leaveHookId, &leaveDef));
 
+    ComPtr<IMetaDataEmit> pMetadataEmit;
+    // JSFIX: We're running around with a read-only emitter. Is this fine?
+    // If we need write, this **must** be done before we rejit.
+    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit)));
+
     IfFailLogRet(InsertProbes(
         m_pCorProfilerInfo,
         pMetadataImport,
+        pMetadataEmit,
         pFunctionControl,
         moduleId,
         methodDef,

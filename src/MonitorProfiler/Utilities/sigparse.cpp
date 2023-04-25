@@ -484,7 +484,7 @@ bool SigParser::ParseType()
         if (pbCur >= pbEnd)
             return false;
 
-    if (*pbCur == ELEMENT_TYPE_VOID)
+        if (*pbCur == ELEMENT_TYPE_VOID)
         {
             pbCur++;
             NotifyVoid();

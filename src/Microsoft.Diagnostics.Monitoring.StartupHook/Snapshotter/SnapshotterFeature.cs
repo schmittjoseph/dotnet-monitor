@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Generic;
+
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     internal sealed class SnapshotterFeature : AbstractInProcFeature
@@ -13,6 +15,14 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         {
             // The snapshotter feature is entirely handled in the HostingStartup assembly, ensure we attempt to load it.
             AspNetHostingStartupHelper.RegisterHostingStartup();
+        }
+    }
+
+    public static class TestHooks
+    {
+        public static void Test(uint i, bool? test, string hi, int[,] t, List<bool> f)
+        {
+            return;
         }
     }
 }

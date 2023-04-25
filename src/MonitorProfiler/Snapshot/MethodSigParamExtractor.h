@@ -287,7 +287,7 @@ protected:
 	virtual void NotifyTypeDefOrRef(sig_index_type indexType, int index)
 	{
 		wprintf(L"type def or ref\n");
-
+		m_metadataInfo.push_back({indexType, index});
 	}
 
 	// the type is an instance of a generic
@@ -296,10 +296,11 @@ protected:
 	// number indicates the number of type specifications for the generic types that will follow
 	virtual void NotifyTypeGenericInst(sig_elem_type elem_type, sig_index_type indexType, sig_index index, sig_mem_number number)
 	{
+		wprintf(L"type is generic inst - %d - %d - %d - %d\n", elem_type, indexType, index, number);
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
-		wprintf(L"type is generic inst - %d - %d - %d - %d\n", elem_type, indexType, index, number);
 
 		if (elem_type == ELEMENT_TYPE_VALUETYPE)
 		{
@@ -323,11 +324,12 @@ protected:
 	// the type will be a value type
 	virtual void NotifyTypeValueType()
 	{
+		wprintf(L"TYPE VALUE\n");
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
 
-		wprintf(L"TYPE VALUE\n");
 
 		outerMostParamType = ELEMENT_TYPE_VALUETYPE;
 	}
@@ -335,11 +337,12 @@ protected:
 	// the type will be a class
 	virtual void NotifyTypeClass()
 	{
+		wprintf(L"CLASS\n");
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
 
-		wprintf(L"CLASS\n");
 
 		outerMostParamType = ELEMENT_TYPE_CLASS;
 		// Ignore next NotifyTypeDefOrRef
@@ -348,11 +351,11 @@ protected:
  	// the type is a pointer to a type (nested type notifications follow)
 	virtual void NotifyTypePointer()
 	{
+		wprintf(L"PTR\n");
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
-
-		wprintf(L"PTR\n");
 
 		outerMostParamType = ELEMENT_TYPE_PTR;
 	}
@@ -360,22 +363,24 @@ protected:
  	// the type is a function pointer, followed by the type of the function
 	virtual void NotifyTypeFunctionPointer()
 	{
+		wprintf(L"FNPTR\n");
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
 
-		wprintf(L"FNPTR\n");
 		outerMostParamType = ELEMENT_TYPE_FNPTR;
 	}
 
  	// the type is an array, this is followed by the array shape, see above, as well as modifiers and element type
 	virtual void NotifyTypeArray()
 	{
+		wprintf(L"ARRAY\n");
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
 
-		wprintf(L"ARRAY\n");
 		outerMostParamType = ELEMENT_TYPE_ARRAY;
 		// Ignore next NotifyTypeDefOrRef
 	}
@@ -383,11 +388,12 @@ protected:
  	// the type is a simple zero-based array, this has no shape but does have custom modifiers and element type
 	virtual void NotifyTypeSzArray()
 	{
+		wprintf(L"AZARRAY\n");
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
 
-		wprintf(L"AZARRAY\n");
 		outerMostParamType = ELEMENT_TYPE_SZARRAY;
 	}
 

@@ -8,11 +8,21 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
+    internal struct FooBar
+    {
+        public int Baz;
+
+        public override string ToString()
+        {
+            return $"My custom struct: Baz={Baz}";
+        }
+    }
+
     internal sealed class SnapshotterFeature
     {
         public delegate void EnterProbePointer(uint funcId, bool hasThis, object[] args);
         public delegate void LeaveProbePointer(uint a);
-        public delegate int TestFunction(uint i, bool test, string hi, int[,] t, List<bool> f);
+        public delegate void TestFunction(uint i, bool? test, string hi, int[,] t, List<bool> f, FooBar foo);
 
         private readonly EnterProbePointer PinnedEnterProbe;
         private readonly LeaveProbePointer PinnedLeaveProbe;
@@ -46,16 +56,44 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 true
             };
 
+            FooBar foo = new FooBar
+            {
+                Baz = 10
+            };
+
+            int i = 0;
             while (true)
             {
-                me?.Test((uint)Random.Shared.Next(), true, "Hello world!", t, f);
+                try
+                {
+                    //TestHooks.Test((uint)Random.Shared.Next(), true, "Hello world!", t, f);
+                    bool? testVal = null;
+                    i++;
+                    if (i == 1)
+                    {
+                        testVal = true;
+                    }
+                    else if (i == 2)
+                    {
+                        testVal = false;
+                    }
+                    else if (i >= 3)
+                    {
+                        i = 0;
+                    }
+                    me?.Test((uint)Random.Shared.Next(), testVal, "Hello world!", t, f, foo);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
                 await Task.Delay(1000);
             }
         }
 
-        private int Test(uint i, bool test, string hi, int[,] t, List<bool> f)
+        private void Test(uint i, bool? test, string hi, int[,] t, List<bool> f, FooBar foo)
         {
-            return 0;
+            return;
         }
 
         /*

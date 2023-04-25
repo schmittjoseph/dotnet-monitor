@@ -4,7 +4,6 @@
 using Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions;
 using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
 
-
 internal sealed class StartupHook
 {
     public static void Initialize()
@@ -19,3 +18,5 @@ internal sealed class StartupHook
         }
     }
 }
+
+

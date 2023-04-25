@@ -112,13 +112,10 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     if (i != 0)
                     {
                         stringBuilder.Append(", ");
-                        Console.WriteLine(args[i].GetType().ToString());
                     }
 
                     if (hasThis && i == 0)
                     {
-                        Console.WriteLine("this");
-
                         stringBuilder.Append($"({args[i].GetType()}) this");
                     }
                     else
@@ -134,9 +131,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                         SerializeObject(argValueBuilder, args[i]);
                         stringBuilder.Append(argValueBuilder);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        stringBuilder.Append("{internal error}");
+                        stringBuilder.Append($"internal error: {ex}");
                     }
                 }
                 catch (Exception ex)
@@ -154,63 +151,61 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static void SerializeObject(StringBuilder stringBuilder, object value, Type? typeOverride = null)
         {
-            typeOverride ??= value.GetType();
-
             if (value == null)
             {
                 stringBuilder.Append("null");
                 return;
             }
+
+            typeOverride ??= value.GetType();
+
             //  else if (typeOverride.IsArray)
             // https://learn.microsoft.com/dotnet/csharp/programming-guide/arrays/multidimensional-arrays (rank)
+            IEnumerable? enumerable = (value as IEnumerable);
+            if (enumerable != null && value is not string)
+            {
+                stringBuilder.Append('[');
+                int j = 0;
+                foreach (object element in enumerable)
+                {
+                    if (j != 0)
+                    {
+                        stringBuilder.Append(", ");
+                    }
+
+                    if (j > 10)
+                    {
+                        stringBuilder.Append("{...truncated}");
+                        break;
+                    }
+
+                    SerializeObject(stringBuilder, element);
+                    j++;
+                }
+                stringBuilder.Append(']');
+                return;
+            }
+
+            // https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
+            Type? nullableBaseType = Nullable.GetUnderlyingType(typeOverride);
+            if (nullableBaseType != null)
+            {
+                Console.WriteLine("YUP");
+                SerializeObject(stringBuilder, value, nullableBaseType);
+                return;
+            }
+
+            if (value is IConvertible ic)
+            {
+                stringBuilder.Append(ic.ToString(null));
+            }
+            else if (value is IFormattable formattable)
+            {
+                WrapValue(stringBuilder, formattable.ToString(null, null));
+            }
             else
             {
-                IEnumerable? enumerable = (value as IEnumerable);
-                if (enumerable != null && value is not string)
-                {
-                    stringBuilder.Append('[');
-                    int j = 0;
-                    foreach (object element in enumerable)
-                    {
-                        if (j != 0)
-                        {
-                            stringBuilder.Append(", ");
-                        }
-
-                        if (j > 10)
-                        {
-                            stringBuilder.Append("{...truncated}");
-                            break;
-                        }
-
-                        SerializeObject(stringBuilder, element);
-                        j++;
-                    }
-                    stringBuilder.Append(']');
-                    return;
-                }
-
-                // https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
-                Type? nullableBaseType = Nullable.GetUnderlyingType(typeOverride);
-                if (nullableBaseType != null)
-                {
-                    Console.WriteLine("YUP");
-                    SerializeObject(stringBuilder, value, nullableBaseType);
-                    return;
-                }
-
-                if (value is IConvertible ic)
-                {
-                    stringBuilder.Append(ic.ToString(null));
-                }
-                else if (value is IFormattable formattable)
-                {
-                    WrapValue(stringBuilder, formattable.ToString(null, null));
-                }
-                else
-                {
-                    WrapValue(stringBuilder, value.ToString());
-                }
+                WrapValue(stringBuilder, value.ToString());
             }
         }
 
