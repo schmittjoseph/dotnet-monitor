@@ -187,13 +187,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
 
             // https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
-            Type? nullableBaseType = Nullable.GetUnderlyingType(typeOverride);
-            if (nullableBaseType != null)
-            {
-                Console.WriteLine("YUP");
-                SerializeObject(stringBuilder, value, nullableBaseType);
-                return;
-            }
 
             if (value is IConvertible ic)
             {
