@@ -8,7 +8,7 @@
 #include <iostream>
 #include "MethodSigParamExtractor.h"
 
-HRESULT ProcessArgs2(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, CorElementType* elementTypes, INT32* numArgs)
+HRESULT ProcessArgs2(IMetaDataImport* pMetadataImport, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
 {
     MethodSigParamExtractor extractor;
 
@@ -17,24 +17,38 @@ HRESULT ProcessArgs2(PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, 
         return E_FAIL;
     }
 
-    *numArgs = (INT32)extractor.GetParamCount();
+    std::vector<sig_elem_type> types = extractor.GetParamTypes();
+    if (extractor.GetParamCount() != types.size())
+    {
+        wprintf(L"Invalid number of args %d - %zu\n", extractor.GetParamCount(), types.size());
+        return E_FAIL;
+    }
+
     *hasThis = extractor.GetHasThis();
 
-    std::vector<sig_elem_type> types = extractor.GetParamTypes();
-    int i = 0;
+    std::vector<std::pair<sig_index_type, sig_index>> metadataInfo = extractor.GetExtendedParamMetadataInfo();
+
+    size_t pos = 0;
     for (auto e: types) {
-        elementTypes[i] = (CorElementType)e;
-        i++;
+        mdToken tkType = mdTokenNil;
+        if (e == ELEMENT_TYPE_VALUETYPE) {
+            std::pair<sig_index_type, sig_index> mdInfo = metadataInfo.at(pos);
+            // JSFIX: Set mdInfo.first as msb
+
+            tkType = 0x1000000 | mdInfo.second;
+            pos++;
+        }
+        paramTypes.push_back({(CorElementType)e, tkType});
     }
-   
+
     return S_OK;
 }
 
-HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens * pCorLibTypeTokens)
+HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementType, mdToken> typeInfo, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens * pCorLibTypeTokens)
 {
     *ptkBoxedType = mdTypeDefNil;
 
-    switch (elementType)
+    switch (typeInfo.first)
     {
     case ELEMENT_TYPE_ARRAY: // Arrays do not need to be boxed
         break;
@@ -50,7 +64,8 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
         break;
     case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
         // JSFIX
-        break;
+        wprintf(L"UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
+        return E_FAIL;
     case ELEMENT_TYPE_I: // IntPtr
         *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
         break;
@@ -68,7 +83,8 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
         break;
     case ELEMENT_TYPE_MVAR: // Generic method parameter
         // JSFIX
-        break;
+        wprintf(L"UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
+        return E_FAIL;
     case ELEMENT_TYPE_OBJECT: // Object; does not need to be boxed
         break;
     case ELEMENT_TYPE_PTR: // Pointer; does not have boxing token but has special boxing instructions
@@ -98,12 +114,30 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
     case ELEMENT_TYPE_U8: // ULong
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
-    case ELEMENT_TYPE_VALUETYPE: // Other value types (e.g. struct, enum, etc)
-        // JSFIX
+    case ELEMENT_TYPE_VALUETYPE: { // Other value types (e.g. struct, enum, etc)
+            // WCHAR name[256];
+            // ULONG count = 0;
+            // IfFailRet(pMetadataImport->GetTypeDefProps(typeInfo.second, name, 256, &count, NULL, NULL));
+            // wprintf(L"typedef name: %s\n", name);
+        WCHAR name[256];
+        ULONG count = 0;
+        // Still need sig_index_type
+        
+        IfFailRet(pMetadataImport->GetTypeRefProps(typeInfo.second, NULL, name, 256, &count));
+
+        // test
+        wprintf(L"type name: %s - 0x%0x -- 0x%0x\n", name, typeInfo.second, pCorLibTypeTokens->tkSystemUInt64Type);
+
+        // ComPtr<ITokenType> pTokenType;
+        // IfFailRet(pType->QueryInterface(&pTokenType));
+        // IfFailRet(pTokenType->GetToken(ptkBoxedType));
+        *ptkBoxedType = typeInfo.second;
         break;
+    }
     case ELEMENT_TYPE_VAR: // Generic type parameter
         // JSFIX
-        break;
+        wprintf(L"UNSUPPORTED - ELEMENT_TYPE_VAR\n");
+        return E_FAIL;
     default:
         return E_FAIL;
     }
@@ -113,6 +147,7 @@ HRESULT GetTypeToBoxWith(CorElementType elementType, mdTypeDef* ptkBoxedType, st
 
 HRESULT AddEnterProbe(
     ILRewriter * pilr,
+    IMetaDataImport* pMetadataImport,
     FunctionID functionId,
     mdMethodDef probeFunctionDef,
     ILInstr * pInsertProbeBeforeThisInstr,
@@ -125,11 +160,13 @@ HRESULT AddEnterProbe(
     BOOL hasThis = FALSE;
     INT32 numArgs = 0;
 
-    CorElementType argTypes[16];
+    std::vector<std::pair<CorElementType, mdToken>> paramTypes;
+
     std::wcout << L"Trying to get args\n";
-    IfFailRet(ProcessArgs2(sigParam, cbSigParam, &hasThis, argTypes, &numArgs));
+    IfFailRet(ProcessArgs2(pMetadataImport, sigParam, cbSigParam, &hasThis, paramTypes));
     std::wcout << L"--> Done\n";
 
+    numArgs = (INT32)paramTypes.size();
     if (hasThis)
     {
        numArgs++;
@@ -184,8 +221,10 @@ HRESULT AddEnterProbe(
         // JSFIX: Validate -- this never needs to be boxed?
         if (typeIndex >= 0)
         { 
+            auto typeInfo = paramTypes.at(typeIndex);
+
             mdTypeDef tkBoxedType = mdTypeDefNil;
-            IfFailRet(GetTypeToBoxWith(argTypes[typeIndex], &tkBoxedType, pCorLibTypeTokens));
+            IfFailRet(GetTypeToBoxWith(pMetadataImport, typeInfo, &tkBoxedType, pCorLibTypeTokens));
 
             if (tkBoxedType != mdTypeDefNil)
             {
@@ -214,6 +253,7 @@ HRESULT AddEnterProbe(
 
 HRESULT InsertProbes(
     ICorProfilerInfo * pICorProfilerInfo,
+    IMetaDataImport* pMetadataImport,
     ICorProfilerFunctionControl * pICorProfilerFunctionControl,
     ModuleID moduleID,
     mdMethodDef methodDef,
@@ -228,7 +268,7 @@ HRESULT InsertProbes(
 
     IfFailRet(rewriter.Import());
     ILInstr* pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-    IfFailRet(AddEnterProbe(&rewriter, functionId, enterProbeDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens));
+    IfFailRet(AddEnterProbe(&rewriter, pMetadataImport, functionId, enterProbeDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens));
     IfFailRet(rewriter.Export());
 
     return S_OK;

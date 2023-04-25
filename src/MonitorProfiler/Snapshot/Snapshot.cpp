@@ -278,6 +278,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
 
     IfFailLogRet(InsertProbes(
         m_pCorProfilerInfo,
+        pMetadataImport,
         pFunctionControl,
         moduleId,
         methodDef,

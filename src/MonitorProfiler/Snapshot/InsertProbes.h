@@ -6,8 +6,9 @@
 #include "CorLibTypeTokens.h"
 
 HRESULT InsertProbes(
-    ICorProfilerInfo * pICorProfilerInfo,
-    ICorProfilerFunctionControl * pICorProfilerFunctionControl,
+    ICorProfilerInfo* pICorProfilerInfo,
+    IMetaDataImport* pMetadataImport,
+    ICorProfilerFunctionControl* pICorProfilerFunctionControl,
     ModuleID moduleID,
     mdMethodDef methodDef,
     FunctionID functionId,
@@ -15,4 +16,4 @@ HRESULT InsertProbes(
     mdMethodDef leaveProbeDef,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
-    struct CorLibTypeTokens * pCorLibTypeTokens);
+    struct CorLibTypeTokens* pCorLibTypeTokens);

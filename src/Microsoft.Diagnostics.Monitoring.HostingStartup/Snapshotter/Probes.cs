@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Diagnostics.Monitoring.HostingStartup;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Collections;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
@@ -111,10 +112,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     if (i != 0)
                     {
                         stringBuilder.Append(", ");
+                        Console.WriteLine(args[i].GetType().ToString());
                     }
 
                     if (hasThis && i == 0)
                     {
+                        Console.WriteLine("this");
+
                         stringBuilder.Append($"({args[i].GetType()}) this");
                     }
                     else
@@ -148,46 +152,53 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             return;
         }
 
-        private static void SerializeObject(StringBuilder stringBuilder, object value)
+        private static void SerializeObject(StringBuilder stringBuilder, object value, Type? typeOverride = null)
         {
+            typeOverride ??= value.GetType();
+
             if (value == null)
             {
                 stringBuilder.Append("null");
                 return;
             }
-            else if (value.GetType().IsArray)
+            //  else if (typeOverride.IsArray)
+            // https://learn.microsoft.com/dotnet/csharp/programming-guide/arrays/multidimensional-arrays (rank)
+            else
             {
-                // JSFIX: Enumerables...
-                int j = 0;
-                Array? arrayValue = value as Array;
-                if (arrayValue == null)
+                IEnumerable? enumerable = (value as IEnumerable);
+                if (enumerable != null && value is not string)
                 {
-                    stringBuilder.Append("{internal error}");
+                    stringBuilder.Append('[');
+                    int j = 0;
+                    foreach (object element in enumerable)
+                    {
+                        if (j != 0)
+                        {
+                            stringBuilder.Append(", ");
+                        }
+
+                        if (j > 10)
+                        {
+                            stringBuilder.Append("{...truncated}");
+                            break;
+                        }
+
+                        SerializeObject(stringBuilder, element);
+                        j++;
+                    }
+                    stringBuilder.Append(']');
                     return;
                 }
 
-                stringBuilder.Append($"(length: {arrayValue.Length})");
-                stringBuilder.Append('[');
-                foreach (object element in arrayValue)
+                // https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
+                Type? nullableBaseType = Nullable.GetUnderlyingType(typeOverride);
+                if (nullableBaseType != null)
                 {
-                    if (j != 0)
-                    {
-                        stringBuilder.Append(", ");
-                    }
-
-                    if (j > 10)
-                    {
-                        stringBuilder.Append("{...truncated}");
-                        break;
-                    }
-
-                    SerializeObject(stringBuilder, element);
-                    j++;
+                    Console.WriteLine("YUP");
+                    SerializeObject(stringBuilder, value, nullableBaseType);
+                    return;
                 }
-                stringBuilder.Append(']');
-            }
-            else
-            {
+
                 if (value is IConvertible ic)
                 {
                     stringBuilder.Append(ic.ToString(null));

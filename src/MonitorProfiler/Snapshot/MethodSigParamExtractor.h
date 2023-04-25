@@ -5,6 +5,7 @@
 
 #include "../Utilities/sigparse.h"
 #include <vector>
+#include <iostream>
 
 class MethodSigParamExtractor : public SigParser
 {
@@ -12,16 +13,23 @@ private:
         sig_count m_paramCount;
 		BOOL m_hasThis;
 		BOOL m_inParam;
+		sig_elem_type outerMostParamType;
 		BOOL m_inRet;
 		INT32 m_sigLevel;
 		std::vector<sig_elem_type> m_ArgTypes;
+		std::vector<std::pair<sig_index_type, sig_index>> m_metadataInfo;
 
 		BOOL ShouldRecordParamType()
 		{
 			// 1 - method
 			// 2 - param
 			// 3 - type
-			return (m_sigLevel == 3);
+			if (m_inRet || !m_inParam)
+			{
+				return FALSE;
+			}
+
+			return outerMostParamType == ELEMENT_TYPE_END;
 		}
 
 public:
@@ -31,6 +39,7 @@ public:
 			m_sigLevel = 0;
 			m_hasThis = FALSE;
 			m_inParam = FALSE;
+			outerMostParamType = ELEMENT_TYPE_END;
 			m_inRet = FALSE;
 		}
 
@@ -39,6 +48,12 @@ public:
 		std::vector<sig_elem_type> GetParamTypes()
 		{
 			return m_ArgTypes;
+		}
+
+		
+		std::vector<std::pair<sig_index_type, sig_index>> GetExtendedParamMetadataInfo()
+		{
+			return m_metadataInfo;
 		}
 
     
@@ -88,22 +103,26 @@ protected:
 	{
 		m_sigLevel++;
 		m_inParam = TRUE;
+		outerMostParamType = ELEMENT_TYPE_END;
 	}
 
 	virtual void NotifyEndParam()
 	{
 		m_sigLevel--;
 		m_inParam = FALSE;
+		m_ArgTypes.push_back(outerMostParamType);
 	}
 
  	// sentinel indication the location of the "..." in the method signature
 	virtual void NotifySentinel()
 	{
+		wprintf(L"sentinel\n");
 	}
 
  	// number of generic parameters in this method signature (if any)
 	virtual void NotifyGenericParamCount(sig_count count)
 	{
+		wprintf(L"Generic param count: %d\n", count);
 	}
 
 	//----------------------------------------------------
@@ -214,9 +233,6 @@ protected:
 	// starting a normal type (occurs in many contexts such as param, field, local, etc)
 	virtual void NotifyBeginType()
 	{
-		// method = 1
-		// param = 2
-		// 
 		m_sigLevel++;
 	}
 
@@ -227,6 +243,7 @@ protected:
 
 	virtual void NotifyTypedByref()
 	{
+		wprintf(L"typed by ref\n");
 	}
 
 	// the type has the 'byref' modifier on it -- this normally proceeds the type definition in the context
@@ -234,6 +251,8 @@ protected:
 	// so this happens before the BeginType in that context
 	virtual void NotifyByref()
 	{
+		wprintf(L"by ref\n");
+
 	}
 
  	// the type is "VOID" (this has limited uses, function returns and void pointer)
@@ -242,8 +261,9 @@ protected:
 		if (!ShouldRecordParamType()) {
 			return;
 		}
+		wprintf(L"VOID\n");
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_VOID);
+		outerMostParamType = ELEMENT_TYPE_VOID;
 	}
 
  	// the type has the indicated custom modifiers (which can be optional or required)
@@ -254,17 +274,20 @@ protected:
 	// the type is a simple type, the elem_type defines it fully
 	virtual void NotifyTypeSimple(sig_elem_type elem_type)
 	{
+		wprintf(L"SIMPLE - %d\n", elem_type);
+
 		if (!ShouldRecordParamType()) {
 			return;
 		}
-
-		m_ArgTypes.push_back(elem_type);
+		outerMostParamType = elem_type;
 	}
 
 	// the type is specified by the given index of the given index type (normally a type index in the type metadata)
 	// this callback is normally qualified by other ones such as NotifyTypeClass or NotifyTypeValueType
 	virtual void NotifyTypeDefOrRef(sig_index_type indexType, int index)
 	{
+		wprintf(L"type def or ref\n");
+
 	}
 
 	// the type is an instance of a generic
@@ -273,16 +296,28 @@ protected:
 	// number indicates the number of type specifications for the generic types that will follow
 	virtual void NotifyTypeGenericInst(sig_elem_type elem_type, sig_index_type indexType, sig_index index, sig_mem_number number)
 	{
+		if (!ShouldRecordParamType()) {
+			return;
+		}
+		wprintf(L"type is generic inst - %d - %d - %d - %d\n", elem_type, indexType, index, number);
+
+		if (elem_type == ELEMENT_TYPE_VALUETYPE)
+		{
+			m_metadataInfo.push_back({indexType, index});
+		}
+		outerMostParamType = elem_type;
 	}
 
 	// the type is the type of the nth generic type parameter for the class
 	virtual void NotifyTypeGenericTypeVariable(sig_mem_number number)
 	{
+		wprintf(L"type is generic type variable\n");
 	}
 
 	// the type is the type of the nth generic type parameter for the member
 	virtual void NotifyTypeGenericMemberVariable(sig_mem_number number)
 	{
+		wprintf(L"type is generic member variable\n");
 	}
 
 	// the type will be a value type
@@ -292,7 +327,9 @@ protected:
 			return;
 		}
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_VALUETYPE);
+		wprintf(L"TYPE VALUE\n");
+
+		outerMostParamType = ELEMENT_TYPE_VALUETYPE;
 	}
 
 	// the type will be a class
@@ -302,7 +339,9 @@ protected:
 			return;
 		}
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_CLASS);
+		wprintf(L"CLASS\n");
+
+		outerMostParamType = ELEMENT_TYPE_CLASS;
 		// Ignore next NotifyTypeDefOrRef
 	}
 
@@ -313,7 +352,9 @@ protected:
 			return;
 		}
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_PTR);
+		wprintf(L"PTR\n");
+
+		outerMostParamType = ELEMENT_TYPE_PTR;
 	}
 
  	// the type is a function pointer, followed by the type of the function
@@ -323,7 +364,8 @@ protected:
 			return;
 		}
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_FNPTR);
+		wprintf(L"FNPTR\n");
+		outerMostParamType = ELEMENT_TYPE_FNPTR;
 	}
 
  	// the type is an array, this is followed by the array shape, see above, as well as modifiers and element type
@@ -333,7 +375,8 @@ protected:
 			return;
 		}
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_ARRAY);
+		wprintf(L"ARRAY\n");
+		outerMostParamType = ELEMENT_TYPE_ARRAY;
 		// Ignore next NotifyTypeDefOrRef
 	}
 
@@ -344,7 +387,8 @@ protected:
 			return;
 		}
 
-		m_ArgTypes.push_back(ELEMENT_TYPE_SZARRAY);
+		wprintf(L"AZARRAY\n");
+		outerMostParamType = ELEMENT_TYPE_SZARRAY;
 	}
 
 };
