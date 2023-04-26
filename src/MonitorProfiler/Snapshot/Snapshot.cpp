@@ -5,7 +5,7 @@
 #include "Snapshot.h"
 #include <functional>
 #include <memory>
-#include "InsertProbes.h"
+#include "ProbeUtilities.h"
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
@@ -237,7 +237,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     // If we need write, this **must** be done before we rejit.
     IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit)));
 
-    IfFailLogRet(InsertProbes(
+    IfFailLogRet(ProbeUtilities::InsertProbes(
         m_pCorProfilerInfo,
         pMetadataImport,
         pMetadataEmit,
@@ -362,7 +362,7 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
 
     // We only need a buffer of equal size to NETCORECORLIB.
     const ULONG expectedLength = NETCORECORLIB_NAME_LENGTH;
-    TCHAR assemblyName[expectedLength]; 
+    WCHAR assemblyName[expectedLength]; 
 
     while ((hr = pMetadataAssemblyImport->EnumAssemblyRefs(&hEnum, mdRefs, ENUM_BUFFER_SIZE, &count)) == S_OK)
     {

@@ -3,12 +3,12 @@
 
 #include "cor.h"
 #include "corprof.h"
-#include "InsertProbes.h"
+#include "ProbeUtilities.h"
 #include "ILRewriter.h"
 #include <iostream>
 #include <vector>
 
-HRESULT DecompressNextSigComponent(
+HRESULT ProbeUtilities::DecompressNextSigComponent(
     IMetaDataEmit* pMetadataEmit,
     PCCOR_SIGNATURE pSignature,
     ULONG signatureLength,
@@ -263,7 +263,7 @@ ErrExit:
     return hr;
 }
 
-HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG signatureLength, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
+HRESULT ProbeUtilities::ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG signatureLength, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
 {
     HRESULT hr = S_OK;
 
@@ -347,7 +347,7 @@ HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEm
     return S_OK;
 }
 
-HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementType, mdToken> typeInfo, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens* pCorLibTypeTokens)
+HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementType, mdToken> typeInfo, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens* pCorLibTypeTokens)
 {
     *ptkBoxedType = mdTypeDefNil;
 
@@ -432,24 +432,29 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
     return S_OK;
 }
 
-HRESULT AddEnterProbe(
-    ILRewriter * pilr,
+HRESULT ProbeUtilities::InsertProbes(
+    ICorProfilerInfo * pICorProfilerInfo,
     IMetaDataImport* pMetadataImport,
     IMetaDataEmit* pMetadataEmit,
+    ICorProfilerFunctionControl * pICorProfilerFunctionControl,
+    ModuleID moduleID,
+    mdMethodDef methodDef,
     FunctionID functionId,
     mdMethodDef probeFunctionDef,
-    ILInstr * pInsertProbeBeforeThisInstr,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
     struct CorLibTypeTokens * pCorLibTypeTokens)
 {
+    ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
+
+    IfFailRet(rewriter.Import());
+    ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr * pNewInstr = nullptr;
 
     BOOL hasThis = FALSE;
     INT32 numArgs = 0;
 
     std::vector<std::pair<CorElementType, mdToken>> paramTypes;
-
     IfFailRet(ProcessArgs(pMetadataImport, pMetadataEmit, sigParam, cbSigParam, &hasThis, paramTypes));
 
     numArgs = (INT32)paramTypes.size();
@@ -459,50 +464,50 @@ HRESULT AddEnterProbe(
     }
 
     /* Func Id */
-    pNewInstr = pilr->NewILInstr();
+    pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I4;
     pNewInstr->m_Arg32 = (INT32)functionId;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Has This */
-    pNewInstr = pilr->NewILInstr();
+    pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I4;
     pNewInstr->m_Arg32 = (INT32)hasThis;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Args */
 
     // Size of array
-    pNewInstr = pilr->NewILInstr();
+    pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I4;
     pNewInstr->m_Arg32 = numArgs;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     // Create the array
-    pNewInstr = pilr->NewILInstr();
+    pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_NEWARR;
     pNewInstr->m_Arg32 = pCorLibTypeTokens->tkSystemObjectType;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     INT32 typeIndex = (hasThis) ? -1 : 0;
     for (INT32 i = 0; i < numArgs; i++)
     {
         // New entry on the evaluation stack
-        pNewInstr = pilr->NewILInstr();
+        pNewInstr = rewriter.NewILInstr();
         pNewInstr->m_opcode = CEE_DUP;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
         // Index to set
-        pNewInstr = pilr->NewILInstr();
+        pNewInstr = rewriter.NewILInstr();
         pNewInstr->m_opcode = CEE_LDC_I4;
         pNewInstr->m_Arg32 = i;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
         // Load arg
-        pNewInstr = pilr->NewILInstr();
+        pNewInstr = rewriter.NewILInstr();
         pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
         pNewInstr->m_Arg32 = i;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
         // JSFIX: Validate -- this never needs to be boxed?
         if (typeIndex >= 0)
@@ -514,47 +519,26 @@ HRESULT AddEnterProbe(
 
             if (tkBoxedType != mdTypeDefNil)
             {
-                pNewInstr = pilr->NewILInstr();
+                pNewInstr = rewriter.NewILInstr();
                 pNewInstr->m_opcode = CEE_BOX;
                 pNewInstr->m_Arg32 = tkBoxedType;
-                pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
             }
         }
 
         // Replace the i'th element in our new array with what we just pushed on the stack
-        pNewInstr = pilr->NewILInstr();
+        pNewInstr = rewriter.NewILInstr();
         pNewInstr->m_opcode = CEE_STELEM_REF;
-        pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
         typeIndex++;
     }
 
-    pNewInstr = pilr->NewILInstr();
+    pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_CALL;
     pNewInstr->m_Arg32 = probeFunctionDef;
-    pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-    return S_OK;
-}
-
-HRESULT InsertProbes(
-    ICorProfilerInfo * pICorProfilerInfo,
-    IMetaDataImport* pMetadataImport,
-    IMetaDataEmit* pMetadataEmit,
-    ICorProfilerFunctionControl * pICorProfilerFunctionControl,
-    ModuleID moduleID,
-    mdMethodDef methodDef,
-    FunctionID functionId,
-    mdMethodDef enterProbeDef,
-    PCCOR_SIGNATURE sigParam,
-    ULONG cbSigParam,
-    struct CorLibTypeTokens * pCorLibTypeTokens)
-{
-    ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
-
-    IfFailRet(rewriter.Import());
-    ILInstr* pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-    IfFailRet(AddEnterProbe(&rewriter, pMetadataImport, pMetadataEmit, functionId, enterProbeDef, pFirstOriginalInstr, sigParam, cbSigParam, pCorLibTypeTokens));
     IfFailRet(rewriter.Export());
 
     return S_OK;

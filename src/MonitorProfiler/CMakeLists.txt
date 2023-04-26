@@ -29,7 +29,7 @@ set(SOURCES
     Stacks/StacksEventProvider.cpp
     Stacks/StackSampler.cpp
     Snapshot/Snapshot.cpp
-    Snapshot/InsertProbes.cpp
+    Snapshot/ProbeUtilities.cpp
     Utilities/NameCache.cpp
     Utilities/ThreadNameCache.cpp
     Utilities/ThreadUtilities.cpp
@@ -44,9 +44,6 @@ set(SOURCES
 
 # Include exceptions tracking feature
 #add_compile_options(-DDOTNETMONITOR_FEATURE_EXCEPTIONS)
-
-# Only build against unicode (fix tchar definitions)
-add_compile_options(-DUNICODE)
 
 # Build library and split symbols
 add_library_clr(MonitorProfiler SHARED ${SOURCES})
