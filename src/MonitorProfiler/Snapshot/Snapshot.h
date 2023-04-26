@@ -28,6 +28,7 @@ class Snapshot
         FunctionID m_enterProbeId;
         FunctionID m_leaveHookId;
         ModuleID m_resolvedCorLibId;
+        tstring m_resolvedCorLibName;
 
         std::vector<ModuleID> m_EnabledModuleIds;
         std::vector<mdToken> m_EnabledMethodDefs;
@@ -54,11 +55,12 @@ class Snapshot
             ModuleID moduleId,
             mdMethodDef methodId);
 
-        HRESULT ResolveCorLib(ModuleID *pCorLibModuleId);
-        HRESULT GetTokenForExistingCorLibAssemblyRef(
+        HRESULT HydrateResolvedCorLib();
+    
+        HRESULT GetTokenForCorLibAssemblyRef(
             ComPtr<IMetaDataImport> pMetadataImport,
             ComPtr<IMetaDataEmit> pMetadataEmit,
-            mdAssemblyRef* pTkMscorlibAssemblyRef);
+            mdAssemblyRef* ptkCorlibAssemblyRef);
 
     public:
         Snapshot(
@@ -74,10 +76,7 @@ class Snapshot
         HRESULT RequestFunctionProbeShutdown();
         HRESULT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count);
 
-
         void AddProfilerEventMask(DWORD& eventsLow);
 
         HRESULT STDMETHODCALLTYPE ReJITHandler(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
-
-        HRESULT GetMethodDefForFunction(FunctionID functionId, mdMethodDef* pMethodDef);
 };

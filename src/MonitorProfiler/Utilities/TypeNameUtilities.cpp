@@ -203,7 +203,7 @@ HRESULT TypeNameUtilities::GetTypeDefName(NameCache& nameCache, ModuleID moduleI
     return S_OK;
 }
 
-HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId)
+HRESULT TypeNameUtilities::GetModuleNameWithoutCache(ModuleID moduleId, tstring& name)
 {
     if (moduleId == 0)
     {
@@ -212,19 +212,13 @@ HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId
 
     HRESULT hr;
 
-    std::shared_ptr<ModuleData> mod;
-    if (nameCache.TryGetModuleData(moduleId, mod))
-    {
-        return S_OK;
-    }
-
     WCHAR moduleFullName[256];
     ULONG nameLength = 0;
     AssemblyID assemblyID;
 
     IfFailRet(_profilerInfo->GetModuleInfo(moduleId,
         nullptr,
-        256,
+        sizeof(moduleFullName)/sizeof(WCHAR),
         &nameLength,
         moduleFullName,
         &assemblyID));
@@ -251,6 +245,29 @@ HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId
         moduleName = tstring(moduleFullName, pathSeparatorIndex + 1, nameLength - pathSeparatorIndex - 1);
     }
 
+    name = std::move(moduleName);
+
+    return S_OK;
+}
+
+
+HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId)
+{
+    if (moduleId == 0)
+    {
+        return E_INVALIDARG;
+    }
+
+    HRESULT hr;
+
+    std::shared_ptr<ModuleData> mod;
+    if (nameCache.TryGetModuleData(moduleId, mod))
+    {
+        return S_OK;
+    }
+
+    tstring moduleName;
+    IfFailRet(GetModuleNameWithoutCache(moduleId, moduleName));
     nameCache.AddModuleData(moduleId, std::move(moduleName));
 
     return S_OK;

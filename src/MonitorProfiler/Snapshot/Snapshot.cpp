@@ -183,23 +183,6 @@ void Snapshot::AddProfilerEventMask(DWORD& eventsLow)
     eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
 }
 
-HRESULT Snapshot::GetMethodDefForFunction(FunctionID functionId, mdMethodDef* pMethodDef)
-{
-    HRESULT hr;
-    *pMethodDef = mdTokenNil;
-
-    hr = m_pCorProfilerInfo->GetFunctionInfo2(functionId,
-                                            NULL,
-                                            NULL,
-                                            NULL,
-                                            pMethodDef,
-                                            0,
-                                            NULL,
-                                            NULL);
-
-    return S_OK;
-}
-
 HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
@@ -215,9 +198,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
 
     FunctionID functionId;
 
-    // CORPROF_E_FUNCTION_IS_PARAMETERIZED
-    // unsupported.
-
+    // JSFIX: Generics
     //IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromTokenAndTypeArgs(moduleId, methodDef, mdTokenNil, 0, NULL, &functionId));
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromToken(moduleId,
                                                 methodDef,
@@ -229,12 +210,17 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     ULONG cbSigParam;
     IfFailLogRet(pMetadataImport->GetMethodProps(methodDef, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
 
-    mdMethodDef enterDef;
-    IfFailLogRet(GetMethodDefForFunction(m_enterProbeId, &enterDef));
+    mdMethodDef enterDef = mdTokenNil;
+    IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
+                                                NULL,
+                                                NULL,
+                                                NULL,
+                                                &enterDef,
+                                                0,
+                                                NULL,
+                                                NULL));
 
     ComPtr<IMetaDataEmit> pMetadataEmit;
-    // JSFIX: We're running around with a read-only emitter. Is this fine?
-    // If we need write, this **must** be done before we rejit.
     IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit)));
 
     IfFailLogRet(ProbeUtilities::InsertProbes(
@@ -258,16 +244,14 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     return S_OK;
 }
 
-HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
+HRESULT Snapshot::HydrateResolvedCorLib()
 {
     if (m_resolvedCorLibId != 0)
     {
-        *pCorLibModuleId = m_resolvedCorLibId;
         return S_OK;
     }
 
     HRESULT hr = S_OK;
-    *pCorLibModuleId = 0;
     ModuleID candidateModuleId = 0;
     ComPtr<ICorProfilerModuleEnum> pEnum = NULL;
     ModuleID curModule;
@@ -277,12 +261,6 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
     while (pEnum->Next(1, &curModule, NULL) == S_OK)
     {
         //
-        // In the CoreCLR with reference assemblies and redirection it is difficult to determine if
-        // a particular Assembly is the System assembly.
-        //
-        // In the CoreCLR runtimes, the System assembly can be System.Private.CoreLib.dll, System.Runtime.dll
-        // or netstandard.dll and in the future a different Assembly name could be used.
-        //
         // Determine the identity of the System assembly by querying if the Assembly defines the
         // well known type System.Object as that type must be defined by the System assembly
         //
@@ -290,7 +268,6 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
 
         ComPtr<IMetaDataImport> curMetadataImporter;
         IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(curModule, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&curMetadataImporter)));
-
         if (curMetadataImporter->FindTypeDefByName(_T("System.Object"), mdTokenNil, &tkObjectTypeDef) != S_OK)
         {
             continue;
@@ -303,11 +280,12 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
             continue;
         }
 
+        //
+        // Also check the type properties to make sure it is a class and not a Value type definition
+        // and that this type definition isn't extending another type.
+        //
         bool bExtends = curMetadataImporter->IsValidToken(tkExtends);
         bool isClass = ((dwClassAttrs & tdClassSemanticsMask) == tdClass);
-
-        // We also check the type properties to make sure that we have a class and not a Value type definition
-        // and that this type definition isn't extending another type.
         if (isClass & !bExtends)
         {
             candidateModuleId = curModule;
@@ -321,48 +299,36 @@ HRESULT Snapshot::ResolveCorLib(ModuleID *pCorLibModuleId)
         return E_FAIL;
     }
 
-    WCHAR moduleFullName[256];
-    ULONG nameLength = 0;
-    AssemblyID assemblyID;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleInfo(candidateModuleId,
-        nullptr,
-        256,
-        &nameLength,
-        moduleFullName,
-        &assemblyID));
+    tstring corLibName;
+    TypeNameUtilities nameUtilities(m_pCorProfilerInfo);
+    IfFailLogRet(nameUtilities.GetModuleNameWithoutCache(candidateModuleId, corLibName));
     
+    // .dll = 4 characters
+    corLibName.erase(corLibName.length() - 4);
 
-    m_pLogger->Log(LogLevel::Warning, _LS("CORLIB: %s"), moduleFullName);
-
-    *pCorLibModuleId = m_resolvedCorLibId = candidateModuleId;
+    m_resolvedCorLibName = std::move(corLibName);
+    m_resolvedCorLibId = candidateModuleId;
     return S_OK;
 }
 
 
-HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadataImport, ComPtr<IMetaDataEmit> pMetadataEmit, mdAssemblyRef* pTkMscorlibAssemblyRef)
+HRESULT Snapshot::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadataImport, ComPtr<IMetaDataEmit> pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
 {
-    // #define NETCORECORLIB _T("System.Private.CoreLib") // JSFIX: Not true,  need to calculate this from ResolveCorLib
-    #define NETCORECORLIB _T("System.Runtime")
-    #define NETCORECORLIB_NAME_LENGTH (sizeof(NETCORECORLIB)/sizeof(WCHAR))
-
     HRESULT hr = S_OK;
-    *pTkMscorlibAssemblyRef = mdAssemblyRefNil;
+    *ptkCorlibAssemblyRef = mdAssemblyRefNil;
 
-    // ModuleID corlibID;
-    // IfFailLogRet(ResolveCorLib(&corlibID));
+    IfFailLogRet(HydrateResolvedCorLib());
 
     ComPtr<IMetaDataAssemblyImport> pMetadataAssemblyImport;
     IfFailLogRet(pMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pMetadataAssemblyImport)));
 
     HCORENUM hEnum = 0;
     mdAssemblyRef mdRefs[ENUM_BUFFER_SIZE];
-    ULONG count = 0;
+    ULONG count = 0;  
 
-    const tstring expectedName = tstring(NETCORECORLIB);
-
-    // We only need a buffer of equal size to NETCORECORLIB.
-    const ULONG expectedLength = NETCORECORLIB_NAME_LENGTH;
-    WCHAR assemblyName[expectedLength]; 
+    const ULONG expectedLength = (ULONG)m_resolvedCorLibName.length();
+    unique_ptr<WCHAR[]> assemblyName(new (nothrow) WCHAR[expectedLength]);
+    IfNullRet(assemblyName);
 
     while ((hr = pMetadataAssemblyImport->EnumAssemblyRefs(&hEnum, mdRefs, ENUM_BUFFER_SIZE, &count)) == S_OK)
     {
@@ -375,7 +341,7 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
             hr = pMetadataAssemblyImport->GetAssemblyRefProps(
                 curRef,
                 NULL, NULL, // public key or token
-                assemblyName, expectedLength, &cchName, // name
+                assemblyName.get(), expectedLength, &cchName, // name
                 NULL, // metadata`
                 NULL, NULL, // hash value
                 NULL); // flags
@@ -395,11 +361,10 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
                 continue;
             }
 
-            tstring assemblyNameStr = tstring(assemblyName);
-
-            if (assemblyNameStr == expectedName) {
+            tstring assemblyNameStr = tstring(assemblyName.get());
+            if (assemblyNameStr == m_resolvedCorLibName) {
                 pMetadataAssemblyImport->CloseEnum(hEnum);
-                *pTkMscorlibAssemblyRef = curRef;
+                *ptkCorlibAssemblyRef = curRef;
                 return S_OK;
             }
         }
@@ -420,13 +385,13 @@ HRESULT Snapshot::GetTokenForExistingCorLibAssemblyRef(ComPtr<IMetaDataImport> p
 
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
         publicKeyToken,
-        8,
-        NETCORECORLIB,
+        sizeof(publicKeyToken),
+        m_resolvedCorLibName.c_str(),
         &corLibMetadata,
-        nullptr,
+        NULL,
         0,
         afContentType_Default,
-        pTkMscorlibAssemblyRef));
+        ptkCorlibAssemblyRef));
 
     return S_OK;
 }
@@ -440,7 +405,7 @@ HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
     HRESULT hr = S_OK;
 
     mdAssemblyRef tkCorlibAssemblyRef = mdAssemblyRefNil;
-    IfFailLogRet(GetTokenForExistingCorLibAssemblyRef(
+    IfFailLogRet(GetTokenForCorLibAssemblyRef(
         pMetadataImport,
         pMetadataEmit,
         &tkCorlibAssemblyRef));
@@ -472,7 +437,6 @@ HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
 
     return S_OK;
 }
-
 
 HRESULT Snapshot::GetTokenForType(
     ComPtr<IMetaDataImport> pMetadataImport,
