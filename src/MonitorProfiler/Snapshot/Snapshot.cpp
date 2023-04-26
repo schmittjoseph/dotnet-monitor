@@ -21,6 +21,7 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     m_pCorProfilerInfo = profilerInfo;
     m_resolvedCorLibId = 0;
     m_enterProbeId = 0;
+    m_enterProbeDef = mdTokenNil;
     _isRejitting = false;
     _isEnabled = false;
 }
@@ -34,9 +35,8 @@ HRESULT Snapshot::RegisterFunctionProbe(FunctionID enterProbeId)
     }
 
     m_enterProbeId = enterProbeId;
-
     m_pLogger->Log(LogLevel::Information, _LS("Probes received"));
-
+    
     return S_OK;
 }
 
@@ -83,6 +83,8 @@ HRESULT Snapshot::Enable()
     {
         return E_FAIL;
     }
+
+    IfFailLogRet(HydrateProbeMetadata());
 
     for (ULONG i = 0; i < m_RequestedFunctionIds.size(); i++)
     {
@@ -210,16 +212,12 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     ULONG cbSigParam;
     IfFailLogRet(pMetadataImport->GetMethodProps(methodDef, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
 
-    mdMethodDef enterDef = mdTokenNil;
-    IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
-                                                NULL,
-                                                NULL,
-                                                NULL,
-                                                &enterDef,
-                                                0,
-                                                NULL,
-                                                NULL));
-
+    //
+    // We need a metadata emitter to get tokens for typespecs.
+    // In our case though we only want typespecs that should already be defined.
+    // To guarantee we don't accidentally emit a new typespec into an assembly,
+    // create a read-only emitter.
+    //
     ComPtr<IMetaDataEmit> pMetadataEmit;
     IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit)));
 
@@ -231,7 +229,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         moduleId,
         methodDef,
         functionId,
-        enterDef,
+        m_enterProbeDef,
         sigParam,
         cbSigParam,
         &typeTokens));
@@ -241,6 +239,28 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     // Fix: Always set this, even on error.
     _isRejitting = false;
 
+    return S_OK;
+}
+
+HRESULT Snapshot::HydrateProbeMetadata()
+{
+    if (m_resolvedCorLibId != 0)
+    {
+        return S_OK;
+    }
+
+    HRESULT hr;
+    mdMethodDef enterDef = mdTokenNil;
+    IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
+                                                NULL,
+                                                NULL,
+                                                NULL,
+                                                &enterDef,
+                                                0,
+                                                NULL,
+                                                NULL));
+
+    m_enterProbeDef = enterDef;
     return S_OK;
 }
 

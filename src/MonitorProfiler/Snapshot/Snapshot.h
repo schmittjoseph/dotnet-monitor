@@ -27,6 +27,8 @@ class Snapshot
         
         FunctionID m_enterProbeId;
         FunctionID m_leaveHookId;
+        mdMethodDef m_enterProbeDef;
+
         ModuleID m_resolvedCorLibId;
         tstring m_resolvedCorLibName;
 
@@ -56,7 +58,8 @@ class Snapshot
             mdMethodDef methodId);
 
         HRESULT HydrateResolvedCorLib();
-    
+        HRESULT HydrateProbeMetadata();
+
         HRESULT GetTokenForCorLibAssemblyRef(
             ComPtr<IMetaDataImport> pMetadataImport,
             ComPtr<IMetaDataEmit> pMetadataEmit,
