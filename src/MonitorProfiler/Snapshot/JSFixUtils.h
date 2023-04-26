@@ -30,7 +30,6 @@
     do { \
         hr = (EXPR); \
         if(FAILED(hr)) { \
-            TEMPORARY_BREAK_ON_ERROR(); \
             if (nullptr != pLogger) { \
                 if (pLogger->IsEnabled(LogLevel::Error)) \
                 { \
@@ -41,6 +40,7 @@
                         hr); \
                 } \
             } \
+            TEMPORARY_BREAK_ON_ERROR(); \
             return (hr); \
         } \
     } while (0)
