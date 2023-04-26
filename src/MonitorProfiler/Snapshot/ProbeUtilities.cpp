@@ -447,6 +447,7 @@ HRESULT ProbeUtilities::InsertProbes(
     ULONG cbSigParam,
     struct CorLibTypeTokens * pCorLibTypeTokens)
 {
+    HRESULT hr;
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
 
     IfFailRet(rewriter.Import());
