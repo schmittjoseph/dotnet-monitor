@@ -8,6 +8,8 @@
 #include <iostream>
 #include <vector>
 
+#include "JSFixUtils.h"
+
 HRESULT ProbeUtilities::DecompressNextSigComponent(
     IMetaDataEmit* pMetadataEmit,
     PCCOR_SIGNATURE pSignature,
@@ -33,10 +35,10 @@ HRESULT ProbeUtilities::DecompressNextSigComponent(
     {
         if (ulData == ELEMENT_TYPE_SENTINEL)
         {
-            wprintf(L"JSFIX: VARGS support\n");
+            // JSFIX: vargs
+            FEATURE_USAGE_GUARD();
             hr = E_FAIL;
             goto ErrExit;
-
         }
         else if (ulData == ELEMENT_TYPE_PINNED)
         {
@@ -368,8 +370,8 @@ HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::
         break;
     case ELEMENT_TYPE_FNPTR:
         break;
-    case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
-        wprintf(L"JSFIX: UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
+    case ELEMENT_TYPE_GENERICINST:
+        FEATURE_USAGE_GUARD();
         return E_FAIL;
     case ELEMENT_TYPE_I:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
@@ -386,12 +388,12 @@ HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::
     case ELEMENT_TYPE_I8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
-    case ELEMENT_TYPE_MVAR: // Generic method parameter
-        wprintf(L"JSFIX: UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
+    case ELEMENT_TYPE_MVAR:
+        FEATURE_USAGE_GUARD();
         return E_FAIL;
     case ELEMENT_TYPE_OBJECT:
         break;
-    case ELEMENT_TYPE_PTR: // Pointer; does not have boxing token but has special boxing instructions
+    case ELEMENT_TYPE_PTR:
         break;
     case ELEMENT_TYPE_R4:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
@@ -421,11 +423,11 @@ HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::
     case ELEMENT_TYPE_VALUETYPE:
         *ptkBoxedType = typeInfo.second;
         break;
-    case ELEMENT_TYPE_VAR: // Generic type parameter
-        wprintf(L"JSFIX: UNSUPPORTED - ELEMENT_TYPE_VAR\n");
+    case ELEMENT_TYPE_VAR:
+        FEATURE_USAGE_GUARD();
         return E_FAIL;
     default:
-        wprintf(L"UNSUPPORTED - UNKNOWN - 0x%0x - 0x%0x\n", typeInfo.first, typeInfo.second);
+        TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
     }
 

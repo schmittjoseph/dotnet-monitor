@@ -9,6 +9,8 @@
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
+#include "JSFixUtils.h"
+
 using namespace std;
 
 #define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
@@ -52,6 +54,7 @@ HRESULT Snapshot::RequestFunctionProbeShutdown()
     m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
     // JSFIX: Queue this work to run on *our* native-only thread.
     // JSFIX: Block until probes are truly gone.
+    FEATURE_USAGE_GUARD();
 
     IfFailLogRet(Disable());
     return S_OK;
