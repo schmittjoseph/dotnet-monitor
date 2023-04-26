@@ -33,7 +33,10 @@ HRESULT ProbeUtilities::DecompressNextSigComponent(
     {
         if (ulData == ELEMENT_TYPE_SENTINEL)
         {
-            // JSFIX
+            wprintf(L"JSFIX: VARGS support\n");
+            hr = E_FAIL;
+            goto ErrExit;
+
         }
         else if (ulData == ELEMENT_TYPE_PINNED)
         {
@@ -366,8 +369,7 @@ HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::
     case ELEMENT_TYPE_FNPTR:
         break;
     case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
-        // JSFIX
-        wprintf(L"UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
+        wprintf(L"JSFIX: UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
         return E_FAIL;
     case ELEMENT_TYPE_I:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
@@ -385,8 +387,7 @@ HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
     case ELEMENT_TYPE_MVAR: // Generic method parameter
-        // JSFIX
-        wprintf(L"UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
+        wprintf(L"JSFIX: UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
         return E_FAIL;
     case ELEMENT_TYPE_OBJECT:
         break;
@@ -421,8 +422,7 @@ HRESULT ProbeUtilities::GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::
         *ptkBoxedType = typeInfo.second;
         break;
     case ELEMENT_TYPE_VAR: // Generic type parameter
-        // JSFIX
-        wprintf(L"UNSUPPORTED - ELEMENT_TYPE_VAR\n");
+        wprintf(L"JSFIX: UNSUPPORTED - ELEMENT_TYPE_VAR\n");
         return E_FAIL;
     default:
         wprintf(L"UNSUPPORTED - UNKNOWN - 0x%0x - 0x%0x\n", typeInfo.first, typeInfo.second);
