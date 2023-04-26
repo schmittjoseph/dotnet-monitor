@@ -13,7 +13,7 @@
 
 using namespace std;
 
-#define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
+#define IfFailLogRet(EXPR) JSFIX_IfFailLogAndBreak_(m_pLogger, EXPR)
 
 #define ENUM_BUFFER_SIZE 10
 
