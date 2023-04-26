@@ -367,14 +367,14 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeShutdown()
     return m_pSnapshotter->RequestFunctionProbeShutdown();
 }
 
-HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
+HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbe(FunctionID enterProbeId)
 {
     if (!m_isMainProfiler)
     {
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
 
-    return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
+    return m_pSnapshotter->RegisterFunctionProbe(enterProbeId);
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
@@ -391,9 +391,9 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 
 #define DLLEXPORT
 #endif // DLLEXPORT
 
-STDAPI DLLEXPORT RegisterFunctionProbes(UINT64 enterProbeID, UINT64 leaveProbeID)
+STDAPI DLLEXPORT RegisterFunctionProbe(UINT64 enterProbeId)
 {
-    return MainProfiler::s_profiler->RegisterFunctionProbes((FunctionID)enterProbeID, (FunctionID)leaveProbeID);
+    return MainProfiler::s_profiler->RegisterFunctionProbe((FunctionID)enterProbeId);
 }
 
 STDAPI DLLEXPORT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)

@@ -150,16 +150,14 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         public void DoInit()
         {
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
-            static extern int RegisterFunctionProbes(long enterProbeID, long leaveProbeID);
+            static extern int RegisterFunctionProbe(long enterProbeID);
 
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
             static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count);
 
             long enterFunctionId = PinnedEnterProbe.Method.MethodHandle.Value.ToInt64();
-            //long leaveFunctionId = PinnedLeaveProbe.Method.MethodHandle.Value.ToInt64();
-            long leaveFunctionId = PinnedTestFunc.Method.MethodHandle.Value.ToInt64();
 
-            _ = RegisterFunctionProbes(enterFunctionId, leaveFunctionId);
+            _ = RegisterFunctionProbe(enterFunctionId);
             Probes.InitBackgroundService();
 
 

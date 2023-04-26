@@ -25,7 +25,7 @@ class Snapshot
         ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
         
-        FunctionID m_enterHookId;
+        FunctionID m_enterProbeId;
         FunctionID m_leaveHookId;
         ModuleID m_resolvedCorLibId;
 
@@ -70,7 +70,7 @@ class Snapshot
         BOOL IsEnabled();
         BOOL IsAvailable();
 
-        HRESULT RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID);
+        HRESULT RegisterFunctionProbe(FunctionID enterProbeId);
         HRESULT RequestFunctionProbeShutdown();
         HRESULT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count);
 

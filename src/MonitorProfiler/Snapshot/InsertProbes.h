@@ -14,7 +14,6 @@ HRESULT InsertProbes(
     mdMethodDef methodDef,
     FunctionID functionId,
     mdMethodDef enterProbeDef,
-    mdMethodDef leaveProbeDef,
     PCCOR_SIGNATURE sigParam,
     ULONG cbSigParam,
     struct CorLibTypeTokens* pCorLibTypeTokens);

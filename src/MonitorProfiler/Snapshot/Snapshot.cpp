@@ -20,13 +20,12 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     m_pLogger = logger;
     m_pCorProfilerInfo = profilerInfo;
     m_resolvedCorLibId = 0;
-    m_enterHookId = 0;
-    m_leaveHookId = 0;
+    m_enterProbeId = 0;
     _isRejitting = false;
     _isEnabled = false;
 }
 
-HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
+HRESULT Snapshot::RegisterFunctionProbe(FunctionID enterProbeId)
 {
     if (IsAvailable())
     {
@@ -34,8 +33,7 @@ HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID lea
         return E_FAIL;
     }
 
-    m_enterHookId = enterProbeID;
-    m_leaveHookId = leaveProbeID;
+    m_enterProbeId = enterProbeId;
 
     m_pLogger->Log(LogLevel::Information, _LS("Probes received"));
 
@@ -63,6 +61,7 @@ HRESULT Snapshot::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG c
 {
     m_pLogger->Log(LogLevel::Information, _LS("Requesting probe installation."));
 
+    // JSFIX: Thread safety.
     for (ULONG i = 0; i < count; i++)
     {
         m_RequestedFunctionIds.push_back((FunctionID)functionIds[i]);
@@ -73,7 +72,7 @@ HRESULT Snapshot::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG c
 
 BOOL Snapshot::IsAvailable()
 {
-    return m_enterHookId != 0 && m_leaveHookId != 0;
+    return m_enterProbeId != 0;
 }
 
 HRESULT Snapshot::Enable()
@@ -231,9 +230,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     IfFailLogRet(pMetadataImport->GetMethodProps(methodDef, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
 
     mdMethodDef enterDef;
-    mdMethodDef leaveDef;
-    IfFailLogRet(GetMethodDefForFunction(m_enterHookId, &enterDef));
-    IfFailLogRet(GetMethodDefForFunction(m_leaveHookId, &leaveDef));
+    IfFailLogRet(GetMethodDefForFunction(m_enterProbeId, &enterDef));
 
     ComPtr<IMetaDataEmit> pMetadataEmit;
     // JSFIX: We're running around with a read-only emitter. Is this fine?
@@ -249,7 +246,6 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         methodDef,
         functionId,
         enterDef,
-        leaveDef,
         sigParam,
         cbSigParam,
         &typeTokens));
