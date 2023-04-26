@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             {
                 if ((uint)methodBase.MethodHandle.Value.ToInt64() != funcId)
                 {
-                    InProcLoggerService.Log("Internal error: Could not resolve method", LogLevel.Warning);
+                    InProcLoggerService.Log($"Internal error: Could not resolve method (expected({funcId}), actual({(uint)methodBase.MethodHandle.Value.ToInt64()})", LogLevel.Warning);
                     // Could not resolve.
                     return null;
                 }
@@ -79,19 +79,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             return methodBase;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static void LeaveProbe(uint funcId)
-        {
-            MethodBase? methodBase = GetMethodBase(funcId);
-            if (methodBase == null)
-            {
-                return;
-            }
-
-            InProcLoggerService.Log($"[leave] {methodBase.Module}!{methodBase.DeclaringType?.FullName}.{methodBase.Name}", LogLevel.Warning);
-
-            return;
-        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static void EnterProbe(uint funcId, bool hasThis, object[] args)

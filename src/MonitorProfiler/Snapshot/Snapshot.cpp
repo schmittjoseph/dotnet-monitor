@@ -23,11 +23,12 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     m_enterHookId = 0;
     m_leaveHookId = 0;
     _isRejitting = false;
+    _isEnabled = false;
 }
 
 HRESULT Snapshot::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
 {
-    if (IsReady())
+    if (IsAvailable())
     {
         // Probes have already been pinned.
         return E_FAIL;
@@ -45,7 +46,7 @@ HRESULT Snapshot::RequestFunctionProbeShutdown()
 {
     HRESULT hr;
 
-    if (!IsReady())
+    if (!IsAvailable())
     {
         return S_FALSE;
     }
@@ -58,7 +59,19 @@ HRESULT Snapshot::RequestFunctionProbeShutdown()
     return S_OK;
 }
 
-BOOL Snapshot::IsReady()
+HRESULT Snapshot::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
+{
+    m_pLogger->Log(LogLevel::Information, _LS("Requesting probe installation."));
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        m_RequestedFunctionIds.push_back((FunctionID)functionIds[i]);
+    }
+
+    return S_OK;
+}
+
+BOOL Snapshot::IsAvailable()
 {
     return m_enterHookId != 0 && m_leaveHookId != 0;
 }
@@ -67,42 +80,41 @@ HRESULT Snapshot::Enable()
 {
     HRESULT hr = S_OK;
 
-    if (!IsReady() || IsEnabled())
+    if (!IsAvailable() || IsEnabled() || m_RequestedFunctionIds.size() == 0)
     {
         return E_FAIL;
     }
 
+    for (ULONG i = 0; i < m_RequestedFunctionIds.size(); i++)
+    {
+        ModuleID moduleId;
+        mdToken methodDef;
+
+        IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_RequestedFunctionIds.at(i),
+                                                NULL,
+                                                NULL,
+                                                &moduleId,
+                                                &methodDef,
+                                                0,
+                                                NULL,
+                                                NULL));
+
+        IfFailLogRet(PrepareAssemblyForProbes(moduleId, methodDef));
+        m_EnabledModuleIds.push_back(moduleId);
+        m_EnabledMethodDefs.push_back(methodDef);
+    }
+
+
     _isRejitting = true;
-
-    m_pLogger->Log(LogLevel::Warning, _LS("Enabling snapshotter"));
-
-    // JSFIX: Using leave hook as the test func.
-    FunctionID funcId = m_leaveHookId;
-
-    const long numberOfFunctions = 1;
-
-    ModuleID moduleId;
-    mdToken methodDef;
-
-    IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(funcId,
-                                            NULL,
-                                            NULL,
-                                            &moduleId,
-                                            &methodDef,
-                                            0,
-                                            NULL,
-                                            NULL));
-
-    IfFailLogRet(PrepareAssemblyForProbes(moduleId, methodDef));
-
-    m_EnabledModuleIds.push_back(moduleId);
-    m_EnabledMethodDefs.push_back(methodDef);
 
     IfFailLogRet(m_pCorProfilerInfo->RequestReJITWithInliners(
         COR_PRF_REJIT_BLOCK_INLINING | COR_PRF_REJIT_INLINING_CALLBACKS,
         (ULONG)m_EnabledModuleIds.size(),
         m_EnabledModuleIds.data(),
         m_EnabledMethodDefs.data()));
+
+    _isEnabled = true;
+    m_RequestedFunctionIds.clear();
 
     return S_OK;
 }
@@ -157,11 +169,13 @@ HRESULT Snapshot::Disable()
     m_EnabledMethodDefs.clear();
     m_pLogger->Log(LogLevel::Warning, _LS("Done"));
 
+    _isEnabled = false;
+
     return S_OK;
 }
 
 BOOL Snapshot::IsEnabled() {
-    return m_EnabledModuleIds.size() != 0;
+    return _isEnabled;
 }
 
 void Snapshot::AddProfilerEventMask(DWORD& eventsLow)
@@ -201,10 +215,14 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
     typeTokens = it->second;
 
     FunctionID functionId;
+
+    // CORPROF_E_FUNCTION_IS_PARAMETERIZED
+    // unsupported.
+
+    //IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromTokenAndTypeArgs(moduleId, methodDef, mdTokenNil, 0, NULL, &functionId));
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromToken(moduleId,
                                                 methodDef,
                                                 &functionId));
-
     ComPtr<IMetaDataImport> pMetadataImport;
     IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
 

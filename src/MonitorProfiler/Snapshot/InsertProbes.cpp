@@ -367,7 +367,6 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
         break;
     case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
         // JSFIX
-        // We should never actually reach here due to our resolution logic (CONFIRM).
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
         return E_FAIL;
     case ELEMENT_TYPE_I:
@@ -386,7 +385,7 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
     case ELEMENT_TYPE_MVAR: // Generic method parameter
-        // JSFIX -- test
+        // JSFIX
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
         return E_FAIL;
     case ELEMENT_TYPE_OBJECT:
@@ -418,32 +417,15 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
     case ELEMENT_TYPE_U8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
-    case ELEMENT_TYPE_VALUETYPE: {
-        WCHAR name[256];
-        ULONG count = 0;
-        if (TypeFromToken(typeInfo.second) == mdtTypeSpec) {
-            wprintf(L"WE HAVE A TYPESPEC - 0x%0x\n", typeInfo.second);
-        } else if (TypeFromToken(typeInfo.second) == mdtTypeDef) {
-            wprintf(L"WE HAVE A TYPEDEF  - 0x%0x\n", typeInfo.second);
-            IfFailRet(pMetadataImport->GetTypeDefProps(typeInfo.second, name, 256, &count, NULL, NULL));
-            wprintf(L"valuetype name: %s\n", name);
-        } else if (TypeFromToken(typeInfo.second) == mdtTypeRef) {
-            wprintf(L"WE HAVE A TYPEREF - 0x%0x\n", typeInfo.second);
-            IfFailRet(pMetadataImport->GetTypeRefProps(typeInfo.second, NULL, name, 256, &count));
-            wprintf(L"valuetype name: %s\n", name);
-        } else {
-            return E_FAIL;
-        }
-
+    case ELEMENT_TYPE_VALUETYPE:
         *ptkBoxedType = typeInfo.second;
-
         break;
-    }
     case ELEMENT_TYPE_VAR: // Generic type parameter
         // JSFIX
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_VAR\n");
         return E_FAIL;
     default:
+        wprintf(L"UNSUPPORTED - UNKNOWN - 0x%0x - 0x%0x\n", typeInfo.first, typeInfo.second);
         return E_FAIL;
     }
 
@@ -468,9 +450,7 @@ HRESULT AddEnterProbe(
 
     std::vector<std::pair<CorElementType, mdToken>> paramTypes;
 
-    std::wcout << L"Trying to get args\n";
     IfFailRet(ProcessArgs(pMetadataImport, pMetadataEmit, sigParam, cbSigParam, &hasThis, paramTypes));
-    std::wcout << L"--> Done\n";
 
     numArgs = (INT32)paramTypes.size();
     if (hasThis)

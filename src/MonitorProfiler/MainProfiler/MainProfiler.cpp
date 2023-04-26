@@ -291,7 +291,7 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     if (message.MessageType == MessageType::Callstack)
     {
         {
-            if (m_isMainProfiler && m_pSnapshotter->IsReady()) {
+            if (m_isMainProfiler && m_pSnapshotter->IsAvailable()) {
                 if (m_pSnapshotter->IsEnabled()) {
                     IfFailLogRet(m_pSnapshotter->Disable());
                 } else {
@@ -359,20 +359,32 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeShutdown()
 {
-    if (m_isMainProfiler) {
-        return m_pSnapshotter->RequestFunctionProbeShutdown();
-    } else {
+    if (!m_isMainProfiler)
+    {
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
+
+    return m_pSnapshotter->RequestFunctionProbeShutdown();
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID)
 {
-    if (m_isMainProfiler) {
-        return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
-    } else {
+    if (!m_isMainProfiler)
+    {
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
+
+    return m_pSnapshotter->RegisterFunctionProbes(enterProbeID, leaveProbeID);
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
+{
+    if (!m_isMainProfiler)
+    {
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    }
+
+    return m_pSnapshotter->RequestFunctionProbeInstallation(functionIds, count);
 }
 
 #ifndef DLLEXPORT
@@ -382,6 +394,11 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbes(FunctionID enterP
 STDAPI DLLEXPORT RegisterFunctionProbes(UINT64 enterProbeID, UINT64 leaveProbeID)
 {
     return MainProfiler::s_profiler->RegisterFunctionProbes((FunctionID)enterProbeID, (FunctionID)leaveProbeID);
+}
+
+STDAPI DLLEXPORT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
+{
+    return MainProfiler::s_profiler->RequestFunctionProbeInstallation(functionIds, count);
 }
 
 STDAPI DLLEXPORT RequestFunctionProbeShutdown()

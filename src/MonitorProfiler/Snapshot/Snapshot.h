@@ -31,9 +31,12 @@ class Snapshot
 
         std::vector<ModuleID> m_EnabledModuleIds;
         std::vector<mdToken> m_EnabledMethodDefs;
+        std::vector<FunctionID> m_RequestedFunctionIds;
+
         std::unordered_map<ModuleID, struct CorLibTypeTokens> m_ModuleTokens;
 
         bool _isRejitting;
+        bool _isEnabled;
 
 
         HRESULT Snapshot::GetTokenForType(
@@ -42,8 +45,6 @@ class Snapshot
             mdToken tkResolutionScope,
             tstring name,
             mdToken* ptkType);
-
-
 
         HRESULT EmitNecessaryCorLibTypeTokens(
             ComPtr<IMetaDataImport> pMetadataImport,
@@ -67,11 +68,12 @@ class Snapshot
         HRESULT Enable();
         HRESULT Disable();
         BOOL IsEnabled();
-        BOOL IsReady();
+        BOOL IsAvailable();
 
         HRESULT RegisterFunctionProbes(FunctionID enterProbeID, FunctionID leaveProbeID);
-
         HRESULT RequestFunctionProbeShutdown();
+        HRESULT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count);
+
 
         void AddProfilerEventMask(DWORD& eventsLow);
 

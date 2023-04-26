@@ -52,8 +52,12 @@ public:
     STDMETHOD(InitializeForAttach)(IUnknown* pCorProfilerInfoUnk, void* pvClientData, UINT cbClientData) override;
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
+    
+    
     STDMETHOD(RegisterFunctionProbes)(FunctionID enterProbeID, FunctionID leaveProbeID);
+    STDMETHOD(RequestFunctionProbeInstallation)(UINT64 functionIds[], ULONG count);
     STDMETHOD(RequestFunctionProbeShutdown)();
+
 private:
     HRESULT InitializeCommon();
     HRESULT InitializeEnvironment();

@@ -6,4 +6,5 @@ EXPORTS
     DllMain                 PRIVATE
     TestHook                PRIVATE
     RegisterFunctionProbes  PRIVATE
+    RequestFunctionProbeInstallation PRIVATE
     RequestFunctionProbeShutdown  PRIVATE

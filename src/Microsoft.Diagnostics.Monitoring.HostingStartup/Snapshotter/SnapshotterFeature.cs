@@ -18,14 +18,35 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         }
     }
 
+
+
+
+
+    internal enum MyEnum
+    {
+        Val1,
+        Val2,
+        Val3
+    };
+
     internal sealed class SnapshotterFeature
     {
         public delegate void EnterProbePointer(uint funcId, bool hasThis, object[] args);
         public delegate void LeaveProbePointer(uint a);
-        public delegate void TestFunction(uint i, bool? test, string hi, int[,] t, List<bool> f, FooBar foo);
+        public delegate void TestFunction(
+            uint i,
+            bool? test,
+            string hi,
+            int[,] t,
+            List<bool> f,
+            FooBar foo,
+            MyEnum myEnum,
+            ref int refInt,
+            out int outInt,
+            (IList<IList<SnapshotterFeature>>, FooBar) tuple
+            );
 
         private readonly EnterProbePointer PinnedEnterProbe;
-        private readonly LeaveProbePointer PinnedLeaveProbe;
         private readonly TestFunction PinnedTestFunc;
 
         private static SnapshotterFeature? me;
@@ -36,10 +57,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             me = this;
 
             PinnedEnterProbe = new EnterProbePointer(Probes.EnterProbe);
-            PinnedLeaveProbe = new LeaveProbePointer(Probes.LeaveProbe);
             PinnedTestFunc = new TestFunction(Test);
-
-            // Setting up the delegates
         }
 
         private static async Task DoWork()
@@ -81,7 +99,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     {
                         i = 0;
                     }
-                    me?.Test((uint)Random.Shared.Next(), testVal, "Hello world!", t, f, foo);
+
+                    me?.Test((uint)Random.Shared.Next(), testVal, "Hello world!", t, f, foo, MyEnum.Val1, ref i, out int j, (new List<IList<SnapshotterFeature>>(), foo));
                 }
                 catch (Exception ex)
                 {
@@ -91,8 +110,20 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
         }
 
-        private void Test(uint i, bool? test, string hi, int[,] t, List<bool> f, FooBar foo)
+        private void Test(
+            uint i,
+            bool? test,
+            string hi,
+            int[,] t,
+            List<bool> f,
+            FooBar foo,
+            MyEnum myEnum,
+            ref int refInt,
+            out int outInt,
+            (IList<IList<SnapshotterFeature>>, FooBar) tuple
+            )
         {
+            outInt = 0;
             return;
         }
 
@@ -121,12 +152,20 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
             static extern int RegisterFunctionProbes(long enterProbeID, long leaveProbeID);
 
+            [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
+            static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count);
+
             long enterFunctionId = PinnedEnterProbe.Method.MethodHandle.Value.ToInt64();
             //long leaveFunctionId = PinnedLeaveProbe.Method.MethodHandle.Value.ToInt64();
             long leaveFunctionId = PinnedTestFunc.Method.MethodHandle.Value.ToInt64();
 
             _ = RegisterFunctionProbes(enterFunctionId, leaveFunctionId);
             Probes.InitBackgroundService();
+
+
+            long[] funcIds = new[] { PinnedTestFunc.Method.MethodHandle.Value.ToInt64() };
+            _ = RequestFunctionProbeInstallation(funcIds, funcIds.Length);
+
 
             Task.Run(DoWork);
         }
