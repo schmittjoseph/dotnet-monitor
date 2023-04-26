@@ -354,7 +354,7 @@ HRESULT MainProfiler::ProcessCallstackMessage()
 
 HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
 {
-    return m_pSnapshotter->ReJITHandler(moduleId, methodId, pFunctionControl);
+    return m_pSnapshotter->GetReJITParameters(moduleId, methodId, pFunctionControl);
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeShutdown()

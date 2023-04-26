@@ -185,7 +185,7 @@ void Snapshot::AddProfilerEventMask(DWORD& eventsLow)
     eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
 }
 
-HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
+HRESULT STDMETHODCALLTYPE Snapshot::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
     m_pLogger->Log(LogLevel::Warning, _LS("REJITTING: 0x%0x - 0x%0x."), moduleId, methodDef);
