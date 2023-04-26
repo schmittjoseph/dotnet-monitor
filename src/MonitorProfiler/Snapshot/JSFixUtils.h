@@ -9,7 +9,7 @@
 #define _BREAK_() raise(SIGTRAP)
 #endif
 
-#if defined(DEBUG)
+#ifdef DEBUG
 #define FEATURE_USAGE_GUARD() _BREAK_()
 #define TEMPORARY_BREAK_ON_ERROR() _BREAK_()
 #else
