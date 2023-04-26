@@ -34,7 +34,6 @@ set(SOURCES
     Utilities/ThreadNameCache.cpp
     Utilities/ThreadUtilities.cpp
     Utilities/TypeNameUtilities.cpp
-    Utilities/sigparse.cpp
     ClassFactory.cpp
     DllMain.cpp
     ProfilerBase.cpp

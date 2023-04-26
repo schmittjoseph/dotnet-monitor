@@ -7,7 +7,6 @@
 #include <memory>
 #include "InsertProbes.h"
 #include "../Utilities/NameCache.h"
-#include "MethodSigParamExtractor.h"
 #include "../Utilities/TypeNameUtilities.h"
 
 using namespace std;
@@ -188,62 +187,6 @@ HRESULT Snapshot::GetMethodDefForFunction(FunctionID functionId, mdMethodDef* pM
     return S_OK;
 }
 
-HRESULT Snapshot::DumpArgs(ModuleID moduleId, mdMethodDef methodDef)
-{
-    HRESULT hr = S_OK;
-    ComPtr<IMetaDataImport> pMetadataImport;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
-
-    HCORENUM hEnum = 0;
-    mdParamDef paramDefs[ENUM_BUFFER_SIZE];
-    ULONG count = 0;
-    ULONG index = 0;
-    while ((hr = pMetadataImport->EnumParams(&hEnum, methodDef, paramDefs, ENUM_BUFFER_SIZE, &count)) == S_OK)
-    {
-        for (ULONG i = 0; i < count; i++)
-        {
-            mdMethodDef md2;
-            ULONG sequence;
-            WCHAR paramName[256];
-            ULONG nameLength;
-            DWORD flags;
-            DWORD dwCPlusFlags;
-            void const *pValue;
-            ULONG cbValue;
-
-            IfFailLogRet(pMetadataImport->GetParamProps(paramDefs[i], &md2, &sequence, paramName, 256, &nameLength, &flags, &dwCPlusFlags, &pValue, &cbValue));
-            m_pLogger->Log(LogLevel::Warning, _LS("[%u] %s"), sequence, paramName);
-            index++;
-        }
-    }
-
-    return S_OK;
-}
-
-HRESULT Snapshot::DumpArgs2(ModuleID moduleId, mdMethodDef methodDef)
-{
-    HRESULT hr = S_OK;
-    MethodSigParamExtractor extractor;
-
-    ComPtr<IMetaDataImport> pMetadataImport;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
-
-    PCCOR_SIGNATURE sigParam;
-    ULONG cbSigParam;
-    IfFailLogRet(pMetadataImport->GetMethodProps(methodDef, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
-
-
-    if (!extractor.Parse((sig_byte *)sigParam, cbSigParam))
-    {
-        return E_FAIL;
-    }
-    
-    m_pLogger->Log(LogLevel::Warning, _LS("Arg count: %d"), extractor.GetParamCount());
-
-    return S_OK;
-}
-
-
 HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
@@ -256,8 +199,6 @@ HRESULT STDMETHODCALLTYPE Snapshot::ReJITHandler(ModuleID moduleId, mdMethodDef 
         return E_FAIL;
     }
     typeTokens = it->second;
-
-    IfFailLogRet(DumpArgs(moduleId, methodDef));
 
     FunctionID functionId;
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromToken(moduleId,

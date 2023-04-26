@@ -7,7 +7,6 @@
 #include "ILRewriter.h"
 #include <iostream>
 #include <vector>
-// #include "MethodSigParamExtractor.h"
 
 HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb, CorElementType* pElementType, mdToken* ptkType)
 {

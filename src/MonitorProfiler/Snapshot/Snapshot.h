@@ -59,9 +59,6 @@ class Snapshot
             ComPtr<IMetaDataEmit> pMetadataEmit,
             mdAssemblyRef* pTkMscorlibAssemblyRef);
 
-        HRESULT DumpArgs(ModuleID moduleId, mdMethodDef methodId);
-        HRESULT DumpArgs2(ModuleID moduleId, mdMethodDef methodId);
-
     public:
         Snapshot(
             const std::shared_ptr<ILogger>& logger,
