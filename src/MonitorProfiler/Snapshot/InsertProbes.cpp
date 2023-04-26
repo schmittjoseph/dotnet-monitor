@@ -8,25 +8,32 @@
 #include <iostream>
 #include <vector>
 
-HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, ULONG *pcb, CorElementType* pElementType, mdToken* ptkType)
+HRESULT DecompressNextSigComponent(
+    IMetaDataEmit* pMetadataEmit,
+    PCCOR_SIGNATURE pSignature,
+    ULONG signatureLength,
+    ULONG *pBytesRead,
+    CorElementType* pElementType,
+    mdToken* ptkType)
 {
-    HRESULT     hr = S_OK;              // A result.
-    ULONG       cbCur = 0;
-    ULONG       cb;
-    ULONG       ulData = ELEMENT_TYPE_MAX;
-    ULONG       ulTemp;
-    int         iTemp = 0;
-    mdToken     tk;
+    HRESULT hr = S_OK;
+    ULONG signatureCursor = 0;
+    ULONG cb;
+    ULONG ulData = ELEMENT_TYPE_MAX;
+    ULONG ulTemp;
+    mdToken tkType = mdTokenNil;
 
-    cb = CorSigUncompressData(pbSigBlob, &ulData);
-    cbCur += cb;
+    CorElementType elementType = ELEMENT_TYPE_MAX;
+
+    cb = CorSigUncompressData(pSignature, &ulData);
+    signatureCursor += cb;
 
     // Handle the modifiers.
     if (ulData & ELEMENT_TYPE_MODIFIER)
     {
         if (ulData == ELEMENT_TYPE_SENTINEL)
         {
-
+            // JSFIX
         }
         else if (ulData == ELEMENT_TYPE_PINNED)
         {
@@ -38,11 +45,11 @@ HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlo
             goto ErrExit;
         }
 
-        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
         {
             goto ErrExit;
         }
-        cbCur += cb;
+        signatureCursor += cb;
         goto ErrExit;
     }
 
@@ -53,10 +60,11 @@ HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlo
         hr = E_FAIL;
         goto ErrExit;
     }
+
     while (ulData == ELEMENT_TYPE_PTR || ulData == ELEMENT_TYPE_BYREF)
     {
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
-        cbCur += cb;
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
+        signatureCursor += cb;
     }
 
     if (CorIsPrimitiveType((CorElementType)ulData) ||
@@ -66,9 +74,7 @@ HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlo
         ulData == ELEMENT_TYPE_U)
     {
         // If this is a primitive type, we are done
-        if (pElementType != NULL)
-            *pElementType = static_cast<CorElementType>(ulData);
-
+        elementType = static_cast<CorElementType>(ulData);
         goto ErrExit;
     }
 
@@ -77,33 +83,29 @@ HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlo
         ulData == ELEMENT_TYPE_CMOD_REQD ||
         ulData == ELEMENT_TYPE_CMOD_OPT)
     {
-        cb = CorSigUncompressToken(&pbSigBlob[cbCur], &tk);
-        cbCur += cb;
+        cb = CorSigUncompressToken(&pSignature[signatureCursor], &tkType);
+        signatureCursor += cb;
     
         if (ulData == ELEMENT_TYPE_CMOD_REQD ||
             ulData == ELEMENT_TYPE_CMOD_OPT)
         {
-            if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
                 goto ErrExit;
-            cbCur += cb;
+            signatureCursor += cb;
         }
 
-        if (pElementType != NULL)
-            *pElementType = static_cast<CorElementType>(ulData);
-        if (ptkType != NULL)
-            *ptkType = tk;
+        elementType = static_cast<CorElementType>(ulData);
 
         goto ErrExit;
     }
 
     if (ulData == ELEMENT_TYPE_SZARRAY)
     {
-        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
             goto ErrExit;
-        cbCur += cb;
+        signatureCursor += cb;
 
-        if (pElementType != NULL)
-            *pElementType = static_cast<CorElementType>(ulData);
+        elementType = static_cast<CorElementType>(ulData);
 
         goto ErrExit;
     }
@@ -113,45 +115,43 @@ HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlo
     {
         // display the type constructor
         // We need the nested type, but not the nested tk type.
-        CorElementType t = ELEMENT_TYPE_MAX;
-        mdToken tkCtor;
+        CorElementType tkChildElementType = ELEMENT_TYPE_MAX;
+        mdToken tkCtor = mdTokenNil;
 
-        ULONG start = cbCur - cb; // -cb to account for the element type
+        ULONG start = signatureCursor - cb; // -cb to account for the element type
 
-        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, &t, &tkCtor)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, &tkChildElementType, &tkCtor)))
             goto ErrExit;
 
-        if (pElementType != NULL)
-            *pElementType = t;
+        elementType = tkChildElementType;
 
-        cbCur += cb;
+        signatureCursor += cb;
         ULONG numArgs;
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &numArgs);
-        cbCur += cb;
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &numArgs);
+        signatureCursor += cb;
 
         while (numArgs > 0)
         {
-            if (cbCur > ulSigBlob)
+            if (signatureCursor > signatureLength)
                 goto ErrExit;
-            if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
                 goto ErrExit;
-            cbCur += cb;
+            signatureCursor += cb;
             --numArgs;
         }
 
-        if (t == ELEMENT_TYPE_VALUETYPE)
+        if (tkChildElementType == ELEMENT_TYPE_VALUETYPE)
         {
             // Need to also resolve the token
-            if (ptkType != NULL) {
+            if (ptkType != NULL)
+            {
                 mdTypeSpec tkTypeSpec = mdTokenNil;
-                hr = pMetadataEmit->GetTokenFromTypeSpec(&pbSigBlob[start], cbCur - start, &tkTypeSpec);
+                hr = pMetadataEmit->GetTokenFromTypeSpec(&pSignature[start], signatureCursor - start, &tkTypeSpec);
                 if (hr != S_OK) {
-                    std::wcout << L"ERRRRR\n";
                     hr = E_FAIL;
                     goto ErrExit;
                 }
-                *ptkType = tkTypeSpec;
-                // *ptkType = tkCtor;
+                tkType = tkTypeSpec;
             }
         }
 
@@ -161,117 +161,127 @@ HRESULT GetOneElementType(IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlo
     if (ulData == ELEMENT_TYPE_VAR)
     {
         ULONG index;
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &index);
-        cbCur += cb;
-        if (pElementType != NULL)
-            *pElementType = static_cast<CorElementType>(ulData);
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &index);
+        signatureCursor += cb;
+        elementType = static_cast<CorElementType>(ulData);
 
         goto ErrExit;
     }
     if (ulData == ELEMENT_TYPE_MVAR)
     {
         ULONG index;
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &index);
-        cbCur += cb;
-        if (pElementType != NULL)
-            *pElementType = static_cast<CorElementType>(ulData);
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &index);
+        signatureCursor += cb;
+        elementType = static_cast<CorElementType>(ulData);
 
         goto ErrExit;
     }
     if (ulData == ELEMENT_TYPE_FNPTR)
     {
-        if (pElementType != NULL)
-            *pElementType = static_cast<CorElementType>(ulData);
+        elementType = static_cast<CorElementType>(ulData);
 
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
-        cbCur += cb;
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
+        signatureCursor += cb;
     
         // Get number of args
         ULONG numArgs;
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &numArgs);
-        cbCur += cb;
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &numArgs);
+        signatureCursor += cb;
 
         // do return type
-        if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
             goto ErrExit;
-        cbCur += cb;
+        signatureCursor += cb;
 
         while (numArgs > 0)
         {
-            if (cbCur > ulSigBlob)
+            if (signatureCursor > signatureLength)
                 goto ErrExit;
-            if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
                 goto ErrExit;
-            cbCur += cb;
+            signatureCursor += cb;
             --numArgs;
         }
         goto ErrExit;
     }
 
-    if(ulData != ELEMENT_TYPE_ARRAY) return E_FAIL;
+    if(ulData != ELEMENT_TYPE_ARRAY)
+        return E_FAIL;
 
-    if (pElementType != NULL)
-        *pElementType = static_cast<CorElementType>(ulData);
+    elementType = static_cast<CorElementType>(ulData);
 
     // display the base type of SDARRAY
-    if (FAILED(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob-cbCur, &cb, NULL, NULL)))
+    if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
         goto ErrExit;
-    cbCur += cb;
+    signatureCursor += cb;
 
     // display the rank of MDARRAY
-    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
-    cbCur += cb;
+    cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
+    signatureCursor += cb;
     if (ulData == 0)
         // we are done if no rank specified
         goto ErrExit;
 
     // how many dimensions have size specified?
-    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
-    cbCur += cb;
+    cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
+    signatureCursor += cb;
     while (ulData)
     {
-        cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulTemp);
-        cbCur += cb;
+        cb = CorSigUncompressData(&pSignature[signatureCursor], &ulTemp);
+        signatureCursor += cb;
         ulData--;
     }
     // how many dimensions have lower bounds specified?
-    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulData);
-    cbCur += cb;
+    cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
+    signatureCursor += cb;
+    int discard;
+
     while (ulData)
     {
-        cb = CorSigUncompressSignedInt(&pbSigBlob[cbCur], &iTemp);
-        cbCur += cb;
+        cb = CorSigUncompressSignedInt(&pSignature[signatureCursor], &discard);
+        signatureCursor += cb;
         ulData--;
     }
 
 ErrExit:
-    if (cbCur > ulSigBlob)
+    if (signatureCursor > signatureLength)
     {
         hr = E_FAIL;
     }
 
-    *pcb = cbCur;
+    if (elementType != ELEMENT_TYPE_MAX && pElementType != NULL)
+    {
+        *pElementType = elementType;
+    }
+
+    if (ptkType != NULL)
+    {
+        *ptkType = tkType;
+    }
+
+    *pBytesRead = signatureCursor;
     return hr;
 }
 
-HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG ulSigBlob, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
+HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, PCCOR_SIGNATURE pbSigBlob, ULONG signatureLength, BOOL* hasThis, std::vector<std::pair<CorElementType, mdToken>>& paramTypes)
 {
-    ULONG       cbCur = 0;
-    ULONG       cb;
-    ULONG       ulData = NULL;
-    ULONG       ulArgs;
-    HRESULT     hr = S_OK;
+    HRESULT hr = S_OK;
+
+    ULONG signatureCursor = 0;
+    ULONG cb;
+    ULONG ulData = NULL;
+    ULONG ulArgs;
 
     *hasThis = FALSE;
 
     cb = CorSigUncompressData(pbSigBlob, &ulData);
 
-    if (cb > ulSigBlob)
+    if (cb > signatureLength)
     {
         return E_FAIL;
     }
-    cbCur += cb;
-    ulSigBlob -= cb;
+    signatureCursor += cb;
+    signatureLength -= cb;
 
     if (ulData & IMAGE_CEE_CS_CALLCONV_HASTHIS ||
         ulData & IMAGE_CEE_CS_CALLCONV_EXPLICITTHIS)
@@ -285,50 +295,50 @@ HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEm
         return S_OK;
     }
 
-    cb = CorSigUncompressData(&pbSigBlob[cbCur], &ulArgs);
+    cb = CorSigUncompressData(&pbSigBlob[signatureCursor], &ulArgs);
 
-    if (cb > ulSigBlob)
+    if (cb > signatureLength)
     {
         return E_FAIL;
     }
-    cbCur += cb;
-    ulSigBlob -= cb;
+    signatureCursor += cb;
+    signatureLength -= cb;
 
     if (ulData != IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
     {
         // Return type.
-        IfFailRet(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob, &cb, NULL, NULL));
+        IfFailRet(DecompressNextSigComponent(pMetadataEmit, &pbSigBlob[signatureCursor], signatureLength, &cb, NULL, NULL));
 
-        if (cb > ulSigBlob)
+        if (cb > signatureLength)
         {
             return E_FAIL;
         }
 
-        cbCur += cb;
-        ulSigBlob -= cb;
+        signatureCursor += cb;
+        signatureLength -= cb;
     }
 
     ULONG i = 0;
-    while (i < ulArgs && ulSigBlob > 0)
+    while (i < ulArgs && signatureLength > 0)
     {
         ULONG ulDataUncompress;
 
         // Handle the sentinel for varargs because it isn't counted in the args.
-        CorSigUncompressData(&pbSigBlob[cbCur], &ulDataUncompress);
+        CorSigUncompressData(&pbSigBlob[signatureCursor], &ulDataUncompress);
     
         CorElementType elementType = ELEMENT_TYPE_END;
         mdToken tkType = mdTokenNil;
-        IfFailRet(GetOneElementType(pMetadataEmit, &pbSigBlob[cbCur], ulSigBlob, &cb, &elementType, &tkType));
+        IfFailRet(DecompressNextSigComponent(pMetadataEmit, &pbSigBlob[signatureCursor], signatureLength, &cb, &elementType, &tkType));
 
-        if (cb > ulSigBlob)
+        if (cb > signatureLength)
         {
             return E_FAIL;
         }
 
         paramTypes.push_back({elementType, tkType});
 
-        cbCur += cb;
-        ulSigBlob -= cb;
+        signatureCursor += cb;
+        signatureLength -= cb;
         i++;
     }
 
@@ -357,6 +367,7 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
         break;
     case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
         // JSFIX
+        // We should never actually reach here due to our resolution logic (CONFIRM).
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
         return E_FAIL;
     case ELEMENT_TYPE_I: // IntPtr
@@ -375,7 +386,7 @@ HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementT
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
     case ELEMENT_TYPE_MVAR: // Generic method parameter
-        // JSFIX
+        // JSFIX -- test
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
         return E_FAIL;
     case ELEMENT_TYPE_OBJECT: // Object; does not need to be boxed
