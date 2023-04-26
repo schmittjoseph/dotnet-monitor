@@ -53,7 +53,7 @@ public:
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
 
-/* dll export trampolines */
+/* function probe trampolines */
 public:
     STDMETHOD(RegisterFunctionProbe)(FunctionID enterProbeId);
     STDMETHOD(RequestFunctionProbeInstallation)(UINT64 functionIds[], ULONG count);
