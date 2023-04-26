@@ -18,6 +18,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
     internal static class Probes
     {
         private static readonly ConcurrentDictionary<uint, MethodBase?> funcIdToMethodBase = new();
+#pragma warning disable CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
+        private static bool LogTypes;
+#pragma warning restore CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
 
         [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
         static extern int RequestFunctionProbeShutdown();
@@ -116,12 +119,20 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
                     if (hasThis && i == 0)
                     {
-                        stringBuilder.Append($"({args[i].GetType()}) this");
+                        if (LogTypes)
+                        {
+                            stringBuilder.Append($"({args[i].GetType()}) ");
+                        }
+                        stringBuilder.Append("this");
                     }
                     else
                     {
                         int paramI = (hasThis) ? i - 1 : i;
-                        stringBuilder.Append($"({parameters[paramI].ParameterType}) {parameters[paramI].Name}");
+                        if (LogTypes)
+                        {
+                            stringBuilder.Append($"({parameters[paramI].ParameterType}) ");
+                        }
+                        stringBuilder.Append(parameters[paramI].Name);
                     }
                     stringBuilder.Append(": ");
 

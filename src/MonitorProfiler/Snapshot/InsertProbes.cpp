@@ -347,78 +347,78 @@ HRESULT ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEm
     return S_OK;
 }
 
-HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementType, mdToken> typeInfo, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens * pCorLibTypeTokens)
+HRESULT GetTypeToBoxWith(IMetaDataImport* pMetadataImport, std::pair<CorElementType, mdToken> typeInfo, mdTypeDef* ptkBoxedType, struct CorLibTypeTokens* pCorLibTypeTokens)
 {
     *ptkBoxedType = mdTypeDefNil;
 
     switch (typeInfo.first)
     {
-    case ELEMENT_TYPE_ARRAY: // Arrays do not need to be boxed
+    case ELEMENT_TYPE_ARRAY:
         break;
-    case ELEMENT_TYPE_BOOLEAN: // Bool
+    case ELEMENT_TYPE_BOOLEAN:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
         break;
-    case ELEMENT_TYPE_CHAR: // Char
+    case ELEMENT_TYPE_CHAR:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
         break;
-    case ELEMENT_TYPE_CLASS: // Class; does not need to be boxed
+    case ELEMENT_TYPE_CLASS:
         break;
-    case ELEMENT_TYPE_FNPTR: // Delegate; does not need to be boxed
+    case ELEMENT_TYPE_FNPTR:
         break;
     case ELEMENT_TYPE_GENERICINST: // Instance of generic Type e.g. Tuple<int>
         // JSFIX
         // We should never actually reach here due to our resolution logic (CONFIRM).
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_GENERICINST\n");
         return E_FAIL;
-    case ELEMENT_TYPE_I: // IntPtr
+    case ELEMENT_TYPE_I:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
         break;
-    case ELEMENT_TYPE_I1: // SByte
+    case ELEMENT_TYPE_I1:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
         break;
-    case ELEMENT_TYPE_I2: // Short
+    case ELEMENT_TYPE_I2:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
         break;
-    case ELEMENT_TYPE_I4: // Int
+    case ELEMENT_TYPE_I4:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
         break;
-    case ELEMENT_TYPE_I8: // Long
+    case ELEMENT_TYPE_I8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
     case ELEMENT_TYPE_MVAR: // Generic method parameter
         // JSFIX -- test
         wprintf(L"UNSUPPORTED - ELEMENT_TYPE_MVAR\n");
         return E_FAIL;
-    case ELEMENT_TYPE_OBJECT: // Object; does not need to be boxed
+    case ELEMENT_TYPE_OBJECT:
         break;
     case ELEMENT_TYPE_PTR: // Pointer; does not have boxing token but has special boxing instructions
         break;
-    case ELEMENT_TYPE_R4: // Float
+    case ELEMENT_TYPE_R4:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
         break;
-    case ELEMENT_TYPE_R8: // Double
+    case ELEMENT_TYPE_R8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
         break;
-    case ELEMENT_TYPE_STRING: // String; does not need to be boxed
+    case ELEMENT_TYPE_STRING:
         break;
-    case ELEMENT_TYPE_SZARRAY: // Array (single dimension, zero index); does not need to be boxed
+    case ELEMENT_TYPE_SZARRAY:
         break;
-    case ELEMENT_TYPE_U: // UIntPtr
+    case ELEMENT_TYPE_U:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUIntPtrType;
         break;
-    case ELEMENT_TYPE_U1: // Byte
+    case ELEMENT_TYPE_U1:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemByteType;
         break;
-    case ELEMENT_TYPE_U2: // UShort
+    case ELEMENT_TYPE_U2:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt16Type;
         break;
-    case ELEMENT_TYPE_U4: // UInt
+    case ELEMENT_TYPE_U4:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt32Type;
         break;
-    case ELEMENT_TYPE_U8: // ULong
+    case ELEMENT_TYPE_U8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
-    case ELEMENT_TYPE_VALUETYPE: { // Other value types (e.g. struct, enum, etc)
+    case ELEMENT_TYPE_VALUETYPE: {
         WCHAR name[256];
         ULONG count = 0;
         if (TypeFromToken(typeInfo.second) == mdtTypeSpec) {
