@@ -21,7 +21,13 @@ HRESULT MethodSignatureParser::GetMethodSignatureParamTypes(
     HRESULT hr;
 
     ComPtr<IMetaDataImport> pMetadataImport;
-    IfFailRet(pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
+    hr = pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport));
+    if (hr != S_OK)
+    {
+        TEMPORARY_BREAK_ON_ERROR();
+        return hr;
+    }
+
 
     PCCOR_SIGNATURE pSignature;
     ULONG signatureLength;
@@ -34,7 +40,12 @@ HRESULT MethodSignatureParser::GetMethodSignatureParamTypes(
     // create a read-only emitter.
     //
     ComPtr<IMetaDataEmit> pMetadataEmit;
-    IfFailRet(pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit)));
+    hr = pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit));
+    if (hr != S_OK)
+    {
+        TEMPORARY_BREAK_ON_ERROR();
+        return hr;
+    }
 
     IfFailRet(ReadMethodSignatureAndResolveTypes(pMetadataEmit, pSignature, signatureLength, hasThis, paramTypes));
 

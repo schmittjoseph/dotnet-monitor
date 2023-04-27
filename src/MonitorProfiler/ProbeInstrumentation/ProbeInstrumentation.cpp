@@ -156,12 +156,17 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
     }
 
     ComPtr<IMetaDataImport> pMetadataImport;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(
+    hr = m_pCorProfilerInfo->GetModuleMetaData(
         moduleId,
         ofRead | ofWrite,
         IID_IMetaDataImport,
-        reinterpret_cast<IUnknown **>(&pMetadataImport)));
-
+        reinterpret_cast<IUnknown **>(&pMetadataImport));
+    if (hr != S_OK)
+    {
+        TEMPORARY_BREAK_ON_ERROR();
+        return hr;
+    }
+    
     ComPtr<IMetaDataEmit> pMetadataEmit;
     IfFailLogRet(pMetadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&pMetadataEmit)));
 
@@ -291,7 +296,12 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
         mdTypeDef tkObjectTypeDef = mdTypeDefNil;
 
         ComPtr<IMetaDataImport> curMetadataImporter;
-        IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(curModule, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&curMetadataImporter)));
+        hr = m_pCorProfilerInfo->GetModuleMetaData(curModule, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&curMetadataImporter));
+        if (hr != S_OK)
+        {
+            continue;
+        }
+
         if (curMetadataImporter->FindTypeDefByName(_T("System.Object"), mdTokenNil, &tkObjectTypeDef) != S_OK)
         {
             continue;
