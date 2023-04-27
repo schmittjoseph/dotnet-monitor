@@ -19,13 +19,25 @@
 #include "InstrumentationRequest.h"
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include "../Utilities/PairHash.h"
+#include "../Utilities/BlockingQueue.h"
 
 class ProbeInstrumentation
 {
     private:
+        enum WorkerMessage
+        {
+            INSTALL_PROBES,
+            UNINSTALL_PROBES
+        };
+
         ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
+
+        std::thread _workerThread;
+        BlockingQueue<WorkerMessage> _workerQueue;
+
         
         FunctionID m_enterProbeId;
         FunctionID m_leaveHookId;
@@ -66,10 +78,17 @@ class ProbeInstrumentation
             ComPtr<IMetaDataEmit> pMetadataEmit,
             mdAssemblyRef* ptkCorlibAssemblyRef);
 
+
+        void WorkerThread();
+
+
     public:
         ProbeInstrumentation(
             const std::shared_ptr<ILogger>& logger,
             ICorProfilerInfo12* profilerInfo);
+
+        HRESULT InitBackgroundService();
+        void ShutdownBackgroundService();
 
         HRESULT Enable();
         HRESULT Disable();

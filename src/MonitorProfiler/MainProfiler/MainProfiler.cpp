@@ -50,6 +50,13 @@ STDMETHODIMP MainProfiler::Shutdown()
 {
     m_pLogger.reset();
     m_pEnvironment.reset();
+
+    if (m_isMainProfiler)
+    {
+        m_pProbeInstrumentation->ShutdownBackgroundService();
+        m_pProbeInstrumentation.reset();
+    }
+
     _commandServer->Shutdown();
     _commandServer.reset();
 
@@ -207,6 +214,11 @@ HRESULT MainProfiler::InitializeCommon()
     IfFailLogRet(m_pCorProfilerInfo->SetEventMask2(
         eventsLow,
         COR_PRF_HIGH_MONITOR::COR_PRF_HIGH_MONITOR_NONE));
+
+    if (m_isMainProfiler)
+    {
+        IfFailLogRet(m_pProbeInstrumentation->InitBackgroundService());
+    }
 
     //Initialize this last. The CommandServer creates secondary threads, which will be difficult to cleanup if profiler initialization fails.
     IfFailLogRet(InitializeCommandServer());

@@ -11,10 +11,9 @@
 #include "../Utilities/TypeNameUtilities.h"
 
 #include "JSFixUtils.h"
+#define IfFailLogRet(EXPR) JSFIX_IfFailLogAndBreak_(m_pLogger, EXPR)
 
 using namespace std;
-
-#define IfFailLogRet(EXPR) JSFIX_IfFailLogAndBreak_(m_pLogger, EXPR)
 
 #define ENUM_BUFFER_SIZE 10
 
@@ -38,38 +37,95 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
     }
 
     m_enterProbeId = enterProbeId;
-    m_pLogger->Log(LogLevel::Information, _LS("Probes received"));
     
     return S_OK;
 }
 
-HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
+HRESULT ProbeInstrumentation::InitBackgroundService()
 {
-    HRESULT hr;
+    _workerThread = std::thread(&ProbeInstrumentation::WorkerThread, this);
+    return S_OK;
+}
 
-    if (!IsAvailable())
+void ProbeInstrumentation::WorkerThread()
+{
+    HRESULT hr = m_pCorProfilerInfo->InitializeCurrentThread();
+    if (FAILED(hr))
     {
-        return S_FALSE;
+        m_pLogger->Log(LogLevel::Error, _LS("Unable to initialize thread: 0x%08x"), hr);
+        return;
     }
 
-    m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
-    // JSFIX: Queue this work to run on *our* native-only thread.
-    // JSFIX: Block until probes are truly gone.
-    FEATURE_USAGE_GUARD();
+    while (true)
+    {
+        WorkerMessage message;
+        hr = _workerQueue.BlockingDequeue(message);
+        if (hr != S_OK)
+        {
+            //We are complete, discard all messages
+            break;
+        }
 
-    IfFailLogRet(Disable());
-    return S_OK;
+        switch (message)
+        {
+        case INSTALL_PROBES:
+            hr = Enable();
+            if (hr != S_OK)
+            {
+                m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes: 0x%08x"));
+                TEMPORARY_BREAK_ON_ERROR();
+            }
+            break;
+
+        case UNINSTALL_PROBES:
+            hr = Disable();
+            if (hr != S_OK)
+            {
+                m_pLogger->Log(LogLevel::Error, _LS("Failed to uninstall probes: 0x%08x"));
+                TEMPORARY_BREAK_ON_ERROR();
+            }
+            break;
+
+        default:
+            m_pLogger->Log(LogLevel::Error, _LS("Unknown message"));
+            TEMPORARY_BREAK_ON_ERROR();
+            break;
+        }
+    }
+}
+
+void ProbeInstrumentation::ShutdownBackgroundService()
+{
+    // JSFIX: Make re-entrant
+    _workerQueue.Complete();
+    _workerThread.join();
 }
 
 HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
 {
     m_pLogger->Log(LogLevel::Information, _LS("Requesting probe installation."));
 
-    // JSFIX: Thread safety.
+    // JSFIX: Not thread safe
+    m_RequestedFunctionIds.clear();
     for (ULONG i = 0; i < count; i++)
     {
         m_RequestedFunctionIds.push_back((FunctionID)functionIds[i]);
     }
+
+    _workerQueue.Enqueue(WorkerMessage::INSTALL_PROBES);
+
+    return S_OK;
+}
+
+HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
+{
+    if (!IsAvailable())
+    {
+        return S_FALSE;
+    }
+
+    m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
+    _workerQueue.Enqueue(WorkerMessage::UNINSTALL_PROBES);
 
     return S_OK;
 }
@@ -145,6 +201,7 @@ HRESULT ProbeInstrumentation::Enable()
     return S_OK;
 }
 
+
 HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId)
 {
     HRESULT hr;
@@ -168,7 +225,7 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
     }
     
     ComPtr<IMetaDataEmit> pMetadataEmit;
-    IfFailLogRet(pMetadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&pMetadataEmit)));
+    IfFailRet(pMetadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&pMetadataEmit)));
 
     struct CorLibTypeTokens corLibTypeTokens;
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &corLibTypeTokens));
