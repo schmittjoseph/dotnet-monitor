@@ -126,21 +126,22 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
 
     switch (typeInfo.first)
     {
+    // Types that don't require boxing
     case ELEMENT_TYPE_ARRAY:
+    case ELEMENT_TYPE_CLASS:
+    case ELEMENT_TYPE_FNPTR:
+    case ELEMENT_TYPE_OBJECT:
+    case ELEMENT_TYPE_PTR: // JSFIX: Special handling instructions
+    case ELEMENT_TYPE_STRING:
+    case ELEMENT_TYPE_SZARRAY:
         break;
+
+    // Well-known system types
     case ELEMENT_TYPE_BOOLEAN:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
         break;
     case ELEMENT_TYPE_CHAR:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
-        break;
-    case ELEMENT_TYPE_CLASS:
-        break;
-    case ELEMENT_TYPE_FNPTR:
-        break;
-    case ELEMENT_TYPE_GENERICINST:
-        FEATURE_USAGE_GUARD();
-        return E_FAIL;
     case ELEMENT_TYPE_I:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
         break;
@@ -156,22 +157,11 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     case ELEMENT_TYPE_I8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
-    case ELEMENT_TYPE_MVAR:
-        FEATURE_USAGE_GUARD();
-        return E_FAIL;
-    case ELEMENT_TYPE_OBJECT:
-        break;
-    case ELEMENT_TYPE_PTR:
-        break;
     case ELEMENT_TYPE_R4:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
         break;
     case ELEMENT_TYPE_R8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
-        break;
-    case ELEMENT_TYPE_STRING:
-        break;
-    case ELEMENT_TYPE_SZARRAY:
         break;
     case ELEMENT_TYPE_U:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUIntPtrType;
@@ -188,12 +178,20 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     case ELEMENT_TYPE_U8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
+
+    
+    // Complex scenarios
     case ELEMENT_TYPE_VALUETYPE:
         *ptkBoxedType = typeInfo.second;
         break;
+
+    // JSFIX
+    case ELEMENT_TYPE_GENERICINST:
+    case ELEMENT_TYPE_MVAR:
     case ELEMENT_TYPE_VAR:
         FEATURE_USAGE_GUARD();
         return E_FAIL;
+
     default:
         TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
