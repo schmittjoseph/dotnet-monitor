@@ -10,7 +10,7 @@
 #include "../Communication/CommandServer.h"
 #include "../Utilities/ThreadNameCache.h"
 #include <memory>
-#include "../Snapshot/Snapshot.h"
+#include "../ProbeInstrumentation/ProbeInstrumentation.h"
 
 #ifdef DOTNETMONITOR_FEATURE_EXCEPTIONS
 #include "ThreadDataManager.h"
@@ -33,7 +33,7 @@ private:
     std::shared_ptr<ThreadDataManager> _threadDataManager;
     std::unique_ptr<ExceptionTracker> _exceptionTracker;
 #endif // DOTNETMONITOR_FEATURE_EXCEPTIONS
-    std::unique_ptr<Snapshot> m_pSnapshotter;
+    std::unique_ptr<ProbeInstrumentation> m_pProbeInstrumentation;
 
     BOOL m_isMainProfiler;
 

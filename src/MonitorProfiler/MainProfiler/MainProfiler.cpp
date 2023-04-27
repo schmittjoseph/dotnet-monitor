@@ -9,7 +9,7 @@
 #include "../Logging/StdErrLogger.h"
 #include "../Stacks/StacksEventProvider.h"
 #include "../Stacks/StackSampler.h"
-#include "../Snapshot/Snapshot.h"
+#include "../ProbeInstrumentation/ProbeInstrumentation.h"
 #include "../Utilities/ThreadUtilities.h"
 #include "../Utilities/EnvironmentBlockUtilities.h"
 #include "corhlpr.h"
@@ -172,9 +172,9 @@ HRESULT MainProfiler::InitializeCommon()
 
     if (m_isMainProfiler) {
         m_pLogger->Log(LogLevel::Warning, _LS("Initializing as main profiler"));
-        // Enable snapshotting
-        m_pSnapshotter.reset(new (nothrow) Snapshot(m_pLogger, m_pCorProfilerInfo));
-        IfNullRet(m_pSnapshotter);
+        // Enable probe instrumentation
+        m_pProbeInstrumentation.reset(new (nothrow) ProbeInstrumentation(m_pLogger, m_pCorProfilerInfo));
+        IfNullRet(m_pProbeInstrumentation);
     } else {
         m_pLogger->Log(LogLevel::Warning, _LS("Initializing as notify-only profiler"));
     }
@@ -201,7 +201,7 @@ HRESULT MainProfiler::InitializeCommon()
     _threadNameCache = make_shared<ThreadNameCache>();
 
     if (m_isMainProfiler) {
-        m_pSnapshotter->AddProfilerEventMask(eventsLow);
+        m_pProbeInstrumentation->AddProfilerEventMask(eventsLow);
     }
 
     IfFailLogRet(m_pCorProfilerInfo->SetEventMask2(
@@ -291,11 +291,11 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     if (message.MessageType == MessageType::Callstack)
     {
         {
-            if (m_isMainProfiler && m_pSnapshotter->IsAvailable()) {
-                if (m_pSnapshotter->IsEnabled()) {
-                    IfFailLogRet(m_pSnapshotter->Disable());
+            if (m_isMainProfiler && m_pProbeInstrumentation->IsAvailable()) {
+                if (m_pProbeInstrumentation->IsEnabled()) {
+                    IfFailLogRet(m_pProbeInstrumentation->Disable());
                 } else {
-                    IfFailLogRet(m_pSnapshotter->Enable());
+                    IfFailLogRet(m_pProbeInstrumentation->Enable());
                 }
             }
         }
@@ -354,7 +354,7 @@ HRESULT MainProfiler::ProcessCallstackMessage()
 
 HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
 {
-    return m_pSnapshotter->GetReJITParameters(moduleId, methodId, pFunctionControl);
+    return m_pProbeInstrumentation->GetReJITParameters(moduleId, methodId, pFunctionControl);
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeShutdown()
@@ -364,7 +364,7 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeShutdown()
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
 
-    return m_pSnapshotter->RequestFunctionProbeShutdown();
+    return m_pProbeInstrumentation->RequestFunctionProbeShutdown();
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbe(FunctionID enterProbeId)
@@ -374,7 +374,7 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbe(FunctionID enterPr
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
 
-    return m_pSnapshotter->RegisterFunctionProbe(enterProbeId);
+    return m_pProbeInstrumentation->RegisterFunctionProbe(enterProbeId);
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
@@ -384,7 +384,7 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
 
-    return m_pSnapshotter->RequestFunctionProbeInstallation(functionIds, count);
+    return m_pProbeInstrumentation->RequestFunctionProbeInstallation(functionIds, count);
 }
 
 #ifndef DLLEXPORT

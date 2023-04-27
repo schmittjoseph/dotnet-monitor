@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #include "corhlpr.h"
-#include "Snapshot.h"
+#include "ProbeInstrumentation.h"
 #include <functional>
 #include <memory>
 #include "ProbeUtilities.h"
@@ -17,7 +17,7 @@ using namespace std;
 
 #define ENUM_BUFFER_SIZE 10
 
-Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo)
+ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo)
 {
     m_pLogger = logger;
     m_pCorProfilerInfo = profilerInfo;
@@ -28,7 +28,7 @@ Snapshot::Snapshot(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profil
     _isEnabled = false;
 }
 
-HRESULT Snapshot::RegisterFunctionProbe(FunctionID enterProbeId)
+HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 {
     if (IsAvailable())
     {
@@ -42,7 +42,7 @@ HRESULT Snapshot::RegisterFunctionProbe(FunctionID enterProbeId)
     return S_OK;
 }
 
-HRESULT Snapshot::RequestFunctionProbeShutdown()
+HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
 {
     HRESULT hr;
 
@@ -60,7 +60,7 @@ HRESULT Snapshot::RequestFunctionProbeShutdown()
     return S_OK;
 }
 
-HRESULT Snapshot::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
+HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
 {
     m_pLogger->Log(LogLevel::Information, _LS("Requesting probe installation."));
 
@@ -73,12 +73,12 @@ HRESULT Snapshot::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG c
     return S_OK;
 }
 
-BOOL Snapshot::IsAvailable()
+BOOL ProbeInstrumentation::IsAvailable()
 {
     return m_enterProbeId != 0;
 }
 
-HRESULT Snapshot::Enable()
+HRESULT ProbeInstrumentation::Enable()
 {
     HRESULT hr = S_OK;
 
@@ -123,7 +123,7 @@ HRESULT Snapshot::Enable()
     return S_OK;
 }
 
-HRESULT Snapshot::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId)
+HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId)
 {
     HRESULT hr;
 
@@ -151,7 +151,7 @@ HRESULT Snapshot::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef method
 }
 
 
-HRESULT Snapshot::Disable()
+HRESULT ProbeInstrumentation::Disable()
 {
     HRESULT hr = S_OK;
 
@@ -160,7 +160,7 @@ HRESULT Snapshot::Disable()
         return S_FALSE;
     }
 
-    m_pLogger->Log(LogLevel::Warning, _LS("Disabling snapshotter"));
+    m_pLogger->Log(LogLevel::Warning, _LS("Disabling probes"));
 
     // TODO: Check output status
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
@@ -178,17 +178,17 @@ HRESULT Snapshot::Disable()
     return S_OK;
 }
 
-BOOL Snapshot::IsEnabled() {
+BOOL ProbeInstrumentation::IsEnabled() {
     return _isEnabled;
 }
 
-void Snapshot::AddProfilerEventMask(DWORD& eventsLow)
+void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
 {
-    m_pLogger->Log(LogLevel::Debug, _LS("Configuring snapshotter."));
+    m_pLogger->Log(LogLevel::Debug, _LS("Configuring probes."));
     eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
 }
 
-HRESULT STDMETHODCALLTYPE Snapshot::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
+HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
     m_pLogger->Log(LogLevel::Warning, _LS("REJITTING: 0x%0x - 0x%0x."), moduleId, methodDef);
@@ -245,7 +245,7 @@ HRESULT STDMETHODCALLTYPE Snapshot::GetReJITParameters(ModuleID moduleId, mdMeth
     return S_OK;
 }
 
-HRESULT Snapshot::HydrateProbeMetadata()
+HRESULT ProbeInstrumentation::HydrateProbeMetadata()
 {
     if (m_resolvedCorLibId != 0)
     {
@@ -267,7 +267,7 @@ HRESULT Snapshot::HydrateProbeMetadata()
     return S_OK;
 }
 
-HRESULT Snapshot::HydrateResolvedCorLib()
+HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
 {
     if (m_resolvedCorLibId != 0)
     {
@@ -335,7 +335,7 @@ HRESULT Snapshot::HydrateResolvedCorLib()
 }
 
 
-HRESULT Snapshot::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadataImport, ComPtr<IMetaDataEmit> pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
+HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadataImport, ComPtr<IMetaDataEmit> pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
 {
     HRESULT hr = S_OK;
     *ptkCorlibAssemblyRef = mdAssemblyRefNil;
@@ -420,7 +420,7 @@ HRESULT Snapshot::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadata
 }
 
 
-HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
+HRESULT ProbeInstrumentation::EmitNecessaryCorLibTypeTokens(
     ComPtr<IMetaDataImport> pMetadataImport,
     ComPtr<IMetaDataEmit> pMetadataEmit,
     struct CorLibTypeTokens *pCorLibTypeTokens)
@@ -461,7 +461,7 @@ HRESULT Snapshot::EmitNecessaryCorLibTypeTokens(
     return S_OK;
 }
 
-HRESULT Snapshot::GetTokenForType(
+HRESULT ProbeInstrumentation::GetTokenForType(
     ComPtr<IMetaDataImport> pMetadataImport,
     ComPtr<IMetaDataEmit> pMetadataEmit,
     mdToken tkResolutionScope,

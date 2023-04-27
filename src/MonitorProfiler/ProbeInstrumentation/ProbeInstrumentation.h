@@ -19,7 +19,7 @@
 #include <condition_variable>
 #include <mutex>
 
-class Snapshot
+class ProbeInstrumentation
 {
     private:
         ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
@@ -42,7 +42,7 @@ class Snapshot
         bool _isEnabled;
 
 
-        HRESULT Snapshot::GetTokenForType(
+        HRESULT GetTokenForType(
             ComPtr<IMetaDataImport> pMetadataImport,
             ComPtr<IMetaDataEmit> pMetadataEmit,
             mdToken tkResolutionScope,
@@ -66,7 +66,7 @@ class Snapshot
             mdAssemblyRef* ptkCorlibAssemblyRef);
 
     public:
-        Snapshot(
+        ProbeInstrumentation(
             const std::shared_ptr<ILogger>& logger,
             ICorProfilerInfo12* profilerInfo);
 

@@ -279,6 +279,7 @@ HRESULT ProbeUtilities::ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataE
 
     *hasThis = FALSE;
 
+    // §I.8.6.1.5
     cb = CorSigUncompressData(pbSigBlob, &ulData);
 
     if (cb > signatureLength)
@@ -326,6 +327,7 @@ HRESULT ProbeUtilities::ProcessArgs(IMetaDataImport* pMetadataImport, IMetaDataE
     ULONG i = 0;
     while (i < ulArgs && signatureLength > 0)
     {
+        // §I.8.6.1.4
         ULONG ulDataUncompress;
 
         // Handle the sentinel for varargs because it isn't counted in the args.
@@ -451,6 +453,13 @@ HRESULT ProbeUtilities::InsertProbes(
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, moduleID, methodDef);
 
     IfFailRet(rewriter.Import());
+
+    //
+    // JSFIX: Wrap the probe in a try/catch.
+    // In the catch PINVOKE into the profiler, notifying that a probe exception
+    // occurred and the probes need to be uninstalled.
+    //
+
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr * pNewInstr = nullptr;
 
@@ -465,6 +474,7 @@ HRESULT ProbeUtilities::InsertProbes(
     {
        numArgs++;
     }
+    
 
     /* Func Id */
     pNewInstr = rewriter.NewILInstr();
