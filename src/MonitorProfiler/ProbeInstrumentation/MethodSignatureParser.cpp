@@ -251,7 +251,6 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
     // instantiated type
     if (ulData == ELEMENT_TYPE_GENERICINST)
     {
-        // display the type constructor
         // We need the nested type, but not the nested tk type.
         CorElementType tkChildElementType = ELEMENT_TYPE_MAX;
         mdToken tkCtor = mdTokenNil;
@@ -348,12 +347,12 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
 
     elementType = static_cast<CorElementType>(ulData);
 
-    // display the base type of SDARRAY
+    // base type of SDARRAY
     if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, NULL, NULL)))
         goto ErrExit;
     signatureCursor += cb;
 
-    // display the rank of MDARRAY
+    // rank of MDARRAY
     cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
     signatureCursor += cb;
     if (ulData == 0)
