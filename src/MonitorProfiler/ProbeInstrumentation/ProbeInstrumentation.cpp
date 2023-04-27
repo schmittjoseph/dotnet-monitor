@@ -247,19 +247,29 @@ HRESULT ProbeInstrumentation::Disable()
 
     m_pLogger->Log(LogLevel::Warning, _LS("Disabling probes"));
 
-    // TODO: Check output status
-    /*
+    // JSFIX: Keep this data on-hand.
+    // JSFIX: Not thread safe.
+
+    std::vector<ModuleID> moduleIds;
+    std::vector<mdMethodDef> methodDefs;
+
+    for (auto const requestData: m_InstrumentationRequests)
+    {
+        auto const f = requestData.first;
+        moduleIds.push_back(f.first);
+        methodDefs.push_back(f.second);
+    }
+
+    // JSFIX: Capture and check statuses
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
-        (ULONG)m_EnabledModuleIds.size(),
-        m_EnabledModuleIds.data(),
-        m_EnabledMethodDefs.data(),
+        (ULONG)moduleIds.size(),
+        moduleIds.data(),
+        methodDefs.data(),
         nullptr));
 
-    m_EnabledModuleIds.clear();
-    m_EnabledMethodDefs.clear();
+    m_InstrumentationRequests.clear();
     m_pLogger->Log(LogLevel::Warning, _LS("Done"));
-    */
-    FEATURE_USAGE_GUARD();
+
     _isEnabled = false;
 
     return S_OK;
