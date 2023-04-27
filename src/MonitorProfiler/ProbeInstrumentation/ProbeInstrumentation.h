@@ -16,8 +16,10 @@
 #include <unordered_map>
 
 #include "CorLibTypeTokens.h"
+#include "InstrumentationRequest.h"
 #include <condition_variable>
 #include <mutex>
+#include "../Utilities/PairHash.h"
 
 class ProbeInstrumentation
 {
@@ -32,15 +34,13 @@ class ProbeInstrumentation
         ModuleID m_resolvedCorLibId;
         tstring m_resolvedCorLibName;
 
-        std::vector<ModuleID> m_EnabledModuleIds;
-        std::vector<mdToken> m_EnabledMethodDefs;
         std::vector<FunctionID> m_RequestedFunctionIds;
 
         std::unordered_map<ModuleID, struct CorLibTypeTokens> m_ModuleTokens;
+        std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
 
         bool _isRejitting;
         bool _isEnabled;
-
 
         HRESULT GetTokenForType(
             ComPtr<IMetaDataImport> pMetadataImport,
@@ -53,6 +53,7 @@ class ProbeInstrumentation
             ComPtr<IMetaDataImport> pMetadataImport,
             ComPtr<IMetaDataEmit> pMetadataEmit,
             struct CorLibTypeTokens * pCorLibTypeTokens);
+
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
             mdMethodDef methodId);

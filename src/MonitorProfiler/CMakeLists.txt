@@ -29,7 +29,8 @@ set(SOURCES
     Stacks/StacksEventProvider.cpp
     Stacks/StackSampler.cpp
     ProbeInstrumentation/ProbeInstrumentation.cpp
-    ProbeInstrumentation/ProbeUtilities.cpp
+    ProbeInstrumentation/ProbeInjector.cpp
+    ProbeInstrumentation/MethodSignatureParser.cpp
     Utilities/NameCache.cpp
     Utilities/ThreadNameCache.cpp
     Utilities/ThreadUtilities.cpp

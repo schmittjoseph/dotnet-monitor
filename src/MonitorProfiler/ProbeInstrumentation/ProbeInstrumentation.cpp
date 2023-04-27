@@ -5,7 +5,8 @@
 #include "ProbeInstrumentation.h"
 #include <functional>
 #include <memory>
-#include "ProbeUtilities.h"
+#include "ProbeInjector.h"
+#include "MethodSignatureParser.h"
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
@@ -82,43 +83,64 @@ HRESULT ProbeInstrumentation::Enable()
 {
     HRESULT hr = S_OK;
 
-    if (!IsAvailable() || IsEnabled() || m_RequestedFunctionIds.size() == 0)
+    if (!IsAvailable() ||
+        IsEnabled() ||
+        m_RequestedFunctionIds.size() == 0 ||
+        m_RequestedFunctionIds.size() > ULONG_MAX)
     {
         return E_FAIL;
     }
 
+    std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> newRequests;
+
     IfFailLogRet(HydrateProbeMetadata());
+
+    std::vector<ModuleID> requestedModuleIds;
+    std::vector<mdMethodDef> requestedMethodDefs;
 
     for (ULONG i = 0; i < m_RequestedFunctionIds.size(); i++)
     {
-        ModuleID moduleId;
-        mdToken methodDef;
+        struct InstrumentationRequest request;
+        request.probeFunctionDef = m_enterProbeDef;
+        request.functionId = m_RequestedFunctionIds.at(i);
 
-        IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_RequestedFunctionIds.at(i),
-                                                NULL,
-                                                NULL,
-                                                &moduleId,
-                                                &methodDef,
-                                                0,
-                                                NULL,
-                                                NULL));
+        IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(
+            request.functionId,
+            NULL,
+            NULL,
+            &request.moduleId,
+            &request.methodDef,
+            0,
+            NULL,
+            NULL));
 
-        IfFailLogRet(PrepareAssemblyForProbes(moduleId, methodDef));
-        m_EnabledModuleIds.push_back(moduleId);
-        m_EnabledMethodDefs.push_back(methodDef);
+        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef));
+
+        std::vector<std::pair<CorElementType, mdToken>> paramTypes;
+        IfFailLogRet(MethodSignatureParser::GetMethodSignatureParamTypes(
+            m_pCorProfilerInfo,
+            request.moduleId,
+            request.methodDef,
+            request.hasThis,
+            request.paramTypes));
+
+        requestedModuleIds.push_back(request.moduleId);
+        requestedMethodDefs.push_back(request.methodDef);
+
+        newRequests.insert({{request.moduleId, request.methodDef}, request});
     }
-
 
     _isRejitting = true;
 
     IfFailLogRet(m_pCorProfilerInfo->RequestReJITWithInliners(
         COR_PRF_REJIT_BLOCK_INLINING | COR_PRF_REJIT_INLINING_CALLBACKS,
-        (ULONG)m_EnabledModuleIds.size(),
-        m_EnabledModuleIds.data(),
-        m_EnabledMethodDefs.data()));
+        (ULONG)requestedModuleIds.size(),
+        requestedModuleIds.data(),
+        requestedMethodDefs.data()));
 
-    _isEnabled = true;
     m_RequestedFunctionIds.clear();
+    m_InstrumentationRequests = newRequests;
+    _isEnabled = true;
 
     return S_OK;
 }
@@ -145,7 +167,8 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
 
     struct CorLibTypeTokens corLibTypeTokens;
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &corLibTypeTokens));
-    m_ModuleTokens[moduleId] = corLibTypeTokens;
+
+    m_ModuleTokens.insert({moduleId, corLibTypeTokens});
 
     return S_OK;
 }
@@ -163,6 +186,7 @@ HRESULT ProbeInstrumentation::Disable()
     m_pLogger->Log(LogLevel::Warning, _LS("Disabling probes"));
 
     // TODO: Check output status
+    /*
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
         (ULONG)m_EnabledModuleIds.size(),
         m_EnabledModuleIds.data(),
@@ -172,7 +196,8 @@ HRESULT ProbeInstrumentation::Disable()
     m_EnabledModuleIds.clear();
     m_EnabledMethodDefs.clear();
     m_pLogger->Log(LogLevel::Warning, _LS("Done"));
-
+    */
+    FEATURE_USAGE_GUARD();
     _isEnabled = false;
 
     return S_OK;
@@ -184,14 +209,12 @@ BOOL ProbeInstrumentation::IsEnabled() {
 
 void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
 {
-    m_pLogger->Log(LogLevel::Debug, _LS("Configuring probes."));
     eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
 }
 
 HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
-    m_pLogger->Log(LogLevel::Warning, _LS("REJITTING: 0x%0x - 0x%0x."), moduleId, methodDef);
 
     struct CorLibTypeTokens typeTokens;
     auto const& it = m_ModuleTokens.find(moduleId);
@@ -201,40 +224,18 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
     }
     typeTokens = it->second;
 
-    FunctionID functionId;
+    struct InstrumentationRequest request;
+    auto const& it2 = m_InstrumentationRequests.find({moduleId, methodDef});
+    if (it2 == m_InstrumentationRequests.end())
+    {
+        return E_FAIL;
+    }
+    request = it2->second;
 
-    // JSFIX: Generics
-    //IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromTokenAndTypeArgs(moduleId, methodDef, mdTokenNil, 0, NULL, &functionId));
-    IfFailLogRet(m_pCorProfilerInfo->GetFunctionFromToken(moduleId,
-                                                methodDef,
-                                                &functionId));
-    ComPtr<IMetaDataImport> pMetadataImport;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport)));
-
-    PCCOR_SIGNATURE sigParam;
-    ULONG cbSigParam;
-    IfFailLogRet(pMetadataImport->GetMethodProps(methodDef, NULL, NULL, 0, NULL, NULL, &sigParam, &cbSigParam, NULL, NULL));
-
-    //
-    // We need a metadata emitter to get tokens for typespecs.
-    // In our case though we only want typespecs that should already be defined.
-    // To guarantee we don't accidentally emit a new typespec into an assembly,
-    // create a read-only emitter.
-    //
-    ComPtr<IMetaDataEmit> pMetadataEmit;
-    IfFailLogRet(m_pCorProfilerInfo->GetModuleMetaData(moduleId, ofRead, IID_IMetaDataEmit, reinterpret_cast<IUnknown **>(&pMetadataEmit)));
-
-    IfFailLogRet(ProbeUtilities::InsertProbes(
+    IfFailLogRet(ProbeInjector::InstallProbe(
         m_pCorProfilerInfo,
-        pMetadataImport,
-        pMetadataEmit,
         pFunctionControl,
-        moduleId,
-        methodDef,
-        functionId,
-        m_enterProbeDef,
-        sigParam,
-        cbSigParam,
+        &request,
         &typeTokens));
 
     m_pLogger->Log(LogLevel::Warning, _LS("DONE."));

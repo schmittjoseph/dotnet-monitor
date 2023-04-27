@@ -1,6 +1,7 @@
 #pragma once
 
-struct CorLibTypeTokens {
+struct CorLibTypeTokens
+{
     mdToken
         tkSystemBooleanType,
         tkSystemByteType,
