@@ -302,15 +302,6 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
 
     if (message.MessageType == MessageType::Callstack)
     {
-        {
-            if (m_isMainProfiler && m_pProbeInstrumentation->IsAvailable()) {
-                if (m_pProbeInstrumentation->IsEnabled()) {
-                    IfFailLogRet(m_pProbeInstrumentation->Disable());
-                } else {
-                    IfFailLogRet(m_pProbeInstrumentation->Enable());
-                }
-            }
-        }
         //Currently we do not have any options for this message
         return ProcessCallstackMessage();
     }
@@ -364,8 +355,33 @@ HRESULT MainProfiler::ProcessCallstackMessage()
     return S_OK;
 }
 
+HRESULT STDMETHODCALLTYPE MainProfiler::ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock)
+{
+    if (!m_isMainProfiler)
+    {
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    }
+
+    return m_pProbeInstrumentation->ReJITCompilationFinished(functionId, rejitId, hrStatus, fIsSafeToBlock);
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::ReJITError(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus)
+{
+    if (!m_isMainProfiler)
+    {
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    }
+
+    return m_pProbeInstrumentation->ReJITError(moduleId, methodId, functionId, hrStatus);
+}
+
 HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl)
 {
+    if (!m_isMainProfiler)
+    {
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    }
+
     return m_pProbeInstrumentation->GetReJITParameters(moduleId, methodId, pFunctionControl);
 }
 

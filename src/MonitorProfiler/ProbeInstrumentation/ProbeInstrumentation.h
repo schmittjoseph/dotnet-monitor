@@ -40,7 +40,6 @@ class ProbeInstrumentation
 
         
         FunctionID m_enterProbeId;
-        FunctionID m_leaveHookId;
         mdMethodDef m_enterProbeDef;
 
         ModuleID m_resolvedCorLibId;
@@ -80,7 +79,8 @@ class ProbeInstrumentation
 
 
         void WorkerThread();
-
+        HRESULT Enable();
+        HRESULT Disable();
 
     public:
         ProbeInstrumentation(
@@ -90,8 +90,6 @@ class ProbeInstrumentation
         HRESULT InitBackgroundService();
         void ShutdownBackgroundService();
 
-        HRESULT Enable();
-        HRESULT Disable();
         BOOL IsEnabled();
         BOOL IsAvailable();
 
@@ -102,4 +100,6 @@ class ProbeInstrumentation
         void AddProfilerEventMask(DWORD& eventsLow);
 
         HRESULT STDMETHODCALLTYPE GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
+        HRESULT STDMETHODCALLTYPE ReJITError(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus);
+        HRESULT STDMETHODCALLTYPE ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock);
 };

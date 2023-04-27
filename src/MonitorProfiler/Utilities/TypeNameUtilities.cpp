@@ -68,10 +68,10 @@ HRESULT TypeNameUtilities::GetFunctionInfo(NameCache& nameCache, FunctionID id, 
         256,
         0,
         0,
-        NULL,
-        NULL,
-        NULL,
-        NULL));
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr));
 
     IfFailRet(GetModuleInfo(nameCache, moduleId));
 

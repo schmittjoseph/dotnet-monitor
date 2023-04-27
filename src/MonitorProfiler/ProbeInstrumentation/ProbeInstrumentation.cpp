@@ -17,15 +17,15 @@ using namespace std;
 
 #define ENUM_BUFFER_SIZE 10
 
-ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo)
+ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo) :
+    m_pCorProfilerInfo(profilerInfo),
+    m_pLogger(logger),
+    m_enterProbeId(0),
+    m_enterProbeDef(mdMethodDefNil),
+    m_resolvedCorLibId(0),
+    _isRejitting(false),
+    _isEnabled(false)
 {
-    m_pLogger = logger;
-    m_pCorProfilerInfo = profilerInfo;
-    m_resolvedCorLibId = 0;
-    m_enterProbeId = 0;
-    m_enterProbeDef = mdTokenNil;
-    _isRejitting = false;
-    _isEnabled = false;
 }
 
 HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
@@ -163,12 +163,12 @@ HRESULT ProbeInstrumentation::Enable()
         IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(
             request.functionId,
             NULL,
-            NULL,
+            nullptr,
             &request.moduleId,
             &request.methodDef,
             0,
-            NULL,
-            NULL));
+            nullptr,
+            nullptr));
 
         IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef));
 
@@ -260,7 +260,8 @@ HRESULT ProbeInstrumentation::Disable()
         methodDefs.push_back(f.second);
     }
 
-    // JSFIX: Capture and check statuses
+    // JSFIX: Validate that if this method returns S_OK then we don't have to check
+    // the return statuses.
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
         (ULONG)moduleIds.size(),
         moduleIds.data(),
@@ -281,8 +282,23 @@ BOOL ProbeInstrumentation::IsEnabled() {
 
 void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
 {
-    eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
+    eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT | COR_PRF_MONITOR::COR_PRF_MONITOR_JIT_COMPILATION;
 }
+
+HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock)
+{
+    // JSFIX: Handle accordingly.
+    m_pLogger->Log(LogLevel::Error, _LS("ReJIT finished - 0x%08x - hr:0x%08x"), functionId, hrStatus);
+    return S_OK;
+} 
+
+HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITError(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus)
+{
+    // JSFIX: Handle accordingly.
+    m_pLogger->Log(LogLevel::Error, _LS("ReJIT error - 0x%08x - hr:0x%08x"), functionId, hrStatus);
+    TEMPORARY_BREAK_ON_ERROR();
+    return S_OK;
+} 
 
 HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
@@ -329,12 +345,12 @@ HRESULT ProbeInstrumentation::HydrateProbeMetadata()
     mdMethodDef enterDef = mdTokenNil;
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
                                                 NULL,
-                                                NULL,
-                                                NULL,
+                                                nullptr,
+                                                nullptr,
                                                 &enterDef,
                                                 0,
-                                                NULL,
-                                                NULL));
+                                                nullptr,
+                                                nullptr));
 
     m_enterProbeDef = enterDef;
     return S_OK;
@@ -376,7 +392,7 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
 
         DWORD dwClassAttrs = 0;
         mdToken tkExtends = mdTokenNil;
-        if (curMetadataImporter->GetTypeDefProps(tkObjectTypeDef, NULL, NULL, 0, &dwClassAttrs, &tkExtends) != S_OK)
+        if (curMetadataImporter->GetTypeDefProps(tkObjectTypeDef, nullptr, 0, nullptr, &dwClassAttrs, &tkExtends) != S_OK)
         {
             continue;
         }
@@ -442,11 +458,11 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImpor
             ULONG cchName = 0;
             hr = pMetadataAssemblyImport->GetAssemblyRefProps(
                 curRef,
-                NULL, NULL, // public key or token
+                nullptr, nullptr, // public key or token
                 assemblyName.get(), expectedLength, &cchName, // name
-                NULL, // metadata`
-                NULL, NULL, // hash value
-                NULL); // flags
+                nullptr, // metadata`
+                nullptr, nullptr, // hash value
+                nullptr); // flags
 
             // Current assembly's name is longer than corlib's
             if (hr == CLDB_S_TRUNCATION)
@@ -491,7 +507,7 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImpor
         sizeof(publicKeyToken),
         m_resolvedCorLibName.c_str(),
         &corLibMetadata,
-        NULL,
+        nullptr,
         0,
         afContentType_Default,
         ptkCorlibAssemblyRef));
