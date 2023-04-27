@@ -126,7 +126,9 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
 
     switch (typeInfo.first)
     {
+    //
     // Types that don't require boxing
+    //
     case ELEMENT_TYPE_ARRAY:
     case ELEMENT_TYPE_CLASS:
     case ELEMENT_TYPE_FNPTR:
@@ -136,7 +138,9 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     case ELEMENT_TYPE_SZARRAY:
         break;
 
+    //
     // Well-known system types
+    //
     case ELEMENT_TYPE_BOOLEAN:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
         break;
@@ -178,14 +182,17 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     case ELEMENT_TYPE_U8:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
-
     
-    // Complex scenarios
+    //
+    // More complex scenarios
+    //
     case ELEMENT_TYPE_VALUETYPE:
         *ptkBoxedType = typeInfo.second;
         break;
 
-    // JSFIX
+    //
+    // JSFIX - Currently unsupported
+    //
     case ELEMENT_TYPE_GENERICINST:
     case ELEMENT_TYPE_MVAR:
     case ELEMENT_TYPE_VAR:
