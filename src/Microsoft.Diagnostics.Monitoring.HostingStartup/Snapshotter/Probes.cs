@@ -28,6 +28,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static ManualResetEventSlim requestProbeStopEvent = new(initialState: false);
 
+        private static volatile int CountDown = 2;
+
         public static void InitBackgroundService()
         {
             ThreadPool.QueueUserWorkItem(ProbeHandler);
@@ -143,6 +145,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             stringBuilder.Append(')');
 
             InProcLoggerService.Log(stringBuilder.ToString());
+
+            if (CountDown > 0)
+            {
+                CountDown--;
+                if (CountDown <= 0)
+                {
+                    requestProbeStopEvent.Set();
+                }
+            }
 
             return;
         }
