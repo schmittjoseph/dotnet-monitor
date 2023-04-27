@@ -102,7 +102,7 @@ HRESULT MethodSignatureParser::ReadMethodSignatureAndResolveTypes(
     if (ulData != IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
     {
         // Return type.
-        IfFailRet(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength, &cb, nullptr, nullptr));
+        IfFailRet(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength, &cb, nullptr, nullptr, nullptr));
 
         if (cb > signatureLength)
         {
@@ -124,11 +124,31 @@ HRESULT MethodSignatureParser::ReadMethodSignatureAndResolveTypes(
     
         CorElementType elementType = ELEMENT_TYPE_END;
         mdToken tkType = mdTokenNil;
-        IfFailRet(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength, &cb, &elementType, &tkType));
+        BOOL isPointerLike = FALSE;
+        IfFailRet(DecompressNextSigComponent(
+            pMetadataEmit,
+            &pSignature[signatureCursor],
+            signatureLength,
+            &cb,
+            &isPointerLike,
+            &elementType,
+            &tkType));
 
         if (cb > signatureLength)
         {
             return E_FAIL;
+        }
+
+        //
+        // JSFIX: Don't bother trying to indirect load these.
+        // Use a sentinel value instead, it's up to the 
+        // managed probe to make sense of this.
+        //
+        if (isPointerLike)
+        {
+            // JSFIX: Use a better mechanism to signal this.
+            // Perhaps perserve the outer-most element type.
+            elementType = PROBE_ELEMENT_TYPE_POINTER_LIKE_SENTINEL;
         }
 
         paramTypes.push_back({elementType, tkType});
@@ -148,6 +168,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
     PCCOR_SIGNATURE pSignature,
     ULONG signatureLength,
     ULONG *pBytesRead,
+    BOOL* pIsPointerLike,
     CorElementType* pElementType,
     mdToken* ptkType)
 {
@@ -159,6 +180,10 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
     mdToken tkType = mdTokenNil;
 
     CorElementType elementType = ELEMENT_TYPE_MAX;
+
+    if (pIsPointerLike != nullptr) {
+        *pIsPointerLike = FALSE;
+    }
 
     cb = CorSigUncompressData(pSignature, &ulData);
     signatureCursor += cb;
@@ -183,7 +208,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
             goto ErrExit;
         }
 
-        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
         {
             goto ErrExit;
         }
@@ -199,8 +224,13 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
         goto ErrExit;
     }
 
+    // §I.12.4.1.5.2
     while (ulData == ELEMENT_TYPE_PTR || ulData == ELEMENT_TYPE_BYREF)
     {
+        if (pIsPointerLike != nullptr) {
+            *pIsPointerLike = TRUE;
+        }
+
         cb = CorSigUncompressData(&pSignature[signatureCursor], &ulData);
         signatureCursor += cb;
     }
@@ -227,7 +257,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
         if (ulData == ELEMENT_TYPE_CMOD_REQD ||
             ulData == ELEMENT_TYPE_CMOD_OPT)
         {
-            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
                 goto ErrExit;
             signatureCursor += cb;
         }
@@ -239,7 +269,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
 
     if (ulData == ELEMENT_TYPE_SZARRAY)
     {
-        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
             goto ErrExit;
         signatureCursor += cb;
 
@@ -257,7 +287,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
 
         ULONG start = signatureCursor - cb; // -cb to account for the element type
 
-        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, &tkChildElementType, &tkCtor)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, &tkChildElementType, &tkCtor)))
             goto ErrExit;
 
         elementType = tkChildElementType;
@@ -271,7 +301,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
         {
             if (signatureCursor > signatureLength)
                 goto ErrExit;
-            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
                 goto ErrExit;
             signatureCursor += cb;
             --numArgs;
@@ -326,7 +356,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
         signatureCursor += cb;
 
         // do return type
-        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+        if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
             goto ErrExit;
         signatureCursor += cb;
 
@@ -334,7 +364,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
         {
             if (signatureCursor > signatureLength)
                 goto ErrExit;
-            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+            if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
                 goto ErrExit;
             signatureCursor += cb;
             --numArgs;
@@ -348,7 +378,7 @@ HRESULT MethodSignatureParser::DecompressNextSigComponent(
     elementType = static_cast<CorElementType>(ulData);
 
     // base type of SDARRAY
-    if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr)))
+    if (FAILED(DecompressNextSigComponent(pMetadataEmit, &pSignature[signatureCursor], signatureLength-signatureCursor, &cb, nullptr, nullptr, nullptr)))
         goto ErrExit;
     signatureCursor += cb;
 

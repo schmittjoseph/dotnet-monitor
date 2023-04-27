@@ -29,6 +29,7 @@ class MethodSignatureParser
             PCCOR_SIGNATURE pSignature,
             ULONG signatureLength,
             ULONG *pBytesRead,
+            BOOL* pIsPointerLike,
             CorElementType* pElementType,
             mdToken* ptkType);
 };

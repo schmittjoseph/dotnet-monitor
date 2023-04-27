@@ -1,5 +1,8 @@
 #pragma once
 
+// JSFIX: Hacky -- pick a better way of signalling this.
+#define PROBE_ELEMENT_TYPE_POINTER_LIKE_SENTINEL ELEMENT_TYPE_PTR
+
 struct CorLibTypeTokens
 {
     mdToken

@@ -76,19 +76,40 @@ HRESULT ProbeInjector::InstallProbe(
         pNewInstr->m_Arg32 = i;
         rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        // Load arg
-        pNewInstr = rewriter.NewILInstr();
-        pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
-        pNewInstr->m_Arg32 = i;
-        rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+        if (typeIndex == -1)
+        {
+            // Load arg
+            pNewInstr = rewriter.NewILInstr();
+            pNewInstr->m_opcode = CEE_LDARG_S;
+            pNewInstr->m_Arg32 = i;
+            rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        // JSFIX: Check if there are any cases where "this" needs to be boxed.
-        if (typeIndex >= 0)
-        { 
+            // JSFIX: Check if there are any cases where "this" needs to be boxed.
+        }
+        else
+        {
             auto typeInfo = pRequest->paramTypes.at(typeIndex);
 
             mdTypeDef tkBoxedType = mdTypeDefNil;
             IfFailRet(GetTypeToBoxWith(typeInfo, &tkBoxedType, pCorLibTypeTokens));
+
+            // Load arg
+            if (typeInfo.first == PROBE_ELEMENT_TYPE_POINTER_LIKE_SENTINEL)
+            {
+                // JSFIX: Load a sentinel object/value provided by our managed layer instead of null.
+                pNewInstr = rewriter.NewILInstr();
+                pNewInstr->m_opcode = CEE_LDC_I4;
+                pNewInstr->m_Arg32 = 0;
+                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+            }
+            else
+            {
+                pNewInstr = rewriter.NewILInstr();
+                pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
+                pNewInstr->m_Arg32 = i;
+                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+            }
+
 
             if (tkBoxedType != mdTypeDefNil)
             {
@@ -185,14 +206,21 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     //
     // More complex scenarios
     //
+
+    // case ELEMENT_TYPE_PTR:
+    case PROBE_ELEMENT_TYPE_POINTER_LIKE_SENTINEL:
+        // It's either a managed or native pointer, both of which are currently unsupported.
+        break;
+
     case ELEMENT_TYPE_VALUETYPE:
+                std::wcout << L"value-type\n";
+
         *ptkBoxedType = typeInfo.second;
         break;
 
     //
     // JSFIX: Currently unsupported
     //
-    case ELEMENT_TYPE_PTR:
     case ELEMENT_TYPE_GENERICINST:
     case ELEMENT_TYPE_MVAR:
     case ELEMENT_TYPE_VAR:
