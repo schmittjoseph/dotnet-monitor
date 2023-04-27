@@ -82,7 +82,7 @@ HRESULT ProbeInjector::InstallProbe(
         pNewInstr->m_Arg32 = i;
         rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        // JSFIX - Check if there are any cases where "this" needs to be boxed.
+        // JSFIX: Check if there are any cases where "this" needs to be boxed.
         if (typeIndex >= 0)
         { 
             auto typeInfo = pRequest->paramTypes.at(typeIndex);
@@ -191,7 +191,7 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
         break;
 
     //
-    // JSFIX - Currently unsupported
+    // JSFIX: Currently unsupported
     //
     case ELEMENT_TYPE_GENERICINST:
     case ELEMENT_TYPE_MVAR:
