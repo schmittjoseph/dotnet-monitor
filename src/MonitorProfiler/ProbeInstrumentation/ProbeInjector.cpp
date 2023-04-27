@@ -36,10 +36,15 @@ HRESULT ProbeInjector::InstallProbe(
        numArgs++;
     }
 
-    /* Func Id */
+    /* Uniquifier: ModuleID + methodDef */
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I4;
-    pNewInstr->m_Arg32 = (INT32)pRequest->functionId;
+    pNewInstr->m_Arg32 = (INT32)pRequest->moduleId;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    pNewInstr = rewriter.NewILInstr();
+    pNewInstr->m_opcode = CEE_LDC_I4;
+    pNewInstr->m_Arg32 = (INT32)pRequest->methodDef;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Has This */
@@ -213,8 +218,6 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
         break;
 
     case ELEMENT_TYPE_VALUETYPE:
-                std::wcout << L"value-type\n";
-
         *ptkBoxedType = typeInfo.second;
         break;
 

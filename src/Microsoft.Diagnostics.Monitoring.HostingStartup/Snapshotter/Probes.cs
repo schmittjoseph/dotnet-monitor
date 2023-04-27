@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     internal static class Probes
     {
-        private static readonly ConcurrentDictionary<uint, MethodBase?> funcIdToMethodBase = new();
+        private static readonly ConcurrentDictionary<(uint, uint), MethodBase?> methodBaseLookup = new();
 #pragma warning disable CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
         private static bool LogTypes;
 #pragma warning restore CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 try
                 {
                     RequestFunctionProbeShutdown();
-                    funcIdToMethodBase.Clear();
+                    methodBaseLookup.Clear();
                 }
                 catch (Exception ex)
                 {
@@ -57,9 +57,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static MethodBase? GetMethodBase(uint funcId)
+        private static MethodBase? GetMethodBase(uint moduleId, uint methodDef)
         {
-            if (funcIdToMethodBase.TryGetValue(funcId, out MethodBase? methodBase))
+            if (methodBaseLookup.TryGetValue((moduleId, methodDef), out MethodBase? methodBase))
             {
                 return methodBase;
             }
@@ -68,24 +68,24 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             methodBase = new StackFrame(2, needFileInfo: false)?.GetMethod();
             if (methodBase != null)
             {
-                if ((uint)methodBase.MethodHandle.Value.ToInt64() != funcId)
+                if ((uint)methodBase.MetadataToken != methodDef)
                 {
-                    InProcLoggerService.Log($"Internal error: Could not resolve method (expected({funcId}), actual({(uint)methodBase.MethodHandle.Value.ToInt64()})", LogLevel.Warning);
+                    InProcLoggerService.Log($"Internal error: Could not resolve method (expected({methodDef}), actual({(uint)methodBase.MetadataToken})", LogLevel.Warning);
                     // Could not resolve.
                     return null;
                 }
             }
 
-            _ = funcIdToMethodBase.TryAdd(funcId, methodBase);
+            _ = methodBaseLookup.TryAdd((moduleId, methodDef), methodBase);
 
             return methodBase;
         }
 
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static void EnterProbe(uint funcId, bool hasThis, object[] args)
+        internal static void EnterProbe(uint moduleId, uint methodDef, bool hasThis, object[] args)
         {
-            MethodBase? methodBase = GetMethodBase(funcId);
+            MethodBase? methodBase = GetMethodBase(moduleId, methodDef);
             if (methodBase == null)
             {
                 return;
@@ -190,6 +190,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static void SerializeObject(StringBuilder stringBuilder, object value, Type? typeOverride = null)
         {
+            if (typeOverride?.IsByRefLike == true || // ref struct
+               typeOverride?.IsByRef == true)
+            {
+                stringBuilder.Append("{unsupported}");
+                return;
+            }
+
             if (value == null)
             {
                 stringBuilder.Append("null");
@@ -197,13 +204,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
 
             typeOverride ??= value.GetType();
-
-            if (typeOverride.IsByRefLike || // ref struct
-               typeOverride.IsByRef)
-            {
-                stringBuilder.Append("{unsupported}");
-                return;
-            }
 
             //  else if (typeOverride.IsArray)
             // https://learn.microsoft.com/dotnet/csharp/programming-guide/arrays/multidimensional-arrays (rank)
