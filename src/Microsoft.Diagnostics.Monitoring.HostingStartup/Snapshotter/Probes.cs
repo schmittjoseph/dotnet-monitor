@@ -117,18 +117,48 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     else
                     {
                         int paramI = (hasThis) ? i - 1 : i;
+                        var paramInfo = parameters[paramI];
                         if (LogTypes)
                         {
-                            stringBuilder.Append($"({parameters[paramI].ParameterType}) ");
+                            stringBuilder.Append($"({paramInfo.ParameterType}) ");
                         }
-                        stringBuilder.Append(parameters[paramI].Name);
+
+                        /*
+                        if (paramInfo.Attributes.HasFlag(ParameterAttributes.Out))
+                        {
+                            stringBuilder.Append($"out ");
+
+                            // We're an enter probe, so the out value may be uninitialized.
+                        }
+                        */
+
+                        if (paramInfo.IsOut)
+                        {
+                            stringBuilder.Append($"out ");
+                        }
+                        else if (paramInfo.ParameterType.IsByRefLike)
+                        {
+                            stringBuilder.Append($"ref struct ");
+                        }
+                        else if (paramInfo.ParameterType.IsByRef)
+                        {
+                            stringBuilder.Append($"ref ");
+                        }
+
+                        stringBuilder.Append(paramInfo.Name);
                     }
                     stringBuilder.Append(": ");
 
                     argValueBuilder.Clear();
                     try
                     {
-                        SerializeObject(argValueBuilder, args[i]);
+                        Type? type = null;
+                        int paramI = (hasThis) ? i - 1 : i;
+                        if (paramI >= 0)
+                        {
+                            type = parameters[paramI].ParameterType;
+                        }
+                        SerializeObject(argValueBuilder, args[i], type);
                         stringBuilder.Append(argValueBuilder);
                     }
                     catch (Exception ex)
@@ -167,6 +197,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
 
             typeOverride ??= value.GetType();
+
+            if (typeOverride.IsByRefLike || // ref struct
+               typeOverride.IsByRef)
+            {
+                stringBuilder.Append("{unsupported}");
+                return;
+            }
 
             //  else if (typeOverride.IsArray)
             // https://learn.microsoft.com/dotnet/csharp/programming-guide/arrays/multidimensional-arrays (rank)

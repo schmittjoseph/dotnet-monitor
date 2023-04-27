@@ -133,7 +133,6 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     case ELEMENT_TYPE_CLASS:
     case ELEMENT_TYPE_FNPTR:
     case ELEMENT_TYPE_OBJECT:
-    case ELEMENT_TYPE_PTR: // JSFIX: Special handling instructions
     case ELEMENT_TYPE_STRING:
     case ELEMENT_TYPE_SZARRAY:
         break;
@@ -193,6 +192,7 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
     //
     // JSFIX: Currently unsupported
     //
+    case ELEMENT_TYPE_PTR:
     case ELEMENT_TYPE_GENERICINST:
     case ELEMENT_TYPE_MVAR:
     case ELEMENT_TYPE_VAR:
