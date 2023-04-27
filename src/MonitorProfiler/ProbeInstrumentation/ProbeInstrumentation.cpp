@@ -245,7 +245,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 
     m_pLogger->Log(LogLevel::Warning, _LS("DONE."));
 
-    // Fix: Always set this, even on error.
+    // JSFIX: Always set this, even on error.
     _isRejitting = false;
 
     return S_OK;
@@ -356,6 +356,7 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImpor
     ComPtr<IMetaDataAssemblyImport> pMetadataAssemblyImport;
     IfFailLogRet(pMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pMetadataAssemblyImport)));
 
+    // JSFIX: Consider RAII for scope guarding instead of closing this enum in all needed cases.
     HCORENUM hEnum = 0;
     mdAssemblyRef mdRefs[ENUM_BUFFER_SIZE];
     ULONG count = 0;  
@@ -387,6 +388,7 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImpor
             }
             else if (hr != S_OK)
             {
+                pMetadataAssemblyImport->CloseEnum(hEnum);
                 return hr;
             }
 
