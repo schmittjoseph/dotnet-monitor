@@ -287,7 +287,6 @@ HRESULT ProbeInstrumentation::Disable()
         nullptr));
 
     m_InstrumentationRequests.clear();
-    m_pLogger->Log(LogLevel::Warning, _LS("Done"));
 
     _isEnabled = false;
 
@@ -306,7 +305,6 @@ void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
 HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock)
 {
     // JSFIX: Handle accordingly.
-    m_pLogger->Log(LogLevel::Information, _LS("ReJIT finished - 0x%08x - hr:0x%08x"), functionId, hrStatus);
     return S_OK;
 } 
 
@@ -321,7 +319,6 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITError(ModuleID moduleId, md
 HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
     HRESULT hr = S_OK;
-    m_pLogger->Log(LogLevel::Information, _LS("REJITTING  0x%08x - 0x%08x"), moduleId, methodDef);
 
     struct CorLibTypeTokens typeTokens;
     auto const& it = m_ModuleTokens.find(moduleId);
@@ -345,11 +342,8 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
         &request,
         &typeTokens));
 
-    m_pLogger->Log(LogLevel::Information, _LS("DONE."));
-
     // JSFIX: Always set this, even on error.
     _isRejitting = false;
-    m_pLogger->Log(LogLevel::Information, _LS("REJITTING  done"));
 
     return S_OK;
 }
@@ -614,7 +608,6 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     IfFailLogRet(pMetadataEmit->DefineTypeRefByName(tkProbeAssemblyRef, _T("Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter.Probes"), &refToken));
 
     IfFailLogRet(pMetadataEmit->DefineMemberRef(refToken, funcName, pProbeSignature, probeSignatureLength, ptkProbeMemberRef));
-    m_pLogger->Log(LogLevel::Information, _LS("Defined probe ref for: %s: 0x%0x"), funcName, *ptkProbeMemberRef);
 
     return S_OK;
 }
