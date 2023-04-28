@@ -9,48 +9,44 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook
 {
     internal static class AspNetHostingStartupHelper
     {
-        public const string SharedHostingStartupAssembly = "Microsoft.Diagnostics.Monitoring.HostingStartup";
-
         private const string HostingStartupEnvVariable = "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES";
-
-        //private const string SharedStoreEnvVariable = "DOTNET_SHARED_STORE";
-
+        //private const string DotnetMonitorStartupGuid = "30CB586D-62C1-4364-B172-5042CA6EF1D1";
+        private const string DotnetMonitorStartupGuid = "Microsoft.Diagnostics.Monitoring.HostingStartup";
         static Lazy<bool> DoRegisterAssemblyResolver = new Lazy<bool>(RegisterAssemblyResolver);
 
+
         // Not thread safe.
-        public static void RegisterHostingStartup(string assembly = SharedHostingStartupAssembly)
+        public static void RegisterHostingStartup()
         {
             if (!DoRegisterAssemblyResolver.Value)
             {
                 return;
             }
-
-            LoggerProxy.Log($"Registering hosting startup: {assembly}");
-            AppendToEnvironmentVariable(HostingStartupEnvVariable, assembly);
-
-
-            // Must also update the runtime store.
         }
 
         private static bool RegisterAssemblyResolver()
         {
             AppDomain.CurrentDomain.AssemblyResolve += AssemblyResolver!;
-
+            AppendToEnvironmentVariable(HostingStartupEnvVariable, DotnetMonitorStartupGuid);
             return true;
         }
 
-
-        static Assembly AssemblyResolver(object source, ResolveEventArgs e)
+        private static Assembly? AssemblyResolver(object source, ResolveEventArgs e)
         {
-            if (!e.Name.StartsWith(string.Concat(SharedHostingStartupAssembly, ","), StringComparison.Ordinal))
+            if (!e.Name.StartsWith(DotnetMonitorStartupGuid, StringComparison.Ordinal))
             {
-                return null!;
+                return null;
             }
 
-            Console.WriteLine("!! Intercepted request to load our hosting startup assembly, redirecting load !!");
+            // Can check that e.EquestingAssembly == "Microsoft.AspNetCore.Hosting"
+            // Can also use this to determine the aspnet version
+            // Microsoft.AspNetCore.Hosting, Version=7.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60
 
-            // We found it, unregister.
-            AppDomain.CurrentDomain.AssemblyResolve -= AssemblyResolver!;
+            // A little hacky, but we'll be asked to resolve this dll *twice*.
+            // Once for aspnetcore's hosting startup logic.
+            // Once for first-time managed probe resolution.
+
+            //AppDomain.CurrentDomain.AssemblyResolve -= AssemblyResolver!;
             //var path = JSFIX
             return Assembly.LoadFile(path);
         }
