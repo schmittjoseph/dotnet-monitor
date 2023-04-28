@@ -125,7 +125,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                         // Ref structs have already been filtered out by the above IsByRefLike check.
                         boxingTokens.Add(paramType.MetadataToken);
                     }
-
                 }
                 else if (paramType.HasMetadataToken())
                 {
@@ -133,7 +132,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 }
                 else
                 {
-                    boxingTokens.Add(unsupported);
+                    TypeCode type = Type.GetTypeCode(paramType);
+                    if (type != TypeCode.Empty)
+                    {
+                        boxingTokens.Add((int)type);
+                    }
+                    else
+                    {
+                        boxingTokens.Add(unsupported);
+                    }
                 }
 
             }
@@ -152,7 +159,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
 
             const string dll = "Mvc.dll";
-            const string className = "Benchmarks.Controllers.JsonController";
+            const string className = "Benchmarks.Controllers.MyController";
             const string methodName = "JsonNk";
 
             Console.WriteLine($"Requesting remote probes in {dll}!{className}.{methodName}");
@@ -324,12 +331,12 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             Probes.InitBackgroundService();
 
 
-            MethodBase func = PinnedTestFunc.Method;
-            long[] funcIds = new[] { func.MethodHandle.Value.ToInt64() };
+            // MethodBase func = PinnedTestFunc.Method;
+            // long[] funcIds = new[] { func.MethodHandle.Value.ToInt64() };
             // For now just do one.
 
-            int[] boxingTokens = GetBoxingTokens(func);
-            long[] counts = new[] { (long)boxingTokens.Length };
+            // int[] boxingTokens = GetBoxingTokens(func);
+            // long[] counts = new[] { (long)boxingTokens.Length };
 
             //_ = RequestFunctionProbeInstallation(funcIds, funcIds.Length, boxingTokens, counts);
 

@@ -238,11 +238,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 return;
             }
 
-            // https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
-
-            if (value is IConvertible ic)
+            if (value is IConvertible ic and not string)
             {
-                stringBuilder.Append(ic.ToString(null));
+                stringBuilder.Append(ic.ToString(null) ?? string.Empty);
             }
             else if (value is IFormattable formattable)
             {

@@ -39,7 +39,7 @@ HRESULT GetBoxingType(
     mdToken* ptkBoxedType,
     struct CorLibTypeTokens* pCorLibTypeTokens)
 {
-    *ptkBoxedType = mdTypeDefNil;
+    *ptkBoxedType = mdTokenNil;
 
     switch(typeInfo)
     {
@@ -80,11 +80,15 @@ HRESULT GetBoxingType(
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
 
+    case TypeCode::TYPE_CODE_OBJECT:
+        // No boxing needed.
+        break;
+
     case TypeCode::TYPE_CODE_EMPTY:
     case TypeCode::TYPE_CODE_DB_NULL:
     case TypeCode::TYPE_CODE_STRING:
-    case TypeCode::TYPE_CODE_OBJECT:
     case TypeCode::TYPE_CODE_DATE_TIME:
+        TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
     default:
         wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo);
@@ -172,8 +176,9 @@ HRESULT ProbeInjector::InstallProbe(
         }
         else
         {
+            // JSFIX: No argslist or indirect load support.
             pNewInstr = rewriter.NewILInstr();
-            pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
+            pNewInstr->m_opcode = CEE_LDARG_S;
             pNewInstr->m_Arg32 = i;
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
@@ -182,11 +187,13 @@ HRESULT ProbeInjector::InstallProbe(
                 // Resolve the box type
                 mdToken tkBoxedType = mdTokenNil;
                 IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, pCorLibTypeTokens));
-                wprintf(L"BOXING: 0x%0x\n", tkBoxedType);
-                pNewInstr = rewriter.NewILInstr();
-                pNewInstr->m_opcode = CEE_BOX;
-                pNewInstr->m_Arg32 = tkBoxedType;
-                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+                if (tkBoxedType != mdTokenNil)
+                {
+                    pNewInstr = rewriter.NewILInstr();
+                    pNewInstr->m_opcode = CEE_BOX;
+                    pNewInstr->m_Arg32 = tkBoxedType;
+                    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+                }
             }
         }
 
@@ -282,7 +289,6 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
 
     case ELEMENT_TYPE_VALUETYPE:
         *ptkBoxedType = typeInfo.second;
-        wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo.second);
         break;
 
     //
