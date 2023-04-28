@@ -205,7 +205,6 @@ HRESULT ProbeInjector::GetBoxingType(
         TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
     default:
-        wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo);
         *ptkBoxedType = (mdToken)typeInfo;
         break;
     }
