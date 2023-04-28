@@ -10,8 +10,8 @@
 #endif
 
 #ifdef DEBUG
-#define FEATURE_USAGE_GUARD()
-#define TEMPORARY_BREAK_ON_ERROR()
+#define FEATURE_USAGE_GUARD() _BREAK_()
+#define TEMPORARY_BREAK_ON_ERROR() _BREAK_()
 #else
 #define FEATURE_USAGE_GUARD() 
 #define TEMPORARY_BREAK_ON_ERROR()
