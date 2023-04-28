@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
 
             const string dll = "Mvc.dll";
-            const string className = "Benchmarks.Controllers.MyController";
+            const string className = "Benchmarks.Controllers.MyController`1";
             const string methodName = "JsonNk";
 
             Console.WriteLine($"Requesting remote probes in {dll}!{className}.{methodName}");
@@ -189,6 +189,10 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             Type? remoteClass = userAssembly.GetType(className);
             if (remoteClass == null)
             {
+                foreach (var c in userAssembly.GetTypes())
+                {
+                    Console.WriteLine(c.AssemblyQualifiedName);
+                }
                 Console.WriteLine("COULD NOT RESOLVE REMOTE CLASS");
                 return;
             }
@@ -196,6 +200,10 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             MethodInfo? info = remoteClass.GetMethod(methodName);
             if (info == null)
             {
+                foreach (var c in remoteClass.GetMethods())
+                {
+                    Console.WriteLine(c.Name);
+                }
                 Console.WriteLine("COULD NOT RESOLVE REMOTE METHOD");
                 return;
             }
