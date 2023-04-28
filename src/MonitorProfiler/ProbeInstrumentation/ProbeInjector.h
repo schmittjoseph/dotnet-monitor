@@ -17,8 +17,8 @@ class ProbeInjector
             struct CorLibTypeTokens* pCorLibTypeTokens);
 
     private:       
-        static HRESULT GetTypeToBoxWith(
-            std::pair<CorElementType, mdToken> typeInfo,
-            mdTypeDef* ptkBoxedType,
+        static HRESULT GetBoxingType(
+            UINT32 typeInfo,
+            mdToken* ptkBoxedType,
             struct CorLibTypeTokens* pCorLibTypeTokens);
 };

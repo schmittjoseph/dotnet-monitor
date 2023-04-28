@@ -34,71 +34,6 @@ typedef enum TypeCode
     TYPE_CODE_STRING            = 0x12
 } TypeCode;
 
-HRESULT GetBoxingType(
-    UINT32 typeInfo,
-    mdToken* ptkBoxedType,
-    struct CorLibTypeTokens* pCorLibTypeTokens)
-{
-    *ptkBoxedType = mdTokenNil;
-
-    switch(typeInfo)
-    {
-    case TypeCode::TYPE_CODE_BOOLEAN:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
-        break;
-    case TypeCode::TYPE_CODE_BYTE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemByteType;
-        break;
-    case TypeCode::TYPE_CODE_CHAR:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
-        break;
-    case TypeCode::TYPE_CODE_DOUBLE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
-        break;
-    case TypeCode::TYPE_CODE_INT16:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
-        break;
-    case TypeCode::TYPE_CODE_INT32:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
-        break;
-    case TypeCode::TYPE_CODE_INT64:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
-        break;
-    case TypeCode::TYPE_CODE_SBYTE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
-        break;
-    case TypeCode::TYPE_CODE_SINGLE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
-        break;
-    case TypeCode::TYPE_CODE_UINT16:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt16Type;
-        break;
-    case TypeCode::TYPE_CODE_UINT32:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt32Type;
-        break;
-    case TypeCode::TYPE_CODE_UINT64:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
-        break;
-
-    case TypeCode::TYPE_CODE_OBJECT:
-        // No boxing needed.
-        break;
-
-    case TypeCode::TYPE_CODE_EMPTY:
-    case TypeCode::TYPE_CODE_DB_NULL:
-    case TypeCode::TYPE_CODE_STRING:
-    case TypeCode::TYPE_CODE_DATE_TIME:
-        TEMPORARY_BREAK_ON_ERROR();
-        return E_FAIL;
-    default:
-        wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo);
-        *ptkBoxedType = (mdToken)typeInfo;
-        break;
-    }
-
-    return S_OK;
-}
-
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
@@ -213,96 +148,66 @@ HRESULT ProbeInjector::InstallProbe(
     return S_OK;
 }
 
-HRESULT ProbeInjector::GetTypeToBoxWith(
-    std::pair<CorElementType, mdToken> typeInfo,
-    mdTypeDef* ptkBoxedType,
+HRESULT ProbeInjector::GetBoxingType(
+    UINT32 typeInfo,
+    mdToken* ptkBoxedType,
     struct CorLibTypeTokens* pCorLibTypeTokens)
 {
-    *ptkBoxedType = mdTypeDefNil;
+    *ptkBoxedType = mdTokenNil;
 
-    switch (typeInfo.first)
+    switch(typeInfo)
     {
-    //
-    // Types that don't require boxing
-    //
-    case ELEMENT_TYPE_ARRAY:
-    case ELEMENT_TYPE_CLASS:
-    case ELEMENT_TYPE_FNPTR:
-    case ELEMENT_TYPE_OBJECT:
-    case ELEMENT_TYPE_STRING:
-    case ELEMENT_TYPE_SZARRAY:
-        break;
-
-    //
-    // Well-known system types
-    //
-    case ELEMENT_TYPE_BOOLEAN:
+    case TypeCode::TYPE_CODE_BOOLEAN:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
         break;
-    case ELEMENT_TYPE_CHAR:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
-    case ELEMENT_TYPE_I:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemIntPtrType;
-        break;
-    case ELEMENT_TYPE_I1:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
-        break;
-    case ELEMENT_TYPE_I2:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
-        break;
-    case ELEMENT_TYPE_I4:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
-        break;
-    case ELEMENT_TYPE_I8:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
-        break;
-    case ELEMENT_TYPE_R4:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
-        break;
-    case ELEMENT_TYPE_R8:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
-        break;
-    case ELEMENT_TYPE_U:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUIntPtrType;
-        break;
-    case ELEMENT_TYPE_U1:
+    case TypeCode::TYPE_CODE_BYTE:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemByteType;
         break;
-    case ELEMENT_TYPE_U2:
+    case TypeCode::TYPE_CODE_CHAR:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
+        break;
+    case TypeCode::TYPE_CODE_DOUBLE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
+        break;
+    case TypeCode::TYPE_CODE_INT16:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
+        break;
+    case TypeCode::TYPE_CODE_INT32:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
+        break;
+    case TypeCode::TYPE_CODE_INT64:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
+        break;
+    case TypeCode::TYPE_CODE_SBYTE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
+        break;
+    case TypeCode::TYPE_CODE_SINGLE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
+        break;
+    case TypeCode::TYPE_CODE_UINT16:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt16Type;
         break;
-    case ELEMENT_TYPE_U4:
+    case TypeCode::TYPE_CODE_UINT32:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt32Type;
         break;
-    case ELEMENT_TYPE_U8:
+    case TypeCode::TYPE_CODE_UINT64:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
-    
-    //
-    // More complex scenarios
-    //
 
-    // case ELEMENT_TYPE_PTR:
-    case PROBE_ELEMENT_TYPE_POINTER_LIKE_SENTINEL:
-        // It's either a managed or native pointer, both of which are currently unsupported.
+    case TypeCode::TYPE_CODE_OBJECT:
+        // No boxing needed.
         break;
 
-    case ELEMENT_TYPE_VALUETYPE:
-        *ptkBoxedType = typeInfo.second;
-        break;
-
-    //
-    // JSFIX: Currently unsupported
-    //
-    case ELEMENT_TYPE_GENERICINST:
-    case ELEMENT_TYPE_MVAR:
-    case ELEMENT_TYPE_VAR:
-        FEATURE_USAGE_GUARD();
-        return E_FAIL;
-
-    default:
+    case TypeCode::TYPE_CODE_EMPTY:
+    case TypeCode::TYPE_CODE_DB_NULL:
+    case TypeCode::TYPE_CODE_STRING:
+    case TypeCode::TYPE_CODE_DATE_TIME:
         TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
+    default:
+        wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo);
+        *ptkBoxedType = (mdToken)typeInfo;
+        break;
     }
 
     return S_OK;

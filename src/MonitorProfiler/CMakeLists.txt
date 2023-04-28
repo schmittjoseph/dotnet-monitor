@@ -30,7 +30,6 @@ set(SOURCES
     Stacks/StackSampler.cpp
     ProbeInstrumentation/ProbeInstrumentation.cpp
     ProbeInstrumentation/ProbeInjector.cpp
-    ProbeInstrumentation/MethodSignatureParser.cpp
     Utilities/NameCache.cpp
     Utilities/ThreadNameCache.cpp
     Utilities/ThreadUtilities.cpp

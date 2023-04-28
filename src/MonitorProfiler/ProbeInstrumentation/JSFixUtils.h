@@ -3,15 +3,15 @@
 // JSFIX: Remove file
 
 #if TARGET_WINDOWS
-#define _BREAK_() __debugbreak()
+#define _BREAK_()
 #else
 #include <signal.h>
-#define _BREAK_() raise(SIGTRAP)
+#define _BREAK_()
 #endif
 
 #ifdef DEBUG
-#define FEATURE_USAGE_GUARD() _BREAK_()
-#define TEMPORARY_BREAK_ON_ERROR() _BREAK_()
+#define FEATURE_USAGE_GUARD()
+#define TEMPORARY_BREAK_ON_ERROR()
 #else
 #define FEATURE_USAGE_GUARD() 
 #define TEMPORARY_BREAK_ON_ERROR()

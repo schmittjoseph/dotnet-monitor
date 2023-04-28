@@ -15,5 +15,4 @@ struct InstrumentationRequest
     mdMethodDef methodDef;
 
     BOOL hasThis;
-    std::vector<std::pair<CorElementType, mdToken>> paramTypes;
 };

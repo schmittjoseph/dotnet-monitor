@@ -6,7 +6,6 @@
 #include <functional>
 #include <memory>
 #include "ProbeInjector.h"
-#include "MethodSignatureParser.h"
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
@@ -188,15 +187,6 @@ HRESULT ProbeInstrumentation::Enable()
         mdMemberRef tkProbeFunction = mdMemberRefNil;
         IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef, &request.probeFunctionDef));
 
-        std::vector<std::pair<CorElementType, mdToken>> paramTypes;
-
-        IfFailLogRet(MethodSignatureParser::GetMethodSignatureParamTypes(
-            m_pCorProfilerInfo,
-            request.moduleId,
-            request.methodDef,
-            request.hasThis,
-            request.paramTypes));
-        
         requestedModuleIds.push_back(request.moduleId);
         requestedMethodDefs.push_back(request.methodDef);
 
