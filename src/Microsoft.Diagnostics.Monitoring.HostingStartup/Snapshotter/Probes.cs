@@ -100,7 +100,16 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             StringBuilder stringBuilder = new StringBuilder();
             StringBuilder argValueBuilder = new StringBuilder();
 
-            stringBuilder.Append($"[enter] {methodBase.Module}!{methodBase.DeclaringType?.FullName}.{methodBase.Name}");
+
+            stringBuilder.Append($"[enter] {methodBase.Module}");
+
+            string className = methodBase.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
+            stringBuilder.Append(className);
+            PrettyPrintGenericArgs(stringBuilder, methodBase.DeclaringType?.GetGenericArguments());
+
+            stringBuilder.Append($".{methodBase.Name}");
+            PrettyPrintGenericArgs(stringBuilder, methodBase.GetGenericArguments());
+
             stringBuilder.Append('(');
             var parameters = methodBase.GetParameters();
             for (int i = 0; i < args?.Length; i++)
@@ -249,6 +258,32 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             else
             {
                 WrapValue(stringBuilder, value.ToString());
+            }
+        }
+
+        private static void PrettyPrintGenericArgs(StringBuilder stringBuilder, Type[]? genericArgs)
+        {
+            if (genericArgs == null)
+            {
+                return;
+            }
+
+            if (genericArgs.Length > 0)
+            {
+                stringBuilder.Append('<');
+                int i = 0;
+                foreach (var g in genericArgs)
+                {
+                    if (i != 0)
+                    {
+                        stringBuilder.Append(", ");
+                    }
+
+                    stringBuilder.Append(g.Name);
+
+                    i++;
+                }
+                stringBuilder.Append('>');
             }
         }
 
