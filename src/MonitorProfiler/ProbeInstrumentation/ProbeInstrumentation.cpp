@@ -37,7 +37,8 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 
     m_pLogger->Log(LogLevel::Information, _LS("Received probes."));
 
-
+    // JSFIX: Do some basic validation on this (such as checking its signature / visibility) before
+    // pinning it.
     m_enterProbeId = enterProbeId;
     
     return S_OK;

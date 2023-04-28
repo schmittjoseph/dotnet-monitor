@@ -70,7 +70,7 @@ HRESULT ProbeInjector::InstallProbe(
     /* Has This */
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I4;
-    pNewInstr->m_Arg32 = (INT32)pRequest->hasThis;
+    pNewInstr->m_Arg32 = (INT32)pRequest->hasThis; // JSFIX: This seems to no longer be needed !
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Args */
