@@ -10,6 +10,91 @@
 
 #include "JSFixUtils.h"
 
+
+typedef enum TypeCode
+{
+    TYPE_CODE_EMPTY             = 0x00,
+    TYPE_CODE_OBJECT            = 0x01,
+    TYPE_CODE_DB_NULL           = 0x02,
+    TYPE_CODE_BOOLEAN           = 0x03,
+    TYPE_CODE_CHAR              = 0x04,
+    TYPE_CODE_SBYTE             = 0x05,
+    TYPE_CODE_BYTE              = 0x06,
+    TYPE_CODE_INT16             = 0x07,
+    TYPE_CODE_UINT16            = 0x08,
+    TYPE_CODE_INT32             = 0x09,
+    TYPE_CODE_UINT32            = 0x0a,
+    TYPE_CODE_INT64             = 0x0b,
+    TYPE_CODE_UINT64            = 0x0c,
+    TYPE_CODE_SINGLE            = 0x0d,
+    TYPE_CODE_DOUBLE            = 0x0e,
+    TYPE_CODE_DECIMAL           = 0x0f,
+    TYPE_CODE_DATE_TIME         = 0x10,
+    // No 0x11
+    TYPE_CODE_STRING            = 0x12
+} TypeCode;
+
+HRESULT GetBoxingType(
+    UINT32 typeInfo,
+    mdToken* ptkBoxedType,
+    struct CorLibTypeTokens* pCorLibTypeTokens)
+{
+    *ptkBoxedType = mdTypeDefNil;
+
+    switch(typeInfo)
+    {
+    case TypeCode::TYPE_CODE_BOOLEAN:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
+        break;
+    case TypeCode::TYPE_CODE_BYTE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemByteType;
+        break;
+    case TypeCode::TYPE_CODE_CHAR:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
+        break;
+    case TypeCode::TYPE_CODE_DOUBLE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
+        break;
+    case TypeCode::TYPE_CODE_INT16:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
+        break;
+    case TypeCode::TYPE_CODE_INT32:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
+        break;
+    case TypeCode::TYPE_CODE_INT64:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
+        break;
+    case TypeCode::TYPE_CODE_SBYTE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
+        break;
+    case TypeCode::TYPE_CODE_SINGLE:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
+        break;
+    case TypeCode::TYPE_CODE_UINT16:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt16Type;
+        break;
+    case TypeCode::TYPE_CODE_UINT32:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt32Type;
+        break;
+    case TypeCode::TYPE_CODE_UINT64:
+        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
+        break;
+
+    case TypeCode::TYPE_CODE_EMPTY:
+    case TypeCode::TYPE_CODE_DB_NULL:
+    case TypeCode::TYPE_CODE_STRING:
+    case TypeCode::TYPE_CODE_OBJECT:
+    case TypeCode::TYPE_CODE_DATE_TIME:
+        return E_FAIL;
+    default:
+        wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo);
+        *ptkBoxedType = (mdToken)typeInfo;
+        break;
+    }
+
+    return S_OK;
+}
+
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
@@ -30,11 +115,7 @@ HRESULT ProbeInjector::InstallProbe(
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr * pNewInstr = nullptr;
 
-    INT32 numArgs = (INT32)pRequest->paramTypes.size();
-    if (pRequest->hasThis)
-    {
-       numArgs++;
-    }
+    INT32 numArgs = (INT32)pRequest->tkBoxingTypes.size();
 
     /* Uniquifier: ModuleID + methodDef */
     pNewInstr = rewriter.NewILInstr();
@@ -67,7 +148,6 @@ HRESULT ProbeInjector::InstallProbe(
     pNewInstr->m_Arg32 = pCorLibTypeTokens->tkSystemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-    INT32 typeIndex = (pRequest->hasThis) ? -1 : 0;
     for (INT32 i = 0; i < numArgs; i++)
     {
         // New entry on the evaluation stack
@@ -81,43 +161,28 @@ HRESULT ProbeInjector::InstallProbe(
         pNewInstr->m_Arg32 = i;
         rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-        if (typeIndex == -1)
+        // Load arg
+        UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
+        if (typeInfo == (UINT)-1)
         {
-            // Load arg
+            // JSFIX: Load a sentinel object/value provided by our managed layer instead of null.
             pNewInstr = rewriter.NewILInstr();
-            pNewInstr->m_opcode = CEE_LDARG_S;
-            pNewInstr->m_Arg32 = i;
+            pNewInstr->m_opcode = CEE_LDNULL;
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-            // JSFIX: Check if there are any cases where "this" needs to be boxed.
         }
         else
         {
-            auto typeInfo = pRequest->paramTypes.at(typeIndex);
+            pNewInstr = rewriter.NewILInstr();
+            pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
+            pNewInstr->m_Arg32 = i;
+            rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-            mdTypeDef tkBoxedType = mdTypeDefNil;
-            IfFailRet(GetTypeToBoxWith(typeInfo, &tkBoxedType, pCorLibTypeTokens));
-
-            // Load arg
-            if (typeInfo.first == PROBE_ELEMENT_TYPE_POINTER_LIKE_SENTINEL)
+            if (typeInfo != TypeCode::TYPE_CODE_EMPTY)
             {
-                // JSFIX: Load a sentinel object/value provided by our managed layer instead of null.
-                pNewInstr = rewriter.NewILInstr();
-                pNewInstr->m_opcode = CEE_LDC_I4;
-                pNewInstr->m_Arg32 = 0;
-                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-            }
-            else
-            {
-                pNewInstr = rewriter.NewILInstr();
-                pNewInstr->m_opcode = CEE_LDARG_S; // JSFIX: Arglist support
-                pNewInstr->m_Arg32 = i;
-                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-            }
-
-
-            if (tkBoxedType != mdTypeDefNil)
-            {
+                // Resolve the box type
+                mdToken tkBoxedType = mdTokenNil;
+                IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, pCorLibTypeTokens));
+                wprintf(L"BOXING: 0x%0x\n", tkBoxedType);
                 pNewInstr = rewriter.NewILInstr();
                 pNewInstr->m_opcode = CEE_BOX;
                 pNewInstr->m_Arg32 = tkBoxedType;
@@ -129,8 +194,6 @@ HRESULT ProbeInjector::InstallProbe(
         pNewInstr = rewriter.NewILInstr();
         pNewInstr->m_opcode = CEE_STELEM_REF;
         rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-        typeIndex++;
     }
 
     pNewInstr = rewriter.NewILInstr();
@@ -219,6 +282,7 @@ HRESULT ProbeInjector::GetTypeToBoxWith(
 
     case ELEMENT_TYPE_VALUETYPE:
         *ptkBoxedType = typeInfo.second;
+        wprintf(L"using token: 0x%0x\n", (mdToken)typeInfo.second);
         break;
 
     //

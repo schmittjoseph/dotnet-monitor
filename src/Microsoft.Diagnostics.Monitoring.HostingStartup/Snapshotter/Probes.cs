@@ -12,10 +12,11 @@ using Microsoft.Diagnostics.Monitoring.HostingStartup;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Collections;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
-    internal static class Probes
+    public static class Probes
     {
         private static readonly ConcurrentDictionary<(uint, uint), MethodBase?> methodBaseLookup = new();
 #pragma warning disable CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
@@ -82,8 +83,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         }
 
 
+        public static void EnterProbeSlim ()
+        {
+            Console.WriteLine("ENTER");
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static void EnterProbe(uint moduleId, uint methodDef, bool hasThis, object[] args)
+        public static void EnterProbe(uint moduleId, uint methodDef, bool hasThis, object[] args)
         {
             MethodBase? methodBase = GetMethodBase(moduleId, methodDef);
             if (methodBase == null)

@@ -3,8 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+using System.Threading;
+using static Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter.SnapshotterFeature;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
@@ -18,9 +22,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         }
     }
 
+    internal ref struct RefFooBar
+    {
+        public int Baz;
 
-
-
+        public override string ToString()
+        {
+            return $"My custom struct: Baz={Baz}";
+        }
+    }
 
     internal enum MyEnum
     {
@@ -31,7 +41,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
     internal sealed class SnapshotterFeature
     {
-        public delegate void EnterProbePointer(uint funcId, bool hasThis, object[] args);
+        public delegate void EnterProbePointer(uint moduleId, uint methodDef, bool hasThis, object[] args);
         public delegate void LeaveProbePointer(uint a);
         public delegate void TestFunction(
             uint i,
@@ -41,12 +51,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             List<bool> f,
             FooBar foo,
             MyEnum myEnum,
+            (IList<IList<SnapshotterFeature>>, FooBar) tuple,
             ref int refInt,
             out int outInt,
-            (IList<IList<SnapshotterFeature>>, FooBar) tuple
+            RefFooBar refFooBar
             );
 
-        private readonly EnterProbePointer PinnedEnterProbe;
+        private readonly EnterProbePointer PinnedEnterProbe = Probes.EnterProbe;
         private readonly TestFunction PinnedTestFunc;
 
         private static SnapshotterFeature? me;
@@ -56,11 +67,144 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         {
             me = this;
 
-            PinnedEnterProbe = new EnterProbePointer(Probes.EnterProbe);
             PinnedTestFunc = new TestFunction(Test);
         }
 
-        private static async Task DoWork()
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0049:Simplify Names", Justification = "<Pending>")]
+        private static int[] GetBoxingTokens(MethodBase methodBase)
+        {
+            ParameterInfo[] methodParams = methodBase.GetParameters();
+            List<Type> methodParamTypes = methodParams.Select(p => p.ParameterType).ToList();
+
+            List<int> boxingTokens = new List<int>(methodParams.Length);
+
+            const int unsupported = -1;
+            const int skipBoxing = (int)TypeCode.Empty;
+
+            if (methodBase.CallingConvention.HasFlag(CallingConventions.HasThis))
+            {
+                Debug.Assert(!methodBase.IsStatic);
+
+                // Get the this type.
+                Type? contextfulType = methodBase.DeclaringType;
+                if (contextfulType == null)
+                {
+                    boxingTokens.Add(unsupported);
+                }
+                else
+                {
+                    methodParamTypes.Insert(0, contextfulType);
+                }
+            }
+
+
+            foreach (Type paramType in methodParamTypes)
+            {
+                if (paramType == null)
+                {
+                    boxingTokens.Add(unsupported);
+                }
+                else if (paramType.IsByRef ||
+                    paramType.IsByRefLike ||
+                    paramType.IsPointer)
+                {
+                    boxingTokens.Add(unsupported);
+                }
+                else if (paramType.IsPrimitive)
+                {
+                    boxingTokens.Add((int)Type.GetTypeCode(paramType));
+                }
+                else if (paramType.IsValueType)
+                {
+                    if (paramType.IsGenericType)
+                    {
+                        boxingTokens.Add(unsupported);
+                    }
+                    else
+                    {
+                        // Ref structs have already been filtered out by the above IsByRefLike check.
+                        boxingTokens.Add(paramType.MetadataToken);
+                    }
+
+                }
+                else if (paramType.HasMetadataToken())
+                {
+                    boxingTokens.Add(skipBoxing);
+                }
+                else
+                {
+                    boxingTokens.Add(unsupported);
+                }
+
+            }
+
+            return boxingTokens.ToArray();
+        }
+
+
+        private static void DoWork2(object? state)
+        {
+            [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
+            static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count, [MarshalAs(UnmanagedType.LPArray)] int[] boxingTokens, [MarshalAs(UnmanagedType.LPArray)] long[] boxingTokenCounts);
+
+            Console.WriteLine("Waiting 10 seconds before injecting conditional probes");
+            Thread.Sleep(TimeSpan.FromSeconds(10));
+
+
+            const string dll = "Mvc.dll";
+            const string className = "Benchmarks.Controllers.JsonController";
+            const string methodName = "JsonNk";
+
+            Console.WriteLine($"Requesting remote probes in {dll}!{className}.{methodName}");
+
+
+            Module? userMod = null;
+            Assembly? userAssembly = null;
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (var assembly in assemblies)
+            {
+                foreach (var mod in assembly.Modules)
+                {
+                    if (mod.Name == dll)
+                    {
+                        userAssembly = assembly;
+                        userMod = mod;
+                        break;
+                    }
+                }
+            }
+            if (userMod == null || userAssembly == null)
+            {
+                Console.WriteLine("COULD NOT RESOLVE REMOTE MODULE");
+                return;
+            }
+
+            Type? remoteClass = userAssembly.GetType(className);
+            if (remoteClass == null)
+            {
+                Console.WriteLine("COULD NOT RESOLVE REMOTE CLASS");
+                return;
+            }
+
+            MethodInfo? info = remoteClass.GetMethod(methodName);
+            if (info == null)
+            {
+                Console.WriteLine("COULD NOT RESOLVE REMOTE METHOD");
+                return;
+            }
+
+            MethodBase func = info;
+            long[] funcIds = new[] { func.MethodHandle.Value.ToInt64() };
+            // For now just do one.
+
+            int[] boxingTokens = GetBoxingTokens(func);
+            long[] counts = new[] { (long)boxingTokens.Length };
+
+            _ = RequestFunctionProbeInstallation(funcIds, funcIds.Length, boxingTokens, counts);
+
+        }
+
+        private static void DoWork(object? state)
         {
             int[,] t = new int[2, 2]
             {
@@ -100,13 +244,30 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                         i = 0;
                     }
 
-                    me?.Test((uint)Random.Shared.Next(), testVal, "Hello world!", t, f, foo, MyEnum.Val1, ref i, out int j, (new List<IList<SnapshotterFeature>>(), foo));
+                    RefFooBar refFooBar = new RefFooBar
+                    {
+                        Baz = 20
+                    };
+
+                    me?.Test(
+                        (uint)Random.Shared.Next(),
+                        testVal,
+                        "Hello world!",
+                        t,
+                        f,
+                        foo,
+                        MyEnum.Val1,
+                        (new List<IList<SnapshotterFeature>>(), foo),
+                        ref i,
+                        out int j,
+                        refFooBar);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
                 }
-                await Task.Delay(1000);
+
+                Thread.Sleep(1000);
             }
         }
 
@@ -118,9 +279,10 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             List<bool> f,
             FooBar foo,
             MyEnum myEnum,
+            (IList<IList<SnapshotterFeature>>, FooBar) tuple,
             ref int refInt,
             out int outInt,
-            (IList<IList<SnapshotterFeature>>, FooBar) tuple
+            RefFooBar refFooBar
             )
         {
             outInt = 0;
@@ -152,20 +314,27 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
             static extern int RegisterFunctionProbe(long enterProbeID);
 
-            [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
-            static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count);
-
+            
+            // [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
+            // static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count, [MarshalAs(UnmanagedType.LPArray)] int[] boxingTokens, [MarshalAs(UnmanagedType.LPArray)] long[] boxingTokenCounts);
+            
             long enterFunctionId = PinnedEnterProbe.Method.MethodHandle.Value.ToInt64();
 
             _ = RegisterFunctionProbe(enterFunctionId);
             Probes.InitBackgroundService();
 
 
-            long[] funcIds = new[] { PinnedTestFunc.Method.MethodHandle.Value.ToInt64() };
-            _ = RequestFunctionProbeInstallation(funcIds, funcIds.Length);
+            MethodBase func = PinnedTestFunc.Method;
+            long[] funcIds = new[] { func.MethodHandle.Value.ToInt64() };
+            // For now just do one.
+
+            int[] boxingTokens = GetBoxingTokens(func);
+            long[] counts = new[] { (long)boxingTokens.Length };
+
+            //_ = RequestFunctionProbeInstallation(funcIds, funcIds.Length, boxingTokens, counts);
 
 
-            Task.Run(DoWork);
+            ThreadPool.QueueUserWorkItem(DoWork2);
         }
     }
 }

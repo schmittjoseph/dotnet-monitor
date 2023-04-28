@@ -6,9 +6,10 @@
 
 struct InstrumentationRequest
 {
-    mdMethodDef probeFunctionDef;
+    mdToken probeFunctionDef;
 
     FunctionID functionId;
+    std::vector<UINT32> tkBoxingTypes;
 
     ModuleID moduleId;
     mdMethodDef methodDef;

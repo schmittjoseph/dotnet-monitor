@@ -45,7 +45,7 @@ class ProbeInstrumentation
         ModuleID m_resolvedCorLibId;
         tstring m_resolvedCorLibName;
 
-        std::vector<FunctionID> m_RequestedFunctionIds;
+        std::vector<std::pair<FunctionID, std::vector<UINT32>>> m_RequestedFunctionIds;
 
         std::unordered_map<ModuleID, struct CorLibTypeTokens> m_ModuleTokens;
         std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
@@ -60,6 +60,11 @@ class ProbeInstrumentation
             tstring name,
             mdToken* ptkType);
 
+        HRESULT EmitProbeReference(
+            ComPtr<IMetaDataImport> pMetadataImport,
+            ComPtr<IMetaDataEmit> pMetadataEmit,
+            mdMemberRef* ptkProbeMemberRef);
+
         HRESULT EmitNecessaryCorLibTypeTokens(
             ComPtr<IMetaDataImport> pMetadataImport,
             ComPtr<IMetaDataEmit> pMetadataEmit,
@@ -67,7 +72,8 @@ class ProbeInstrumentation
 
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
-            mdMethodDef methodId);
+            mdMethodDef methodId,
+            mdMemberRef* ptkProbeMemberRef);
 
         HRESULT HydrateResolvedCorLib();
         HRESULT HydrateProbeMetadata();
@@ -95,7 +101,7 @@ class ProbeInstrumentation
 
         HRESULT RegisterFunctionProbe(FunctionID enterProbeId);
         HRESULT RequestFunctionProbeShutdown();
-        HRESULT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count);
+        HRESULT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[]);
 
         void AddProfilerEventMask(DWORD& eventsLow);
 

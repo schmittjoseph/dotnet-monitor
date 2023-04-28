@@ -405,14 +405,14 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbe(FunctionID enterPr
     return m_pProbeInstrumentation->RegisterFunctionProbe(enterProbeId);
 }
 
-HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
+HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
 {
     if (!m_isMainProfiler)
     {
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
 
-    return m_pProbeInstrumentation->RequestFunctionProbeInstallation(functionIds, count);
+    return m_pProbeInstrumentation->RequestFunctionProbeInstallation(functionIds, count, boxingTokens, boxingTokenCounts);
 }
 
 #ifndef DLLEXPORT
@@ -424,9 +424,9 @@ STDAPI DLLEXPORT RegisterFunctionProbe(UINT64 enterProbeId)
     return MainProfiler::s_profiler->RegisterFunctionProbe((FunctionID)enterProbeId);
 }
 
-STDAPI DLLEXPORT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count)
+STDAPI DLLEXPORT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
 {
-    return MainProfiler::s_profiler->RequestFunctionProbeInstallation(functionIds, count);
+    return MainProfiler::s_profiler->RequestFunctionProbeInstallation(functionIds, count, boxingTokens, boxingTokenCounts);
 }
 
 STDAPI DLLEXPORT RequestFunctionProbeShutdown()

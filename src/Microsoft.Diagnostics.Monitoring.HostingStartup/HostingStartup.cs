@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Monitoring.HostingStartup;
 using Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 
 [assembly: HostingStartup(typeof(HostingStartup))]
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup
