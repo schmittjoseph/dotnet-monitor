@@ -65,7 +65,6 @@ void ProbeInstrumentation::WorkerThread()
         hr = _workerQueue.BlockingDequeue(message);
         if (hr != S_OK)
         {
-            //We are complete, discard all messages
             break;
         }
 
@@ -295,7 +294,6 @@ void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
 
 HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock)
 {
-    // JSFIX: Handle accordingly.
     return S_OK;
 } 
 
@@ -379,7 +377,7 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
     {
         //
         // Determine the identity of the System assembly by querying if the Assembly defines the
-        // well known type System.Object as that type must be defined by the System assembly
+        // well known type "System.Object" as that type must be defined by the System assembly
         //
         mdTypeDef tkObjectTypeDef = mdTypeDefNil;
 

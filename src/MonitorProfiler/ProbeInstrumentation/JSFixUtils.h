@@ -3,10 +3,10 @@
 // JSFIX: Remove file
 
 #if TARGET_WINDOWS
-#define _BREAK_()
+#define _BREAK_() __debugbreak()
 #else
 #include <signal.h>
-#define _BREAK_()
+#define _BREAK_() raise(SIGTRAP)
 #endif
 
 #ifdef DEBUG

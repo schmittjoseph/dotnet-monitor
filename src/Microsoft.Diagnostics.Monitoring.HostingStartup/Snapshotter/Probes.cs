@@ -15,7 +15,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     public static class Probes
     {
-        private static readonly ConcurrentDictionary<long, (MethodBase, bool[])> methodBaseLookup = new();
+        public delegate void EnterProbeDelegate(long uniquifier, object[] args);
+
+        private static readonly ConcurrentDictionary<long, (MethodInfo, bool[])> methodLookup = new();
 #pragma warning disable CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
         private static bool LogTypes;
 #pragma warning restore CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
@@ -34,11 +36,11 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             ThreadPool.QueueUserWorkItem(ProbeHandler);
         }
 
-        public static void RegisterMethodToProbeInCache(long uniquifier, MethodBase method, bool[] argsSupported)
+        public static void RegisterMethodToProbeInCache(long uniquifier, MethodInfo method, bool[] argsSupported)
         {
             lock (Locker)
             {
-                methodBaseLookup[uniquifier] = (method, argsSupported);
+                methodLookup[uniquifier] = (method, argsSupported);
             }
         }
 
@@ -51,7 +53,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 try
                 {
                     RequestFunctionProbeShutdown();
-                    methodBaseLookup.Clear();
+                    methodLookup.Clear();
                 }
                 catch (Exception ex)
                 {
@@ -64,7 +66,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static (MethodBase, bool[])? GetMethodInformation(long uniquifier)
         {
-            if (methodBaseLookup.TryGetValue(uniquifier, out (MethodBase, bool[]) cachedValue))
+            if (methodLookup.TryGetValue(uniquifier, out (MethodInfo, bool[]) cachedValue))
             {
                 return cachedValue;
             }
@@ -73,7 +75,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         }
 
 
-        public static void EnterProbeSlim(long uniquifier)
+        public static void EnterProbeSlim(long uniquifier, object[] args)
         {
             Console.WriteLine("ENTER");
         }
@@ -94,10 +96,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             StringBuilder stringBuilder = new StringBuilder();
             StringBuilder argValueBuilder = new StringBuilder();
 
-            stringBuilder.Append($"[enter] {method.Module}");
-
-
             // JSFIX: Cache this
+            stringBuilder.Append($"[enter] {method.Module}!");
             string className = method.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
             stringBuilder.Append(className);
             PrettyPrintGenericArgs(stringBuilder, method.DeclaringType?.GetGenericArguments());

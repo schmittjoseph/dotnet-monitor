@@ -10,7 +10,6 @@
 
 #include "JSFixUtils.h"
 
-
 typedef enum TypeCode
 {
     TYPE_CODE_EMPTY             = 0x00,
@@ -93,7 +92,7 @@ HRESULT ProbeInjector::InstallProbe(
         UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
         if (typeInfo == (UINT32)TypeCode::TYPE_CODE_EMPTY)
         {
-            // JSFIX: Load a sentinel object/value provided by our managed layer instead of null.
+            // JSFIX: Consider loading a sentinel object/value provided by our managed layer instead of null.
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
@@ -181,12 +180,12 @@ HRESULT ProbeInjector::GetBoxingType(
         break;
 
     case TypeCode::TYPE_CODE_OBJECT:
+    case TypeCode::TYPE_CODE_STRING:
         // No boxing needed.
         break;
 
     case TypeCode::TYPE_CODE_EMPTY:
     case TypeCode::TYPE_CODE_DB_NULL:
-    case TypeCode::TYPE_CODE_STRING:
     case TypeCode::TYPE_CODE_DATE_TIME:
         TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
