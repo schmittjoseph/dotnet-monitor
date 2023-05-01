@@ -94,15 +94,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
             if (paramInfo?.IsOut == true)
             {
-                stringBuilder.Append($"out ");
+                stringBuilder.Append("out ");
             }
             else if (type?.IsByRefLike == true)
             {
-                stringBuilder.Append($"ref struct ");
+                stringBuilder.Append("ref struct ");
             }
             else if (type?.IsByRef == true)
             {
-                stringBuilder.Append($"ref ");
+                stringBuilder.Append("ref ");
             }
 
             if (name == null)
