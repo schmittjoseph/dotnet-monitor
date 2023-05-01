@@ -13,6 +13,4 @@ struct InstrumentationRequest
 
     ModuleID moduleId;
     mdMethodDef methodDef;
-
-    BOOL hasThis;
 };

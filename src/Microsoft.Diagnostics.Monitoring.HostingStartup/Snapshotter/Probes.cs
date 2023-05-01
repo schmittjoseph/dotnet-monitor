@@ -1,9 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System;
 using System.Collections.Concurrent;
@@ -12,13 +10,12 @@ using Microsoft.Diagnostics.Monitoring.HostingStartup;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Collections;
-using System.Linq;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     public static class Probes
     {
-        private static readonly ConcurrentDictionary<(uint, uint), MethodBase?> methodBaseLookup = new();
+        private static readonly ConcurrentDictionary<long, (MethodBase, bool[])> methodBaseLookup = new();
 #pragma warning disable CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
         private static bool LogTypes;
 #pragma warning restore CS0649 // Field 'Probes.LogTypes' is never assigned to, and will always have its default value false
@@ -26,6 +23,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
         static extern int RequestFunctionProbeShutdown();
 
+        private static readonly object Locker = new();
 
         private static ManualResetEventSlim requestProbeStopEvent = new(initialState: false);
 
@@ -34,6 +32,14 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         public static void InitBackgroundService()
         {
             ThreadPool.QueueUserWorkItem(ProbeHandler);
+        }
+
+        public static void RegisterMethodToProbeInCache(long uniquifier, MethodBase method, bool[] argsSupported)
+        {
+            lock (Locker)
+            {
+                methodBaseLookup[uniquifier] = (method, argsSupported);
+            }
         }
 
         private static void ProbeHandler(object? state)
@@ -56,62 +62,51 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
         }
 
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static MethodBase? GetMethodBase(uint moduleId, uint methodDef)
+        private static (MethodBase, bool[])? GetMethodInformation(long uniquifier)
         {
-            if (methodBaseLookup.TryGetValue((moduleId, methodDef), out MethodBase? methodBase))
+            if (methodBaseLookup.TryGetValue(uniquifier, out (MethodBase, bool[]) cachedValue))
             {
-                return methodBase;
+                return cachedValue;
             }
 
-            // Skip the ourself and the invoked probe to find what MethodBase corresponds with this function id.
-            methodBase = new StackFrame(2, needFileInfo: false)?.GetMethod();
-            if (methodBase != null)
-            {
-                if ((uint)methodBase.MetadataToken != methodDef)
-                {
-                    InProcLoggerService.Log($"Internal error: Could not resolve method (expected({methodDef}), actual({(uint)methodBase.MetadataToken})", LogLevel.Warning);
-                    // Could not resolve.
-                    return null;
-                }
-            }
-
-            _ = methodBaseLookup.TryAdd((moduleId, methodDef), methodBase);
-
-            return methodBase;
+            return null;
         }
 
 
-        public static void EnterProbeSlim ()
+        public static void EnterProbeSlim(long uniquifier)
         {
             Console.WriteLine("ENTER");
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void EnterProbe(uint moduleId, uint methodDef, bool hasThis, object[] args)
+        public static void EnterProbe(long uniquifier, object[] args)
         {
-            MethodBase? methodBase = GetMethodBase(moduleId, methodDef);
-            if (methodBase == null)
+            (MethodBase, bool[])? methodInformation = GetMethodInformation(uniquifier);
+            if (!methodInformation.HasValue)
             {
                 return;
             }
 
+            MethodBase method = methodInformation.Value.Item1;
+            bool[] argsSupported = methodInformation.Value.Item2;
+
+            bool hasThis = !method.IsStatic;
+
             StringBuilder stringBuilder = new StringBuilder();
             StringBuilder argValueBuilder = new StringBuilder();
 
+            stringBuilder.Append($"[enter] {method.Module}");
 
-            stringBuilder.Append($"[enter] {methodBase.Module}");
 
-            string className = methodBase.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
+            // JSFIX: Cache this
+            string className = method.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
             stringBuilder.Append(className);
-            PrettyPrintGenericArgs(stringBuilder, methodBase.DeclaringType?.GetGenericArguments());
+            PrettyPrintGenericArgs(stringBuilder, method.DeclaringType?.GetGenericArguments());
 
-            stringBuilder.Append($".{methodBase.Name}");
-            PrettyPrintGenericArgs(stringBuilder, methodBase.GetGenericArguments());
+            stringBuilder.Append($".{method.Name}");
+            PrettyPrintGenericArgs(stringBuilder, method.GetGenericArguments());
 
             stringBuilder.Append('(');
-            var parameters = methodBase.GetParameters();
+            var parameters = method.GetParameters(); // JSFIX: Cache
             for (int i = 0; i < args?.Length; i++)
             {
                 try
@@ -138,15 +133,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                             stringBuilder.Append($"({paramInfo.ParameterType}) ");
                         }
 
-                        /*
-                        if (paramInfo.Attributes.HasFlag(ParameterAttributes.Out))
-                        {
-                            stringBuilder.Append($"out ");
-
-                            // We're an enter probe, so the out value may be uninitialized.
-                        }
-                        */
-
                         if (paramInfo.IsOut)
                         {
                             stringBuilder.Append($"out ");
@@ -164,6 +150,12 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     }
                     stringBuilder.Append(": ");
 
+                    if (!argsSupported[i])
+                    {
+                        stringBuilder.Append("{unsupported}");
+                        continue;
+                    }
+
                     argValueBuilder.Clear();
                     try
                     {
@@ -173,7 +165,12 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                         {
                             type = parameters[paramI].ParameterType;
                         }
-                        SerializeObject(argValueBuilder, args[i], type);
+                        else
+                        {
+                            type = method.DeclaringType;
+                        }
+
+                        SerializeObject(argValueBuilder, args[i]);
                         stringBuilder.Append(argValueBuilder);
                     }
                     catch (Exception ex)
@@ -203,22 +200,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             return;
         }
 
-        private static void SerializeObject(StringBuilder stringBuilder, object value, Type? typeOverride = null)
+        private static void SerializeObject(StringBuilder stringBuilder, object value)
         {
-            if (typeOverride?.IsByRefLike == true || // ref struct
-               typeOverride?.IsByRef == true)
-            {
-                stringBuilder.Append("{unsupported}");
-                return;
-            }
-
             if (value == null)
             {
                 stringBuilder.Append("null");
                 return;
             }
-
-            typeOverride ??= value.GetType();
 
             //  else if (typeOverride.IsArray)
             // https://learn.microsoft.com/dotnet/csharp/programming-guide/arrays/multidimensional-arrays (rank)

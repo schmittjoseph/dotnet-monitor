@@ -8,69 +8,14 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
-using static Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter.SnapshotterFeature;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
-    internal struct FooBar
-    {
-        public int Baz;
-
-        public override string ToString()
-        {
-            return $"My custom struct: Baz={Baz}";
-        }
-    }
-
-    internal ref struct RefFooBar
-    {
-        public int Baz;
-
-        public override string ToString()
-        {
-            return $"My custom struct: Baz={Baz}";
-        }
-    }
-
-    internal enum MyEnum
-    {
-        Val1,
-        Val2,
-        Val3
-    };
-
     internal sealed class SnapshotterFeature
     {
-        public delegate void EnterProbePointer(uint moduleId, uint methodDef, bool hasThis, object[] args);
-        public delegate void LeaveProbePointer(uint a);
-        public delegate void TestFunction(
-            uint i,
-            bool? test,
-            string hi,
-            int[,] t,
-            List<bool> f,
-            FooBar foo,
-            MyEnum myEnum,
-            (IList<IList<SnapshotterFeature>>, FooBar) tuple,
-            ref int refInt,
-            out int outInt,
-            RefFooBar refFooBar
-            );
-
+        public delegate void EnterProbePointer(long uniquifier, object[] args);
         private readonly EnterProbePointer PinnedEnterProbe = Probes.EnterProbe;
-        private readonly TestFunction PinnedTestFunc;
 
-        private static SnapshotterFeature? me;
-
-
-        public SnapshotterFeature()
-        {
-            me = this;
-
-            PinnedTestFunc = new TestFunction(Test);
-        }
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0049:Simplify Names", Justification = "<Pending>")]
         private static int[] GetBoxingTokens(MethodBase methodBase)
         {
             ParameterInfo[] methodParams = methodBase.GetParameters();
@@ -78,8 +23,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
             List<int> boxingTokens = new List<int>(methodParams.Length);
 
-            const int unsupported = -1;
-            const int skipBoxing = (int)TypeCode.Empty;
+            const int unsupported = (int)TypeCode.Empty;
+            const int skipBoxing = (int)TypeCode.Object;
 
             if (methodBase.CallingConvention.HasFlag(CallingConventions.HasThis))
             {
@@ -96,7 +41,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     methodParamTypes.Insert(0, contextfulType);
                 }
             }
-
 
             foreach (Type paramType in methodParamTypes)
             {
@@ -116,13 +60,21 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 }
                 else if (paramType.IsValueType)
                 {
+                    // Ref structs have already been filtered out by the above IsByRefLike check.
+
                     if (paramType.IsGenericType)
                     {
+                        // Typespec
+                        boxingTokens.Add(unsupported);
+                    }
+                    else if(paramType.Module != methodBase.Module)
+                    {
+                        // Typeref
                         boxingTokens.Add(unsupported);
                     }
                     else
                     {
-                        // Ref structs have already been filtered out by the above IsByRefLike check.
+                        // Typedef
                         boxingTokens.Add(paramType.MetadataToken);
                     }
                 }
@@ -148,22 +100,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             return boxingTokens.ToArray();
         }
 
-
-        private static void DoWork2(object? state)
+        private static MethodInfo? ResolveMethod(string dll, string className, string methodName)
         {
-            [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
-            static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count, [MarshalAs(UnmanagedType.LPArray)] int[] boxingTokens, [MarshalAs(UnmanagedType.LPArray)] long[] boxingTokenCounts);
-
-            Console.WriteLine("Waiting 10 seconds before injecting conditional probes");
-            Thread.Sleep(TimeSpan.FromSeconds(10));
-
-
-            const string dll = "Mvc.dll";
-            const string className = "Benchmarks.Controllers.MyController`1";
-            const string methodName = "JsonNk";
-
             Console.WriteLine($"Requesting remote probes in {dll}!{className}.{methodName}");
-
 
             Module? userMod = null;
             Assembly? userAssembly = null;
@@ -183,7 +122,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             if (userMod == null || userAssembly == null)
             {
                 Console.WriteLine("COULD NOT RESOLVE REMOTE MODULE");
-                return;
+                return null;
             }
 
             Type? remoteClass = userAssembly.GetType(className);
@@ -194,134 +133,68 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     Console.WriteLine(c.AssemblyQualifiedName);
                 }
                 Console.WriteLine("COULD NOT RESOLVE REMOTE CLASS");
-                return;
+                return null;
             }
 
-            MethodInfo? info = remoteClass.GetMethod(methodName);
-            if (info == null)
+            MethodInfo? methodInfo = remoteClass.GetMethod(methodName);
+            if (methodInfo == null)
             {
                 foreach (var c in remoteClass.GetMethods())
                 {
                     Console.WriteLine(c.Name);
                 }
                 Console.WriteLine("COULD NOT RESOLVE REMOTE METHOD");
+                return null;
+            }
+
+
+            return methodInfo;
+        }
+
+
+        private static void DoWork2(object? state)
+        {
+            [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
+            static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] funcIds, long count, [MarshalAs(UnmanagedType.LPArray)] int[] boxingTokens, [MarshalAs(UnmanagedType.LPArray)] long[] boxingTokenCounts);
+
+            Console.WriteLine("Waiting 10 seconds before injecting probes");
+            Thread.Sleep(TimeSpan.FromSeconds(10));
+
+            MethodInfo? resolvedMethod = ResolveMethod("Mvc.dll", "Benchmarks.Controllers.MyController`1", "JsonNk");
+            if (resolvedMethod == null)
+            {
                 return;
             }
 
-            MethodBase func = info;
-            long[] funcIds = new[] { func.MethodHandle.Value.ToInt64() };
-            // For now just do one.
-
-            int[] boxingTokens = GetBoxingTokens(func);
-            long[] counts = new[] { (long)boxingTokens.Length };
-
-            _ = RequestFunctionProbeInstallation(funcIds, funcIds.Length, boxingTokens, counts);
-
-        }
-
-        private static void DoWork(object? state)
-        {
-            int[,] t = new int[2, 2]
+            List<MethodBase> methodsToInsertProbes = new()
             {
-                {0, 1 },
-                {5, 6 },
+                resolvedMethod
             };
 
-            List<bool> f = new()
+            List<long> functionIds = new(methodsToInsertProbes.Count);
+            List<long> tokenCounts = new(methodsToInsertProbes.Count);
+            List<int> boxingTokens = new();
+            foreach (MethodBase method in methodsToInsertProbes)
             {
-                false,
-                true
-            };
+                // While this function id won't be correct for all instances of the method (e.g. generics)
+                // it will still work a cache handle / uniqueifier for retrieving a cached methodbase.
+                long functionId = method.MethodHandle.Value.ToInt64();
 
-            FooBar foo = new FooBar
-            {
-                Baz = 10
-            };
-
-            int i = 0;
-            while (true)
-            {
-                try
+                int[] methodBoxingTokens = GetBoxingTokens(method);
+                bool[] argsSupported = new bool[methodBoxingTokens.Length];
+                for (int i = 0; i < methodBoxingTokens.Length; i++)
                 {
-                    //TestHooks.Test((uint)Random.Shared.Next(), true, "Hello world!", t, f);
-                    bool? testVal = null;
-                    i++;
-                    if (i == 1)
-                    {
-                        testVal = true;
-                    }
-                    else if (i == 2)
-                    {
-                        testVal = false;
-                    }
-                    else if (i >= 3)
-                    {
-                        i = 0;
-                    }
-
-                    RefFooBar refFooBar = new RefFooBar
-                    {
-                        Baz = 20
-                    };
-
-                    me?.Test(
-                        (uint)Random.Shared.Next(),
-                        testVal,
-                        "Hello world!",
-                        t,
-                        f,
-                        foo,
-                        MyEnum.Val1,
-                        (new List<IList<SnapshotterFeature>>(), foo),
-                        ref i,
-                        out int j,
-                        refFooBar);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
+                    argsSupported[i] = methodBoxingTokens[i] != (int)TypeCode.Empty;
                 }
 
-                Thread.Sleep(1000);
-            }
-        }
+                Probes.RegisterMethodToProbeInCache(functionId, method, argsSupported);
+                functionIds.Add(functionId);
 
-        private void Test(
-            uint i,
-            bool? test,
-            string hi,
-            int[,] t,
-            List<bool> f,
-            FooBar foo,
-            MyEnum myEnum,
-            (IList<IList<SnapshotterFeature>>, FooBar) tuple,
-            ref int refInt,
-            out int outInt,
-            RefFooBar refFooBar
-            )
-        {
-            outInt = 0;
-            return;
-        }
-
-        /*
-        public static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-        {
-            //DllImport for Windows automatically loads in-memory modules (such as the profiler). This is not the case for Linux/MacOS.
-            // If we fail resolving the DllImport, we have to load the profiler ourselves.
-            string profilerName = ProfilerHelper.GetPath(RuntimeInformation.ProcessArchitecture);
-            if (NativeLibrary.TryLoad(profilerName, out IntPtr handle))
-            {
-                return handle;
+                tokenCounts.Add(methodBoxingTokens.Length);
+                boxingTokens.AddRange(methodBoxingTokens);
             }
 
-            return IntPtr.Zero;
-        }
-    */
-
-        public override string ToString()
-        {
-            return "My custom object";
+            _ = RequestFunctionProbeInstallation(functionIds.ToArray(), functionIds.Count, boxingTokens.ToArray(), tokenCounts.ToArray());
         }
 
         public void DoInit()
@@ -329,25 +202,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
             static extern int RegisterFunctionProbe(long enterProbeID);
 
-            
-            // [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
-            // static extern int RequestFunctionProbeInstallation([MarshalAs(UnmanagedType.LPArray)] long[] array, long count, [MarshalAs(UnmanagedType.LPArray)] int[] boxingTokens, [MarshalAs(UnmanagedType.LPArray)] long[] boxingTokenCounts);
-            
-            long enterFunctionId = PinnedEnterProbe.Method.MethodHandle.Value.ToInt64();
-
-            _ = RegisterFunctionProbe(enterFunctionId);
+            _ = RegisterFunctionProbe(PinnedEnterProbe.Method.MethodHandle.Value.ToInt64());
             Probes.InitBackgroundService();
-
-
-            // MethodBase func = PinnedTestFunc.Method;
-            // long[] funcIds = new[] { func.MethodHandle.Value.ToInt64() };
-            // For now just do one.
-
-            // int[] boxingTokens = GetBoxingTokens(func);
-            // long[] counts = new[] { (long)boxingTokens.Length };
-
-            //_ = RequestFunctionProbeInstallation(funcIds, funcIds.Length, boxingTokens, counts);
-
 
             ThreadPool.QueueUserWorkItem(DoWork2);
         }

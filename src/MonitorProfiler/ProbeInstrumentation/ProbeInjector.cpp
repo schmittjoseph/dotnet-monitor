@@ -56,21 +56,10 @@ HRESULT ProbeInjector::InstallProbe(
 
     INT32 numArgs = (INT32)pRequest->tkBoxingTypes.size();
 
-    /* Uniquifier: ModuleID + methodDef */
+    /* uniquifier */
     pNewInstr = rewriter.NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I4;
-    pNewInstr->m_Arg32 = (INT32)pRequest->moduleId;
-    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-    pNewInstr = rewriter.NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I4;
-    pNewInstr->m_Arg32 = (INT32)pRequest->methodDef;
-    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
-    /* Has This */
-    pNewInstr = rewriter.NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I4;
-    pNewInstr->m_Arg32 = (INT32)pRequest->hasThis; // JSFIX: This seems to no longer be needed !
+    pNewInstr->m_opcode = CEE_LDC_I8;
+    pNewInstr->m_Arg64 = (UINT64)pRequest->functionId;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Args */
@@ -102,7 +91,7 @@ HRESULT ProbeInjector::InstallProbe(
 
         // Load arg
         UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
-        if (typeInfo == (UINT)-1)
+        if (typeInfo == (UINT32)TypeCode::TYPE_CODE_EMPTY)
         {
             // JSFIX: Load a sentinel object/value provided by our managed layer instead of null.
             pNewInstr = rewriter.NewILInstr();
@@ -117,18 +106,15 @@ HRESULT ProbeInjector::InstallProbe(
             pNewInstr->m_Arg32 = i;
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-            if (typeInfo != TypeCode::TYPE_CODE_EMPTY)
+            // Resolve the box type
+            mdToken tkBoxedType = mdTokenNil;
+            IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, pCorLibTypeTokens));
+            if (tkBoxedType != mdTokenNil)
             {
-                // Resolve the box type
-                mdToken tkBoxedType = mdTokenNil;
-                IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, pCorLibTypeTokens));
-                if (tkBoxedType != mdTokenNil)
-                {
-                    pNewInstr = rewriter.NewILInstr();
-                    pNewInstr->m_opcode = CEE_BOX;
-                    pNewInstr->m_Arg32 = tkBoxedType;
-                    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-                }
+                pNewInstr = rewriter.NewILInstr();
+                pNewInstr->m_opcode = CEE_BOX;
+                pNewInstr->m_Arg32 = tkBoxedType;
+                rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
             }
         }
 
