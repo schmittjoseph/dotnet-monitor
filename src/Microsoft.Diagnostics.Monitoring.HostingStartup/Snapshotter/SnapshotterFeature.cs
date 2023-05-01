@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             foreach (MethodInfo method in methodsToInsertProbes)
             {
                 // While this function id won't be correct for all instances of the method (e.g. generics)
-                // it will still work a cache handle / uniqueifier for retrieving a cached methodbase.
+                // it will still work as a cache handle / uniqueifier for retrieving a cached methodbase.
                 long functionId = method.MethodHandle.Value.ToInt64();
 
                 int[] methodBoxingTokens = GetBoxingTokens(method);
