@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
-using System.Runtime.Loader;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter

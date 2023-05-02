@@ -231,8 +231,18 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         return hr;
     }
     
+
     ComPtr<IMetaDataEmit> pMetadataEmit;
-    IfFailRet(pMetadataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&pMetadataEmit)));
+    hr = m_pCorProfilerInfo->GetModuleMetaData(
+        moduleId,
+        ofRead | ofWrite,
+        IID_IMetaDataEmit,
+        reinterpret_cast<IUnknown **>(&pMetadataEmit));
+    if (hr != S_OK)
+    {
+        TEMPORARY_BREAK_ON_ERROR();
+        return hr;
+    }
 
     struct CorLibTypeTokens corLibTypeTokens;
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &corLibTypeTokens));
@@ -432,7 +442,7 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
 }
 
 
-HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImport> pMetadataImport, ComPtr<IMetaDataEmit> pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
+HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
 {
     HRESULT hr = S_OK;
     *ptkCorlibAssemblyRef = mdAssemblyRefNil;
@@ -518,8 +528,8 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(ComPtr<IMetaDataImpor
 }
 
 HRESULT ProbeInstrumentation::EmitProbeReference(
-    ComPtr<IMetaDataImport> pMetadataImport,
-    ComPtr<IMetaDataEmit> pMetadataEmit,
+    IMetaDataImport* pMetadataImport,
+    IMetaDataEmit* pMetadataEmit,
     mdMemberRef* ptkProbeMemberRef)
 {
     HRESULT hr;
@@ -602,8 +612,8 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
 }
 
 HRESULT ProbeInstrumentation::EmitNecessaryCorLibTypeTokens(
-    ComPtr<IMetaDataImport> pMetadataImport,
-    ComPtr<IMetaDataEmit> pMetadataEmit,
+    IMetaDataImport* pMetadataImport,
+    IMetaDataEmit* pMetadataEmit,
     struct CorLibTypeTokens *pCorLibTypeTokens)
 {
     HRESULT hr = S_OK;
@@ -643,8 +653,8 @@ HRESULT ProbeInstrumentation::EmitNecessaryCorLibTypeTokens(
 }
 
 HRESULT ProbeInstrumentation::GetTokenForType(
-    ComPtr<IMetaDataImport> pMetadataImport,
-    ComPtr<IMetaDataEmit> pMetadataEmit,
+    IMetaDataImport* pMetadataImport,
+    IMetaDataEmit* pMetadataEmit,
     mdToken tkResolutionScope,
     tstring name,
     mdToken* ptkType)

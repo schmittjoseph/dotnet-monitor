@@ -32,7 +32,7 @@ class ProbeInstrumentation
             UNINSTALL_PROBES
         };
 
-        ComPtr<ICorProfilerInfo12> m_pCorProfilerInfo;
+        ICorProfilerInfo12* m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
 
         std::thread _workerThread;
@@ -54,20 +54,20 @@ class ProbeInstrumentation
         bool _isEnabled;
 
         HRESULT GetTokenForType(
-            ComPtr<IMetaDataImport> pMetadataImport,
-            ComPtr<IMetaDataEmit> pMetadataEmit,
+            IMetaDataImport* pMetadataImport,
+            IMetaDataEmit* pMetadataEmit,
             mdToken tkResolutionScope,
             tstring name,
             mdToken* ptkType);
 
         HRESULT EmitProbeReference(
-            ComPtr<IMetaDataImport> pMetadataImport,
-            ComPtr<IMetaDataEmit> pMetadataEmit,
+            IMetaDataImport* pMetadataImport,
+            IMetaDataEmit* pMetadataEmit,
             mdMemberRef* ptkProbeMemberRef);
 
         HRESULT EmitNecessaryCorLibTypeTokens(
-            ComPtr<IMetaDataImport> pMetadataImport,
-            ComPtr<IMetaDataEmit> pMetadataEmit,
+            IMetaDataImport* pMetadataImport,
+            IMetaDataEmit* pMetadataEmit,
             struct CorLibTypeTokens * pCorLibTypeTokens);
 
         HRESULT PrepareAssemblyForProbes(
@@ -79,8 +79,8 @@ class ProbeInstrumentation
         HRESULT HydrateProbeMetadata();
 
         HRESULT GetTokenForCorLibAssemblyRef(
-            ComPtr<IMetaDataImport> pMetadataImport,
-            ComPtr<IMetaDataEmit> pMetadataEmit,
+            IMetaDataImport* pMetadataImport,
+            IMetaDataEmit* pMetadataEmit,
             mdAssemblyRef* ptkCorlibAssemblyRef);
 
 
