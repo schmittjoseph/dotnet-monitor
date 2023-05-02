@@ -245,13 +245,19 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         return hr;
     }
 
-    struct AssemblyProbeCacheEntry cacheEntry;
+    struct AssemblyProbeCacheEntry cacheEntry = { 0 };
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry.corLibTypeTokens));
     IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry.tkProbeMemberRef));
 
     m_AssemblyProbeCache.insert({moduleId, cacheEntry});
-
-    return S_OK;
+    auto const& it2 = m_AssemblyProbeCache.find(moduleId);
+    if (it2 != m_AssemblyProbeCache.end())
+    {
+        *ppAssemblyProbeInformation = &it2->second;
+        return S_OK;
+    }
+    
+    return E_FAIL;
 }
 
 
