@@ -37,6 +37,7 @@ HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
     struct InstrumentationRequest* pRequest,
+    mdToken tkProbeMethod,
     struct CorLibTypeTokens* pCorLibTypeTokens)
 {
     HRESULT hr;
@@ -92,14 +93,12 @@ HRESULT ProbeInjector::InstallProbe(
         UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
         if (typeInfo == (UINT32)TypeCode::TYPE_CODE_EMPTY)
         {
-            // JSFIX: Consider loading a sentinel object/value provided by our managed layer instead of null.
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
         }
         else
         {
-            // JSFIX: No argslist or indirect load support.
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDARG_S;
             pNewInstr->m_Arg32 = i;
@@ -125,7 +124,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_CALL;
-    pNewInstr->m_Arg32 = pRequest->probeFunctionDef;
+    pNewInstr->m_Arg32 = tkProbeMethod;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     IfFailRet(rewriter.Export());

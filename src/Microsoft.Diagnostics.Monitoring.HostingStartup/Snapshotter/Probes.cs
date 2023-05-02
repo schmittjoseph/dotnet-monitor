@@ -224,6 +224,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         public static void EnterProbe(long uniquifier, object[] args)
         {
+            if (CountDown > 0)
+            {
+                CountDown--;
+                if (CountDown <= 0)
+                {
+                    requestProbeStopEvent.Set();
+                }
+            }
+
             if (args == null)
             {
                 return;
@@ -250,16 +259,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
 
             InProcLoggerService.Log(string.Format(cacheEntry.Value.PrettyPrintStringFormat, argValues));
-
-            if (CountDown > 0)
-            {
-                CountDown--;
-                if (CountDown <= 0)
-                {
-                    requestProbeStopEvent.Set();
-                }
-            }
-
             return;
         }
 

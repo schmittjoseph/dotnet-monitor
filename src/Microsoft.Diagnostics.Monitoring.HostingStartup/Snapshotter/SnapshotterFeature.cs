@@ -10,6 +10,7 @@ using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Reflection.Metadata.Ecma335;
+using Microsoft.Diagnostics.Monitoring.HostingStartup;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
@@ -39,6 +40,12 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
             Console.WriteLine("Waiting 10 seconds before injecting probes");
             Thread.Sleep(TimeSpan.FromSeconds(10));
+
+            if (InProcLoggerService.IsAvailable)
+            {
+                Console.WriteLine("In-proc logger service is not available");
+                return;
+            }
 
             MethodInfo? resolvedMethod = ResolveMethod("Mvc.dll", "Benchmarks.Controllers.MyController`1", "JsonNk");
             if (resolvedMethod == null)
@@ -80,7 +87,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static MethodInfo? ResolveMethod(string dll, string className, string methodName)
         {
-            Console.WriteLine($"Requesting remote probes in {dll}!{className}.{methodName}");
+            Console.WriteLine($"Requesting probes in {dll}!{className}.{methodName}");
 
             Module? userMod = null;
             Assembly? userAssembly = null;

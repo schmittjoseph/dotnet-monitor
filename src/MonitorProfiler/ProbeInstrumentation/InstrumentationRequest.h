@@ -6,8 +6,6 @@
 
 struct InstrumentationRequest
 {
-    mdToken probeFunctionDef;
-
     FunctionID functionId;
     std::vector<UINT32> tkBoxingTypes;
 

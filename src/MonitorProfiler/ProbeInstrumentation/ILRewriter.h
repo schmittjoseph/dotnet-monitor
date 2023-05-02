@@ -7,9 +7,6 @@
 // - making it a header-only definition
 // - removing everything except a general purpose ILRewriter, decisions on how to rewrite are handled by InsertProbes.{h,cpp}
 
-// JSFIX: Consider using https://github.com/dotnet/runtime/blob/main/src/tests/profiler/native/rejitprofiler/ilrewriter.cpp
-// as it is tested.
-
 #include "cor.h"
 #include "corprof.h"
 #include <corhlpr.cpp>

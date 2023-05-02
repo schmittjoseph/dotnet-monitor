@@ -53,8 +53,6 @@ public:
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
 
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
-    STDMETHOD(ReJITError)(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus) override;
-    STDMETHOD(ReJITCompilationFinished)(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock) override;
 
 public:
     STDMETHOD(RegisterFunctionProbe)(FunctionID enterProbeId);

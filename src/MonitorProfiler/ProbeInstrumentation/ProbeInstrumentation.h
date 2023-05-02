@@ -10,14 +10,9 @@
 #include "../Logging/Logger.h"
 
 #include <unordered_map>
-#include <list>
 
-#include <forward_list>
-#include <unordered_map>
-
-#include "CorLibTypeTokens.h"
+#include "AssemblyProbeCacheEntry.h"
 #include "InstrumentationRequest.h"
-#include <condition_variable>
 #include <mutex>
 #include <thread>
 #include "../Utilities/PairHash.h"
@@ -38,7 +33,6 @@ class ProbeInstrumentation
         std::thread _workerThread;
         BlockingQueue<WorkerMessage> _workerQueue;
 
-        
         FunctionID m_enterProbeId;
         mdMethodDef m_enterProbeDef;
 
@@ -47,11 +41,11 @@ class ProbeInstrumentation
 
         std::vector<std::pair<FunctionID, std::vector<UINT32>>> m_RequestedFunctionIds;
 
-        std::unordered_map<ModuleID, struct CorLibTypeTokens> m_ModuleTokens;
+        std::unordered_map<ModuleID, struct AssemblyProbeCacheEntry> m_AssemblyProbeCache;
         std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
 
-        bool _isRejitting;
-        bool _isEnabled;
+        bool m_isEnabled;
+        std::mutex m_RequestProcessingMutex;
 
         HRESULT GetTokenForType(
             IMetaDataImport* pMetadataImport,
@@ -72,8 +66,7 @@ class ProbeInstrumentation
 
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
-            mdMethodDef methodId,
-            mdMemberRef* ptkProbeMemberRef);
+            mdMethodDef methodId);
 
         HRESULT HydrateResolvedCorLib();
         HRESULT HydrateProbeMetadata();
@@ -106,6 +99,4 @@ class ProbeInstrumentation
         void AddProfilerEventMask(DWORD& eventsLow);
 
         HRESULT STDMETHODCALLTYPE GetReJITParameters(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl);
-        HRESULT STDMETHODCALLTYPE ReJITError(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus);
-        HRESULT STDMETHODCALLTYPE ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock);
 };

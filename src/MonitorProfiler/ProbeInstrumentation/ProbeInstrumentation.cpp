@@ -22,8 +22,7 @@ ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, IC
     m_enterProbeId(0),
     m_enterProbeDef(mdMethodDefNil),
     m_resolvedCorLibId(0),
-    _isRejitting(false),
-    _isEnabled(false)
+    m_isEnabled(false)
 {
 }
 
@@ -106,10 +105,14 @@ void ProbeInstrumentation::ShutdownBackgroundService()
 HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
 {
     m_pLogger->Log(LogLevel::Information, _LS("Requesting probe installation."));
+    std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
+    if (!m_RequestedFunctionIds.empty())
+    {
+        // An existing request already exists
+        return E_FAIL;
+    }
 
-    // JSFIX: Not thread safe
     ULONG offset = 0;
-    m_RequestedFunctionIds.clear();
     for (ULONG i = 0; i < count; i++)
     {
         std::vector<UINT32> tokens;
@@ -148,12 +151,13 @@ BOOL ProbeInstrumentation::IsAvailable()
 
 HRESULT ProbeInstrumentation::Enable()
 {
-    HRESULT hr = S_OK;
+    HRESULT hr;
+
+    std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
 
     if (!IsAvailable() ||
         IsEnabled() ||
-        m_RequestedFunctionIds.size() == 0 ||
-        m_RequestedFunctionIds.size() > ULONG_MAX)
+        m_RequestedFunctionIds.empty())
     {
         return E_FAIL;
     }
@@ -185,15 +189,13 @@ HRESULT ProbeInstrumentation::Enable()
             nullptr));
 
         mdMemberRef tkProbeFunction = mdMemberRefNil;
-        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef, &request.probeFunctionDef));
+        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef));
 
         requestedModuleIds.push_back(request.moduleId);
         requestedMethodDefs.push_back(request.methodDef);
 
         newRequests.insert({{request.moduleId, request.methodDef}, request});
     }
-
-    _isRejitting = true;
 
     IfFailLogRet(m_pCorProfilerInfo->RequestReJITWithInliners(
         COR_PRF_REJIT_BLOCK_INLINING | COR_PRF_REJIT_INLINING_CALLBACKS,
@@ -203,19 +205,20 @@ HRESULT ProbeInstrumentation::Enable()
 
     m_RequestedFunctionIds.clear();
     m_InstrumentationRequests = newRequests;
-    _isEnabled = true;
+    m_isEnabled = true;
 
     return S_OK;
 }
 
 
-HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, mdMemberRef* ptkProbeMemberRef)
+HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId)
 {
     HRESULT hr;
 
-    auto const& it = m_ModuleTokens.find(moduleId);
-    if (it != m_ModuleTokens.end())
+    auto const& it = m_AssemblyProbeCache.find(moduleId);
+    if (it != m_AssemblyProbeCache.end())
     {
+        wprintf(L"CACHE\n");
         return S_OK;
     }
 
@@ -231,7 +234,6 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         return hr;
     }
     
-
     ComPtr<IMetaDataEmit> pMetadataEmit;
     hr = m_pCorProfilerInfo->GetModuleMetaData(
         moduleId,
@@ -244,11 +246,11 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         return hr;
     }
 
-    struct CorLibTypeTokens corLibTypeTokens;
-    IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &corLibTypeTokens));
-    IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, ptkProbeMemberRef));
+    struct AssemblyProbeCacheEntry cacheEntry;
+    IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry.corLibTypeTokens));
+    IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry.tkProbeMemberRef));
 
-    m_ModuleTokens.insert({moduleId, corLibTypeTokens});
+    m_AssemblyProbeCache.insert({moduleId, cacheEntry});
 
     return S_OK;
 }
@@ -258,28 +260,25 @@ HRESULT ProbeInstrumentation::Disable()
 {
     HRESULT hr = S_OK;
 
-    if (!IsEnabled() || _isRejitting)
+    std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
+
+    if (!IsEnabled())
     {
         return S_FALSE;
     }
 
     m_pLogger->Log(LogLevel::Warning, _LS("Disabling probes"));
 
-    // JSFIX: Keep this data on-hand.
-    // JSFIX: Not thread safe.
-
     std::vector<ModuleID> moduleIds;
     std::vector<mdMethodDef> methodDefs;
 
     for (auto const requestData: m_InstrumentationRequests)
     {
-        auto const f = requestData.first;
-        moduleIds.push_back(f.first);
-        methodDefs.push_back(f.second);
+        auto const methodInfo = requestData.first;
+        moduleIds.push_back(methodInfo.first);
+        methodDefs.push_back(methodInfo.second);
     }
 
-    // JSFIX: Validate that if this method returns S_OK then we don't have to check
-    // the return statuses.
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
         (ULONG)moduleIds.size(),
         moduleIds.data(),
@@ -288,61 +287,56 @@ HRESULT ProbeInstrumentation::Disable()
 
     m_InstrumentationRequests.clear();
 
-    _isEnabled = false;
+    m_isEnabled = false;
 
     return S_OK;
 }
 
-BOOL ProbeInstrumentation::IsEnabled() {
-    return _isEnabled;
+BOOL ProbeInstrumentation::IsEnabled()
+{
+    return m_isEnabled;
 }
 
 void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
 {
-    eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT | COR_PRF_MONITOR::COR_PRF_MONITOR_JIT_COMPILATION;
+    eventsLow |= COR_PRF_MONITOR::COR_PRF_ENABLE_REJIT;
 }
-
-HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock)
-{
-    return S_OK;
-} 
-
-HRESULT STDMETHODCALLTYPE ProbeInstrumentation::ReJITError(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus)
-{
-    // JSFIX: Handle accordingly.
-    m_pLogger->Log(LogLevel::Error, _LS("ReJIT error - 0x%08x - hr:0x%08x"), functionId, hrStatus);
-    TEMPORARY_BREAK_ON_ERROR();
-    return S_OK;
-} 
 
 HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID moduleId, mdMethodDef methodDef, ICorProfilerFunctionControl* pFunctionControl)
 {
-    HRESULT hr = S_OK;
+    HRESULT hr;
 
-    struct CorLibTypeTokens typeTokens;
-    auto const& it = m_ModuleTokens.find(moduleId);
-    if (it == m_ModuleTokens.end())
+    struct AssemblyProbeCacheEntry* pAssemblyCacheEntry;
+    auto const& itAssemblyCache = m_AssemblyProbeCache.find(moduleId);
+    if (itAssemblyCache == m_AssemblyProbeCache.end())
     {
         return E_FAIL;
     }
-    typeTokens = it->second;
+    pAssemblyCacheEntry = &itAssemblyCache->second;
 
-    struct InstrumentationRequest request;
-    auto const& it2 = m_InstrumentationRequests.find({moduleId, methodDef});
-    if (it2 == m_InstrumentationRequests.end())
+    struct InstrumentationRequest* request;
     {
-        return E_FAIL;
+        std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
+        auto const& itRequest = m_InstrumentationRequests.find({moduleId, methodDef});
+        if (itRequest == m_InstrumentationRequests.end())
+        {
+            return E_FAIL;
+        }
+        request = &itRequest->second;
     }
-    request = it2->second;
 
-    IfFailLogRet(ProbeInjector::InstallProbe(
+    hr = ProbeInjector::InstallProbe(
         m_pCorProfilerInfo,
         pFunctionControl,
-        &request,
-        &typeTokens));
+        request,
+        pAssemblyCacheEntry->tkProbeMemberRef,
+        &pAssemblyCacheEntry->corLibTypeTokens);
 
-    // JSFIX: Always set this, even on error.
-    _isRejitting = false;
+    if (FAILED(hr))
+    {
+        RequestFunctionProbeShutdown();
+        return hr;
+    }
 
     return S_OK;
 }
@@ -600,7 +594,6 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     // JSFIX: Resolve class name dynamically
     mdTypeRef refToken = mdTokenNil;
     IfFailLogRet(pMetadataEmit->DefineTypeRefByName(tkProbeAssemblyRef, _T("Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter.Probes"), &refToken));
-
     IfFailLogRet(pMetadataEmit->DefineMemberRef(refToken, funcName, pProbeSignature, probeSignatureLength, ptkProbeMemberRef));
 
     return S_OK;

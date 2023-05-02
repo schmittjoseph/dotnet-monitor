@@ -13,23 +13,20 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup
     internal sealed class InProcLoggerService : BackgroundService
     {
         private static ILogger? _logger;
+        public static bool IsAvailable { get; private set; }
 
         public InProcLoggerService(IServiceProvider services)
         {
             _logger = services.GetService<ILogger<InProcLoggerService>>();
-            Log("Ready", LogLevel.Warning);
+            if (_logger != null)
+            {
+                IsAvailable = true;
+            }
         }
 
         public static void Log(string message, LogLevel level = LogLevel.Critical)
         {
-            if (_logger != null)
-            {
-                _logger.Log(level, message);
-            }
-            else
-            {
-                Console.WriteLine($"[in-proc-logger] {level}: {message}");
-            }
+            _logger?.Log(level, message);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

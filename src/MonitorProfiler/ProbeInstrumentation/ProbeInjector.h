@@ -14,6 +14,7 @@ class ProbeInjector
             ICorProfilerInfo* pICorProfilerInfo,
             ICorProfilerFunctionControl* pICorProfilerFunctionControl,
             struct InstrumentationRequest* pRequest,
+            mdToken tkProbeMethod,
             struct CorLibTypeTokens* pCorLibTypeTokens);
 
     private:       
