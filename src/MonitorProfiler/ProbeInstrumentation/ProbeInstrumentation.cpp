@@ -218,7 +218,6 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
     auto const& it = m_AssemblyProbeCache.find(moduleId);
     if (it != m_AssemblyProbeCache.end())
     {
-        wprintf(L"CACHE\n");
         return S_OK;
     }
 
