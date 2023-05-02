@@ -36,9 +36,7 @@ typedef enum TypeCode
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-    struct InstrumentationRequest* pRequest,
-    mdToken tkProbeMethod,
-    struct CorLibTypeTokens* pCorLibTypeTokens)
+    struct InstrumentationRequest* pRequest)
 {
     HRESULT hr;
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, pRequest->moduleId, pRequest->methodDef);
@@ -73,7 +71,7 @@ HRESULT ProbeInjector::InstallProbe(
     // Create the array
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_NEWARR;
-    pNewInstr->m_Arg32 = pCorLibTypeTokens->tkSystemObjectType;
+    pNewInstr->m_Arg32 = pRequest->pAssemblyProbeInformation->corLibTypeTokens.tkSystemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     for (INT32 i = 0; i < numArgs; i++)
@@ -106,7 +104,7 @@ HRESULT ProbeInjector::InstallProbe(
 
             // Resolve the box type
             mdToken tkBoxedType = mdTokenNil;
-            IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, pCorLibTypeTokens));
+            IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, &pRequest->pAssemblyProbeInformation->corLibTypeTokens));
             if (tkBoxedType != mdTokenNil)
             {
                 pNewInstr = rewriter.NewILInstr();
@@ -124,7 +122,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_CALL;
-    pNewInstr->m_Arg32 = tkProbeMethod;
+    pNewInstr->m_Arg32 = pRequest->pAssemblyProbeInformation->tkProbeMemberRef;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     IfFailRet(rewriter.Export());

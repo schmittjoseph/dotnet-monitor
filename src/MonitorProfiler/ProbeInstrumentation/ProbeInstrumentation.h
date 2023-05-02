@@ -62,11 +62,12 @@ class ProbeInstrumentation
         HRESULT EmitNecessaryCorLibTypeTokens(
             IMetaDataImport* pMetadataImport,
             IMetaDataEmit* pMetadataEmit,
-            struct CorLibTypeTokens * pCorLibTypeTokens);
+            struct CorLibTypeTokens* pCorLibTypeTokens);
 
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
-            mdMethodDef methodId);
+            mdMethodDef methodId,
+            struct AssemblyProbeCacheEntry** pAssemblyProbeInformation);
 
         HRESULT HydrateResolvedCorLib();
         HRESULT HydrateProbeMetadata();

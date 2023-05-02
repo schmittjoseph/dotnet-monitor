@@ -51,7 +51,6 @@ public:
     STDMETHOD(ExceptionUnwindFunctionEnter)(FunctionID functionId) override;
     STDMETHOD(InitializeForAttach)(IUnknown* pCorProfilerInfoUnk, void* pvClientData, UINT cbClientData) override;
     STDMETHOD(LoadAsNotficationOnly)(BOOL *pbNotificationOnly) override;
-
     STDMETHOD(GetReJITParameters)(ModuleID moduleId, mdMethodDef methodId, ICorProfilerFunctionControl* pFunctionControl) override;
 
 public:

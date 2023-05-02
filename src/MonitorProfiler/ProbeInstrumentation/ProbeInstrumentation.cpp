@@ -189,7 +189,7 @@ HRESULT ProbeInstrumentation::Enable()
             nullptr));
 
         mdMemberRef tkProbeFunction = mdMemberRefNil;
-        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef));
+        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef, &request.pAssemblyProbeInformation));
 
         requestedModuleIds.push_back(request.moduleId);
         requestedMethodDefs.push_back(request.methodDef);
@@ -211,13 +211,14 @@ HRESULT ProbeInstrumentation::Enable()
 }
 
 
-HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId)
+HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, struct AssemblyProbeCacheEntry** pAssemblyProbeInformation)
 {
     HRESULT hr;
 
     auto const& it = m_AssemblyProbeCache.find(moduleId);
     if (it != m_AssemblyProbeCache.end())
     {
+        *pAssemblyProbeInformation = &it->second;
         return S_OK;
     }
 
@@ -305,31 +306,21 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 {
     HRESULT hr;
 
-    struct AssemblyProbeCacheEntry* pAssemblyCacheEntry;
-    auto const& itAssemblyCache = m_AssemblyProbeCache.find(moduleId);
-    if (itAssemblyCache == m_AssemblyProbeCache.end())
-    {
-        return E_FAIL;
-    }
-    pAssemblyCacheEntry = &itAssemblyCache->second;
-
-    struct InstrumentationRequest* request;
+    struct InstrumentationRequest* pRequest;
     {
         std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
-        auto const& itRequest = m_InstrumentationRequests.find({moduleId, methodDef});
-        if (itRequest == m_InstrumentationRequests.end())
+        auto const& it = m_InstrumentationRequests.find({moduleId, methodDef});
+        if (it == m_InstrumentationRequests.end())
         {
             return E_FAIL;
         }
-        request = &itRequest->second;
+        pRequest = &it->second;
     }
 
     hr = ProbeInjector::InstallProbe(
         m_pCorProfilerInfo,
         pFunctionControl,
-        request,
-        pAssemblyCacheEntry->tkProbeMemberRef,
-        &pAssemblyCacheEntry->corLibTypeTokens);
+        pRequest);
 
     if (FAILED(hr))
     {

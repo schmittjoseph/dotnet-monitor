@@ -13,9 +13,7 @@ class ProbeInjector
         static HRESULT InstallProbe(
             ICorProfilerInfo* pICorProfilerInfo,
             ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-            struct InstrumentationRequest* pRequest,
-            mdToken tkProbeMethod,
-            struct CorLibTypeTokens* pCorLibTypeTokens);
+            struct InstrumentationRequest* pRequest);
 
     private:       
         static HRESULT GetBoxingType(

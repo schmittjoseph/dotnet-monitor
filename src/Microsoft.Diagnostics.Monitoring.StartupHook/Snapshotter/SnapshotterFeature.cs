@@ -17,12 +17,4 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             AspNetHostingStartupHelper.RegisterHostingStartup();
         }
     }
-
-    public static class TestHooks
-    {
-        public static void Test(uint i, bool? test, string hi, int[,] t, List<bool> f)
-        {
-            return;
-        }
-    }
 }

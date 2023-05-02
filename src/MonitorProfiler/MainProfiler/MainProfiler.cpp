@@ -297,7 +297,6 @@ HRESULT MainProfiler::InitializeCommandServer()
 
 HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
 {
-    HRESULT hr = S_OK;
     m_pLogger->Log(LogLevel::Information, _LS("Message received from client: %d %d"), message.MessageType, message.Parameters);
 
     if (message.MessageType == MessageType::Callstack)

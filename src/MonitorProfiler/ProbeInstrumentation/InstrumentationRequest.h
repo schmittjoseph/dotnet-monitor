@@ -3,6 +3,7 @@
 #include <corprof.h>
 #include <corhdr.h>
 #include <vector>
+#include "AssemblyProbeCacheEntry.h"
 
 struct InstrumentationRequest
 {
@@ -11,4 +12,6 @@ struct InstrumentationRequest
 
     ModuleID moduleId;
     mdMethodDef methodDef;
+
+    struct AssemblyProbeCacheEntry* pAssemblyProbeInformation;
 };
