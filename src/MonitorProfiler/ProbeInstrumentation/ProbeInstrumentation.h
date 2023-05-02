@@ -44,7 +44,6 @@ class ProbeInstrumentation
         std::unordered_map<ModuleID, struct AssemblyProbeCacheEntry> m_AssemblyProbeCache;
         std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
 
-        bool m_isEnabled;
         std::mutex m_RequestProcessingMutex;
 
         HRESULT GetTokenForType(

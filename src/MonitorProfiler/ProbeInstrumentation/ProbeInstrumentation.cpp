@@ -21,8 +21,7 @@ ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, IC
     m_pLogger(logger),
     m_enterProbeId(0),
     m_enterProbeDef(mdMethodDefNil),
-    m_resolvedCorLibId(0),
-    m_isEnabled(false)
+    m_resolvedCorLibId(0)
 {
 }
 
@@ -121,6 +120,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionId
         {
             tokens.push_back(boxingTokens[offset+j]);
         }
+
         offset += j;
 
         m_RequestedFunctionIds.push_back({(FunctionID)functionIds[i], tokens});
@@ -156,8 +156,7 @@ HRESULT ProbeInstrumentation::Enable()
     std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
 
     if (!IsAvailable() ||
-        IsEnabled() ||
-        m_RequestedFunctionIds.empty())
+        IsEnabled())
     {
         return E_FAIL;
     }
@@ -169,10 +168,11 @@ HRESULT ProbeInstrumentation::Enable()
     std::vector<ModuleID> requestedModuleIds;
     std::vector<mdMethodDef> requestedMethodDefs;
 
-    for (ULONG i = 0; i < m_RequestedFunctionIds.size(); i++)
-    {
-        auto const funcInfo = m_RequestedFunctionIds.at(i);
+    requestedModuleIds.reserve(m_RequestedFunctionIds.size());
+    requestedMethodDefs.reserve(m_RequestedFunctionIds.size());
 
+    for (auto const funcInfo : m_RequestedFunctionIds)
+    {
         struct InstrumentationRequest request;
 
         request.functionId = funcInfo.first;
@@ -205,7 +205,6 @@ HRESULT ProbeInstrumentation::Enable()
 
     m_RequestedFunctionIds.clear();
     m_InstrumentationRequests = newRequests;
-    m_isEnabled = true;
 
     return S_OK;
 }
@@ -218,7 +217,7 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
     auto const& it = m_AssemblyProbeCache.find(moduleId);
     if (it != m_AssemblyProbeCache.end())
     {
-        *pAssemblyProbeInformation = &it->second;
+        *ppAssemblyProbeInformation = &it->second;
         return S_OK;
     }
 
@@ -272,6 +271,9 @@ HRESULT ProbeInstrumentation::Disable()
     std::vector<ModuleID> moduleIds;
     std::vector<mdMethodDef> methodDefs;
 
+    moduleIds.reserve(m_InstrumentationRequests.size());
+    methodDefs.reserve(m_InstrumentationRequests.size());
+
     for (auto const requestData: m_InstrumentationRequests)
     {
         auto const methodInfo = requestData.first;
@@ -287,14 +289,12 @@ HRESULT ProbeInstrumentation::Disable()
 
     m_InstrumentationRequests.clear();
 
-    m_isEnabled = false;
-
     return S_OK;
 }
 
 BOOL ProbeInstrumentation::IsEnabled()
 {
-    return m_isEnabled;
+    return !m_InstrumentationRequests.empty();
 }
 
 void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
