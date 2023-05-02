@@ -534,8 +534,9 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
 {
     HRESULT hr;
     *ptkProbeMemberRef = mdMemberRefNil;
-
     mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
+
+    #define STRING_BUFFER_LEN 256
 
     ModuleID probeModuleId = 0;
     IfFailRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
@@ -557,13 +558,13 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
 
     PCCOR_SIGNATURE pProbeSignature;
     ULONG probeSignatureLength;
-    WCHAR funcName[256];
+    WCHAR funcName[STRING_BUFFER_LEN];
 
     IfFailRet(pProbeMetadataImport->GetMethodProps(
         m_enterProbeDef,
         nullptr,
         funcName,
-        256,
+        STRING_BUFFER_LEN,
         nullptr,
         nullptr,
         &pProbeSignature,
@@ -571,25 +572,19 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
         nullptr,
         nullptr));
 
-
     ComPtr<IMetaDataAssemblyImport> pProbeAssemblyImport;
     IfFailLogRet(pProbeMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pProbeAssemblyImport)));
     mdAssembly tkProbeAssembly;
     IfFailLogRet(pProbeAssemblyImport->GetAssemblyFromScope(&tkProbeAssembly));
     
-    const BYTE      *pbPublicKey;
-    ULONG           ulHashAlgId;
-    ULONG           cbPublicKey = 0;
+    const BYTE *pbPublicKey;
+    ULONG cbPublicKey = 0;
     ASSEMBLYMETADATA MetaData = { 0 };
-    #define STRING_BUFFER_LEN 256
-    WCHAR           szName[STRING_BUFFER_LEN];
+    WCHAR szName[STRING_BUFFER_LEN];
     ULONG actualLength = 0;
-    DWORD           dwFlags = 0;
-    IfFailLogRet(pProbeAssemblyImport->GetAssemblyProps(tkProbeAssembly, (const void **)&pbPublicKey, &cbPublicKey, &ulHashAlgId, szName, STRING_BUFFER_LEN, &actualLength, &MetaData, &dwFlags));
+    DWORD dwFlags = 0;
+    IfFailLogRet(pProbeAssemblyImport->GetAssemblyProps(tkProbeAssembly, (const void **)&pbPublicKey, &cbPublicKey, nullptr, szName, STRING_BUFFER_LEN, &actualLength, &MetaData, &dwFlags));
 
-    // TODO: Hash
-
-    // We loaded with a no pub key.
     ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
     IfFailLogRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
