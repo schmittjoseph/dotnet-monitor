@@ -67,7 +67,7 @@ class ProbeInstrumentation
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
             mdMethodDef methodId,
-            struct AssemblyProbeCacheEntry** pAssemblyProbeInformation);
+            struct AssemblyProbeCacheEntry** ppAssemblyProbeInformation);
 
         HRESULT HydrateResolvedCorLib();
         HRESULT HydrateProbeMetadata();

@@ -211,7 +211,7 @@ HRESULT ProbeInstrumentation::Enable()
 }
 
 
-HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, struct AssemblyProbeCacheEntry** pAssemblyProbeInformation)
+HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, struct AssemblyProbeCacheEntry** ppAssemblyProbeInformation)
 {
     HRESULT hr;
 
