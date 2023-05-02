@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
@@ -53,13 +54,14 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             List<long> functionIds = new(methodsToInsertProbes.Count);
             List<long> tokenCounts = new(methodsToInsertProbes.Count);
             List<int> boxingTokens = new();
+
             foreach (MethodInfo method in methodsToInsertProbes)
             {
                 // While this function id won't be correct for all instances of the method (e.g. generics)
                 // it will still work as a cache handle / uniqueifier for retrieving a cached methodbase.
                 long functionId = method.MethodHandle.Value.ToInt64();
 
-                int[] methodBoxingTokens = GetBoxingTokens(method);
+                int[] methodBoxingTokens = GetBoxingTokens(method, GetTypeRefTokens(method.Module.Assembly));
                 bool[] argsSupported = new bool[methodBoxingTokens.Length];
                 for (int i = 0; i < methodBoxingTokens.Length; i++)
                 {
@@ -126,7 +128,44 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             return methodInfo;
         }
 
-        private static int[] GetBoxingTokens(MethodInfo method)
+        private static IDictionary<string, int> GetTypeRefTokens(Assembly assembly)
+        {
+            Dictionary<string, int> nameToTyperefToken = new();
+            if (assembly == null)
+            {
+                return nameToTyperefToken;
+            }
+
+            unsafe
+            {
+                int rawMetadataLength;
+                byte* rawMetadata;
+
+                if (assembly.TryGetRawMetadata(out rawMetadata, out rawMetadataLength) != true)
+                {
+                    return nameToTyperefToken;
+                }
+
+                MetadataReader reader = new(rawMetadata, rawMetadataLength);
+
+                foreach (TypeReferenceHandle handle in reader.TypeReferences)
+                {
+                    TypeReference typeRef = reader.GetTypeReference(handle);
+                    if (typeRef.Name.IsNil || typeRef.Namespace.IsNil)
+                    {
+                        continue;
+                    }
+
+                    string tNamespace = reader.GetString(typeRef.Namespace);
+                    string name = reader.GetString(typeRef.Name);
+                    nameToTyperefToken.Add(string.Concat(tNamespace, ".", name), reader.GetToken(handle));
+                }
+            }
+
+            return nameToTyperefToken;
+        }
+
+        private static int[] GetBoxingTokens(MethodInfo method, IDictionary<string, int> typerefTokens)
         {
             ParameterInfo[] methodParams = method.GetParameters();
             List<Type> methodParamTypes = methodParams.Select(p => p.ParameterType).ToList();
@@ -150,6 +189,34 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     methodParamTypes.Insert(0, contextfulType);
                 }
             }
+
+            /*
+            unsafe
+            {
+                int rawMetadataLength = 0;
+                byte* rawMetadata = null;
+
+                if (method.Module.Assembly?.TryGetRawMetadata(out rawMetadata, out rawMetadataLength) != true)
+                {
+                    // something interesting
+                }
+
+                MetadataReader reader = new(rawMetadata, rawMetadataLength);
+                MethodDefinition methodDef = reader.GetMethodDefinition((MethodDefinitionHandle)method.MethodHandle);
+                ParameterHandleCollection parameters = methodDef.GetParameters();
+                foreach (ParameterHandle paramHandle in parameters)
+                {
+                    Parameter param = reader.GetParameter(paramHandle);
+                    if (param.SequenceNumber == 0)
+                    {
+                        // Return value
+                        continue;
+                    }
+
+                    //reader.GetString();
+                }
+            }
+            */
 
             foreach (Type paramType in methodParamTypes)
             {
@@ -178,30 +245,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                     }
                     else if(paramType.Assembly != method.Module.Assembly)
                     {
-                        #region typeref_resolver
                         // Typeref
-                        unsafe
+                        if (paramType.FullName != null && typerefTokens.TryGetValue(paramType.FullName, out int token))
                         {
-                            int rawMetadataLength = 0;
-                            byte* rawMetadata = null;
-
-                            // MetadataLoadContext - https://github.com/dotnet/runtime/issues/28887
-
-                            if (method.Module.Assembly?.TryGetRawMetadata(out rawMetadata, out rawMetadataLength) != true)
-                            {
-                                boxingTokens.Add(unsupported);
-                            }
-
-                            MetadataReader reader = new(rawMetadata, rawMetadataLength);
-                            foreach(TypeReferenceHandle handle in reader.TypeReferences)
-                            {
-                                TypeReference typeRef = reader.GetTypeReference(handle);
-                            }
+                            boxingTokens.Add(token);
                         }
-                        #endregion
-
-                        // Typeref
-                        boxingTokens.Add(unsupported);
+                        else
+                        {
+                            boxingTokens.Add(unsupported);
+                        }
                     }
                     else
                     {
