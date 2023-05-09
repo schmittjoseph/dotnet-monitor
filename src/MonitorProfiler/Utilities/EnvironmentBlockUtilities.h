@@ -43,7 +43,7 @@ class EnvironmentBlockUtilities
                     return HRESULT_FROM_WIN32(dwLastError);
                 }
             }
-            else if (retValue != bufferSize)
+            else if (retValue != (bufferSize - 1)) // does not include null terminator 
             {
                 return S_OK;
             }
