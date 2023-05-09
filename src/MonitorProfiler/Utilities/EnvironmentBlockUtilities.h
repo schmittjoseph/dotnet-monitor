@@ -22,7 +22,7 @@ class EnvironmentBlockUtilities
     public:
         static HRESULT IsStartupSwitchSet(const char* name, BOOL& isSet)
         {
- #if true
+ #if TARGET_WINDOWS
             const WCHAR EnabledValue = L'1';
 
             isSet = FALSE;
