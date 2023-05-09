@@ -6,6 +6,7 @@
 #if TARGET_WINDOWS
 #include <processenv.h>
 #include "tstring.h"
+#include <iostream>
 #else
 #include <mutex>
 #include <cstdlib>
@@ -21,15 +22,16 @@ class EnvironmentBlockUtilities
     public:
         static HRESULT IsStartupSwitchSet(const char* name, BOOL& isSet)
         {
- #if TARGET_WINDOWS
+ #if true
             const WCHAR EnabledValue = L'1';
 
             isSet = FALSE;
             tstring tName = to_tstring(name);
-            WCHAR buffer = '\0';
-            const DWORD bufferSize = 1;
 
-            DWORD retValue = GetEnvironmentVariableW(tName.c_str(), &buffer, bufferSize);
+            const DWORD bufferSize = 2;
+            WCHAR buffer[bufferSize];
+
+            DWORD retValue = GetEnvironmentVariableW(tName.c_str(), buffer, bufferSize);
             if (retValue == 0)
             {
                 DWORD dwLastError = GetLastError();
@@ -47,7 +49,7 @@ class EnvironmentBlockUtilities
                 return S_OK;
             }
 
-            isSet = (buffer == EnabledValue);
+            isSet = (buffer[0] == EnabledValue);
 #else
             const char EnabledValue = '1';
 
