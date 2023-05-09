@@ -47,7 +47,7 @@ class EnvironmentBlockUtilities
                 return S_OK;
             }
 
-            return buffer == EnabledValue;
+            isSet = (buffer == EnabledValue);
 #else
             const char EnabledValue = '1';
 
