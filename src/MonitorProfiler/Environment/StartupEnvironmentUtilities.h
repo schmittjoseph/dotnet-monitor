@@ -11,7 +11,10 @@
 #include <cstdlib>
 #endif
 
-class EnvironmentBlockUtilities
+//
+// Utilities class to be used by initializtion code before ProfilerEnvironment is able to be used.
+//
+class StartupEnvironmentUtilities
 {
     private:
 #if !TARGET_WINDOWS

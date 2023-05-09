@@ -16,6 +16,7 @@ set(SOURCES
     ${PROFILER_SOURCES}
     Environment/EnvironmentHelper.cpp
     Environment/ProfilerEnvironment.cpp
+    Environment/StartupEnvironmentUtilities.cpp
     EventProvider/ProfilerEventProvider.cpp
     Logging/AggregateLogger.cpp
     Logging/Logger.cpp
@@ -30,7 +31,6 @@ set(SOURCES
     Stacks/StackSampler.cpp
     ProbeInstrumentation/ProbeInstrumentation.cpp
     ProbeInstrumentation/ProbeInjector.cpp
-    Utilities/EnvironmentBlockUtilities.cpp
     Utilities/ILRewriter.cpp
     Utilities/NameCache.cpp
     Utilities/ThreadNameCache.cpp

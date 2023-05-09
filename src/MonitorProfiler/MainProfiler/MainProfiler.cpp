@@ -4,6 +4,7 @@
 #include "MainProfiler.h"
 #include "../Environment/EnvironmentHelper.h"
 #include "../Environment/ProfilerEnvironment.h"
+#include "../Environment/StartupEnvironmentUtilities.h"
 #include "../Logging/AggregateLogger.h"
 #include "../Logging/DebugLogger.h"
 #include "../Logging/StdErrLogger.h"
@@ -11,7 +12,6 @@
 #include "../Stacks/StackSampler.h"
 #include "../ProbeInstrumentation/ProbeInstrumentation.h"
 #include "../Utilities/ThreadUtilities.h"
-#include "../Utilities/EnvironmentBlockUtilities.h"
 #include "corhlpr.h"
 #include "macros.h"
 #include <memory>
@@ -159,7 +159,7 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
     HRESULT hr;
 
     BOOL isSet = FALSE;
-    hr = EnvironmentBlockUtilities::IsStartupSwitchSet("DotnetMonitor_Profiler_IsMainProfiler", isSet);
+    hr = StartupEnvironmentUtilities::IsStartupSwitchSet("DotnetMonitor_Profiler_IsMainProfiler", isSet);
     if (hr == S_OK) {
         m_isMainProfiler = isSet;
         *pbNotificationOnly = !isSet;

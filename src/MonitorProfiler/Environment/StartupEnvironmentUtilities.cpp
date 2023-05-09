@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #include "corhlpr.h"
-#include "EnvironmentBlockUtilities.h"
+#include "StartupEnvironmentUtilities.h"
 
 #if !TARGET_WINDOWS
-std::mutex EnvironmentBlockUtilities::_getEnvMutex;
+std::mutex StartupEnvironmentUtilities::_getEnvMutex;
 #endif
