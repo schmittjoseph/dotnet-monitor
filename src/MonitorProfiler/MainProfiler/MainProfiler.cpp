@@ -17,6 +17,7 @@
 #include <memory>
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
+#include "../Utilities/ErrorCodes.h"
 
 using namespace std;
 

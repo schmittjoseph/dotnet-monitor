@@ -75,6 +75,7 @@ class EnvironmentBlockUtilities
                 return E_INVALIDARG;                
             }
 #else
+/*
             HRESULT hr;
             // ref: IEEE Std 1003.1
             // "The return value from getenv() may point to static data which may be overwritten by subsequent calls to getenv() [...]"
@@ -88,6 +89,7 @@ class EnvironmentBlockUtilities
             }
 
             IfFailRet(StringUtilities::Copy(buffer,value.data(), value.size(), ret));
+            */
 #endif
 
             return S_OK;

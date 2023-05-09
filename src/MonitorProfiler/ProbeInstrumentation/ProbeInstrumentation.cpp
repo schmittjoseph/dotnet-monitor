@@ -168,7 +168,7 @@ HRESULT ProbeInstrumentation::Enable()
     requestedModuleIds.reserve(m_RequestedFunctionIds.size());
     requestedMethodDefs.reserve(m_RequestedFunctionIds.size());
 
-    for (auto const funcInfo : m_RequestedFunctionIds)
+    for (auto const& funcInfo : m_RequestedFunctionIds)
     {
         INSTRUMENTATION_REQUEST request;
 
@@ -242,13 +242,13 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         return hr;
     }
 
-    ASSEMBLY_PROBE_CACHE_ENTRY cacheEntry = {0};
+    ASSEMBLY_PROBE_CACHE_ENTRY cacheEntry = {};
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry.corLibTypeTokens));
     IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry.tkProbeMemberRef));
 
     auto cacheItr = m_AssemblyProbeCache.insert({moduleId, cacheEntry}).first;
     *ppAssemblyProbeInformation = &cacheItr->second;
-    
+
     return S_OK;
 }
 
@@ -270,9 +270,9 @@ HRESULT ProbeInstrumentation::Disable()
     moduleIds.reserve(m_InstrumentationRequests.size());
     methodDefs.reserve(m_InstrumentationRequests.size());
 
-    for (auto const requestData: m_InstrumentationRequests)
+    for (auto const& requestData: m_InstrumentationRequests)
     {
-        auto const methodInfo = requestData.first;
+        auto const& methodInfo = requestData.first;
         moduleIds.push_back(methodInfo.first);
         methodDefs.push_back(methodInfo.second);
     }
@@ -495,7 +495,7 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMet
     IfFailLogRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
 
     BYTE publicKeyToken[] = { 0x7c, 0xec, 0x85, 0xd7, 0xbe, 0xa7, 0x79, 0x8e };
-    ASSEMBLYMETADATA corLibMetadata = {0};
+    ASSEMBLYMETADATA corLibMetadata = {};
     corLibMetadata.usMajorVersion = 4;
 
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
@@ -560,10 +560,10 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     IfFailLogRet(pProbeMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pProbeAssemblyImport)));
     mdAssembly tkProbeAssembly;
     IfFailLogRet(pProbeAssemblyImport->GetAssemblyFromScope(&tkProbeAssembly));
-    
+
     const BYTE *pbPublicKey;
     ULONG cbPublicKey = 0;
-    ASSEMBLYMETADATA metaData = {0};
+    ASSEMBLYMETADATA metaData = {};
     WCHAR szName[STRING_BUFFER_LEN];
     ULONG actualLength = 0;
     DWORD dwFlags = 0;
