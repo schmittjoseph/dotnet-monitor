@@ -7,8 +7,6 @@
 // - Removal of all non general-purpose IL rewriting code (e.g. functions specific to the above test profiler)
 //  All profiler-specific instrumentation is handled in separate files.
 
-#define _ASSERTE(e) ((void)0)
-
 #include <corhlpr.cpp>
 #include "ILRewriter.h"
 

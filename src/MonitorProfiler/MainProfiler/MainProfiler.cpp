@@ -159,7 +159,7 @@ STDMETHODIMP MainProfiler::LoadAsNotficationOnly(BOOL *pbNotificationOnly)
     HRESULT hr;
 
     BOOL isSet = FALSE;
-    hr = EnvironmentBlockUtilities::IsStartupSwitchSet(_T("DotnetMonitor_Profiler_IsMainProfiler"), isSet);
+    hr = EnvironmentBlockUtilities::IsStartupSwitchSet("DotnetMonitor_Profiler_IsMainProfiler", isSet);
     if (hr == S_OK) {
         m_isMainProfiler = isSet;
         *pbNotificationOnly = !isSet;

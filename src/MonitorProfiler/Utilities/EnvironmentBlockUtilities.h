@@ -3,54 +3,20 @@
 
 #pragma once
 
-#include "StringUtilities.h"
-#include <tstring.h>
-
 #if TARGET_WINDOWS
 #include <processenv.h>
 #else
 #include <mutex>
+#include <cstdlib>
 #endif
 
 class EnvironmentBlockUtilities
 {
     private:
-#if !TARGET_WINDOWS
         static std::mutex _getEnvMutex;
-#endif
 
     public:
-        static HRESULT IsStartupSwitchSet(tstring name, BOOL& isSet)
-        {
-            #define ENABLED_ENV_VAR_VALUE _T("1")
-
-            HRESULT hr;
-            WCHAR buffer[sizeof(ENABLED_ENV_VAR_VALUE)/sizeof(WCHAR)];
-
-            tstring enabledString = tstring(ENABLED_ENV_VAR_VALUE);
-            isSet = FALSE;
-
-            hr = GetStartupEnvironmentVariable(name, buffer, sizeof(ENABLED_ENV_VAR_VALUE)/sizeof(WCHAR));
-            if (hr == S_FALSE)
-            {
-                return S_OK;
-            }
-            else if (hr != S_OK)
-            {
-                return hr;
-            }
-
-            tstring valueString = tstring(buffer);
-            if (enabledString == valueString)
-            {
-                isSet = TRUE;
-            }
-
-            return S_OK;
-        }
-
-    private:
-        static HRESULT GetStartupEnvironmentVariable(tstring name, WCHAR *buffer, DWORD bufferSize)
+        static HRESULT IsStartupSwitchSet(const char* name, BOOL& isSet)
         {
  #if TARGET_WINDOWS
             DWORD retValue = GetEnvironmentVariableW(name.c_str(), buffer, bufferSize);
@@ -72,24 +38,18 @@ class EnvironmentBlockUtilities
             }
             else if (retValue > bufferSize)
             {
-                return E_INVALIDARG;                
+                return E_INVALIDARG;
             }
 #else
-/*
-            HRESULT hr;
+            const char EnabledValue = '1';
+
+            // After C++ 11, getenv is thread-safe so long as the environment is not modified after the program has started (stenv, )
             // ref: IEEE Std 1003.1
             // "The return value from getenv() may point to static data which may be overwritten by subsequent calls to getenv() [...]"
             std::lock_guard<std::mutex> lock(_getEnvMutex);
 
-            char *ret = getenv(name.c_str());
-            if (ret == NULL)
-            {
-                value.clear();
-                return S_FALSE;
-            }
-
-            IfFailRet(StringUtilities::Copy(buffer,value.data(), value.size(), ret));
-            */
+            char *ret = std::getenv(name);
+            isSet = (ret != nullptr && ret[0] == EnabledValue && ret[1] == '\0');
 #endif
 
             return S_OK;
