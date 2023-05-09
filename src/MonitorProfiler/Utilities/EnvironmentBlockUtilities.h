@@ -6,7 +6,6 @@
 #if TARGET_WINDOWS
 #include <processenv.h>
 #include "tstring.h"
-#include <iostream>
 #else
 #include <mutex>
 #include <cstdlib>
