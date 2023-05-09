@@ -4,4 +4,6 @@
 #include "corhlpr.h"
 #include "EnvironmentBlockUtilities.h"
 
+#if !TARGET_WINDOWS
 std::mutex EnvironmentBlockUtilities::_getEnvMutex;
+#endif

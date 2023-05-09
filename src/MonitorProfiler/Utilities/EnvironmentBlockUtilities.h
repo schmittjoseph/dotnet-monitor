@@ -5,6 +5,7 @@
 
 #if TARGET_WINDOWS
 #include <processenv.h>
+#include "tstring.h"
 #else
 #include <mutex>
 #include <cstdlib>
@@ -13,23 +14,28 @@
 class EnvironmentBlockUtilities
 {
     private:
+#if !TARGET_WINDOWS
         static std::mutex _getEnvMutex;
+#endif
 
     public:
         static HRESULT IsStartupSwitchSet(const char* name, BOOL& isSet)
         {
  #if TARGET_WINDOWS
-            DWORD retValue = GetEnvironmentVariableW(name.c_str(), buffer, bufferSize);
+            const WCHAR EnabledValue = L'1';
+
+            isSet = FALSE;
+            tstring tName = to_tstring(name);
+            WCHAR buffer = '\0';
+            const DWORD bufferSize = 1;
+
+            DWORD retValue = GetEnvironmentVariableW(tName.c_str(), &buffer, bufferSize);
             if (retValue == 0)
             {
                 DWORD dwLastError = GetLastError();
                 if (dwLastError == ERROR_ENVVAR_NOT_FOUND)
                 {
-                    if (buffer != NULL && bufferSize != 0)
-                    {
-                        *buffer = 0;
-                    }
-                    return S_FALSE;
+                    return S_OK;
                 }
                 else
                 {
@@ -38,8 +44,10 @@ class EnvironmentBlockUtilities
             }
             else if (retValue > bufferSize)
             {
-                return E_INVALIDARG;
+                return S_OK;
             }
+
+            return buffer == EnabledValue;
 #else
             const char EnabledValue = '1';
 
