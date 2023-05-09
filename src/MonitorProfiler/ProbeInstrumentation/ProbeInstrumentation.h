@@ -11,7 +11,6 @@
 
 #include <unordered_map>
 
-#include "AssemblyProbeCacheEntry.h"
 #include "InstrumentationRequest.h"
 #include <mutex>
 #include <thread>
@@ -41,8 +40,8 @@ class ProbeInstrumentation
 
         std::vector<std::pair<FunctionID, std::vector<UINT32>>> m_RequestedFunctionIds;
 
-        std::unordered_map<ModuleID, struct AssemblyProbeCacheEntry> m_AssemblyProbeCache;
-        std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
+        std::unordered_map<ModuleID, ASSEMBLY_PROBE_CACHE_ENTRY> m_AssemblyProbeCache;
+        std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
 
         std::mutex m_RequestProcessingMutex;
 
@@ -61,12 +60,12 @@ class ProbeInstrumentation
         HRESULT EmitNecessaryCorLibTypeTokens(
             IMetaDataImport* pMetadataImport,
             IMetaDataEmit* pMetadataEmit,
-            struct CorLibTypeTokens* pCorLibTypeTokens);
+            COR_LIB_TYPE_TOKENS* pCorLibTypeTokens);
 
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
             mdMethodDef methodId,
-            struct AssemblyProbeCacheEntry** ppAssemblyProbeInformation);
+            ASSEMBLY_PROBE_CACHE_ENTRY** ppAssemblyProbeInformation);
 
         HRESULT HydrateResolvedCorLib();
         HRESULT HydrateProbeMetadata();

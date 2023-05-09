@@ -9,12 +9,12 @@
 #include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
-#include "JSFixUtils.h"
-#define IfFailLogRet(EXPR) JSFIX_IfFailLogAndBreak_(m_pLogger, EXPR)
-
 using namespace std;
 
+#define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
+
 #define ENUM_BUFFER_SIZE 10
+#define STRING_BUFFER_LEN 256
 
 ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo) :
     m_pCorProfilerInfo(profilerInfo),
@@ -73,7 +73,6 @@ void ProbeInstrumentation::WorkerThread()
             if (hr != S_OK)
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes: 0x%08x"), hr);
-                TEMPORARY_BREAK_ON_ERROR();
             }
             break;
 
@@ -82,13 +81,11 @@ void ProbeInstrumentation::WorkerThread()
             if (hr != S_OK)
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to uninstall probes: 0x%08x"), hr);
-                TEMPORARY_BREAK_ON_ERROR();
             }
             break;
 
         default:
             m_pLogger->Log(LogLevel::Error, _LS("Unknown message"));
-            TEMPORARY_BREAK_ON_ERROR();
             break;
         }
     }
@@ -103,7 +100,7 @@ void ProbeInstrumentation::ShutdownBackgroundService()
 
 HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
 {
-    m_pLogger->Log(LogLevel::Information, _LS("Requesting probe installation."));
+    m_pLogger->Log(LogLevel::Information, _LS("Probe installation requested"));
     std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
     if (!m_RequestedFunctionIds.empty())
     {
@@ -138,7 +135,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
         return S_FALSE;
     }
 
-    m_pLogger->Log(LogLevel::Information, _LS("Uninstall probes requested"));
+    m_pLogger->Log(LogLevel::Information, _LS("Probe removal requested"));
     _workerQueue.Enqueue(WorkerMessage::UNINSTALL_PROBES);
 
     return S_OK;
@@ -161,7 +158,7 @@ HRESULT ProbeInstrumentation::Enable()
         return E_FAIL;
     }
 
-    std::unordered_map<std::pair<ModuleID, mdMethodDef>, struct InstrumentationRequest, PairHash<ModuleID, mdMethodDef>> newRequests;
+    std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> newRequests;
 
     IfFailLogRet(HydrateProbeMetadata());
 
@@ -173,7 +170,7 @@ HRESULT ProbeInstrumentation::Enable()
 
     for (auto const funcInfo : m_RequestedFunctionIds)
     {
-        struct InstrumentationRequest request;
+        INSTRUMENTATION_REQUEST request;
 
         request.functionId = funcInfo.first;
         request.tkBoxingTypes = funcInfo.second;
@@ -210,8 +207,10 @@ HRESULT ProbeInstrumentation::Enable()
 }
 
 
-HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, struct AssemblyProbeCacheEntry** ppAssemblyProbeInformation)
+HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, ASSEMBLY_PROBE_CACHE_ENTRY** ppAssemblyProbeInformation)
 {
+    IfNullRet(ppAssemblyProbeInformation);
+
     HRESULT hr;
 
     auto const& it = m_AssemblyProbeCache.find(moduleId);
@@ -229,7 +228,6 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         reinterpret_cast<IUnknown **>(&pMetadataImport));
     if (hr != S_OK)
     {
-        TEMPORARY_BREAK_ON_ERROR();
         return hr;
     }
     
@@ -241,29 +239,23 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         reinterpret_cast<IUnknown **>(&pMetadataEmit));
     if (hr != S_OK)
     {
-        TEMPORARY_BREAK_ON_ERROR();
         return hr;
     }
 
-    struct AssemblyProbeCacheEntry cacheEntry = { 0 };
+    ASSEMBLY_PROBE_CACHE_ENTRY cacheEntry = {0};
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry.corLibTypeTokens));
     IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry.tkProbeMemberRef));
 
-    m_AssemblyProbeCache.insert({moduleId, cacheEntry});
-    auto const& it2 = m_AssemblyProbeCache.find(moduleId);
-    if (it2 != m_AssemblyProbeCache.end())
-    {
-        *ppAssemblyProbeInformation = &it2->second;
-        return S_OK;
-    }
+    auto cacheItr = m_AssemblyProbeCache.insert({moduleId, cacheEntry}).first;
+    *ppAssemblyProbeInformation = &cacheItr->second;
     
-    return E_FAIL;
+    return S_OK;
 }
 
 
 HRESULT ProbeInstrumentation::Disable()
 {
-    HRESULT hr = S_OK;
+    HRESULT hr;
 
     std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
 
@@ -271,8 +263,6 @@ HRESULT ProbeInstrumentation::Disable()
     {
         return S_FALSE;
     }
-
-    m_pLogger->Log(LogLevel::Warning, _LS("Disabling probes"));
 
     std::vector<ModuleID> moduleIds;
     std::vector<mdMethodDef> methodDefs;
@@ -312,7 +302,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 {
     HRESULT hr;
 
-    struct InstrumentationRequest* pRequest;
+    INSTRUMENTATION_REQUEST* pRequest;
     {
         std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
         auto const& it = m_InstrumentationRequests.find({moduleId, methodDef});
@@ -366,7 +356,7 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
         return S_OK;
     }
 
-    HRESULT hr = S_OK;
+    HRESULT hr;
     ModuleID candidateModuleId = 0;
     ComPtr<ICorProfilerModuleEnum> pEnum = NULL;
     ModuleID curModule;
@@ -434,7 +424,11 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
 
 HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
 {
-    HRESULT hr = S_OK;
+    IfNullRet(pMetadataImport);
+    IfNullRet(pMetadataEmit);
+    IfNullRet(ptkCorlibAssemblyRef);
+
+    HRESULT hr;
     *ptkCorlibAssemblyRef = mdAssemblyRefNil;
 
     IfFailLogRet(HydrateResolvedCorLib());
@@ -501,7 +495,7 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMet
     IfFailLogRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
 
     BYTE publicKeyToken[] = { 0x7c, 0xec, 0x85, 0xd7, 0xbe, 0xa7, 0x79, 0x8e };
-    ASSEMBLYMETADATA corLibMetadata{};
+    ASSEMBLYMETADATA corLibMetadata = {0};
     corLibMetadata.usMajorVersion = 4;
 
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
@@ -522,11 +516,12 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     IMetaDataEmit* pMetadataEmit,
     mdMemberRef* ptkProbeMemberRef)
 {
+    IfNullRet(pMetadataImport);
+    IfNullRet(pMetadataEmit);
+    IfNullRet(ptkProbeMemberRef);
+
     HRESULT hr;
     *ptkProbeMemberRef = mdMemberRefNil;
-    mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
-
-    #define STRING_BUFFER_LEN 256
 
     ModuleID probeModuleId = 0;
     IfFailRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
@@ -542,7 +537,6 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     hr = m_pCorProfilerInfo->GetModuleMetaData(probeModuleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pProbeMetadataImport));
     if (hr != S_OK)
     {
-        TEMPORARY_BREAK_ON_ERROR();
         return hr;
     }
 
@@ -569,19 +563,20 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     
     const BYTE *pbPublicKey;
     ULONG cbPublicKey = 0;
-    ASSEMBLYMETADATA MetaData = { 0 };
+    ASSEMBLYMETADATA metaData = {0};
     WCHAR szName[STRING_BUFFER_LEN];
     ULONG actualLength = 0;
     DWORD dwFlags = 0;
-    IfFailLogRet(pProbeAssemblyImport->GetAssemblyProps(tkProbeAssembly, (const void **)&pbPublicKey, &cbPublicKey, nullptr, szName, STRING_BUFFER_LEN, &actualLength, &MetaData, &dwFlags));
+    IfFailLogRet(pProbeAssemblyImport->GetAssemblyProps(tkProbeAssembly, (const void **)&pbPublicKey, &cbPublicKey, nullptr, szName, STRING_BUFFER_LEN, &actualLength, &metaData, &dwFlags));
 
     ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
+    mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
     IfFailLogRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
         (const void *)pbPublicKey,
         cbPublicKey,
         szName,
-        &MetaData,
+        &metaData,
         NULL,
         0,
         dwFlags,
@@ -598,9 +593,13 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
 HRESULT ProbeInstrumentation::EmitNecessaryCorLibTypeTokens(
     IMetaDataImport* pMetadataImport,
     IMetaDataEmit* pMetadataEmit,
-    struct CorLibTypeTokens *pCorLibTypeTokens)
+    COR_LIB_TYPE_TOKENS* pCorLibTypeTokens)
 {
-    HRESULT hr = S_OK;
+    IfNullRet(pMetadataImport);
+    IfNullRet(pMetadataEmit);
+    IfNullRet(pCorLibTypeTokens);
+
+    HRESULT hr;
 
     mdAssemblyRef tkCorlibAssemblyRef = mdAssemblyRefNil;
     IfFailLogRet(GetTokenForCorLibAssemblyRef(
@@ -643,7 +642,11 @@ HRESULT ProbeInstrumentation::GetTokenForType(
     tstring name,
     mdToken* ptkType)
 {
-    HRESULT hr = S_OK;
+    IfNullRet(pMetadataImport);
+    IfNullRet(pMetadataEmit);
+    IfNullRet(ptkType);
+
+    HRESULT hr;
 
     *ptkType = mdTokenNil;
 

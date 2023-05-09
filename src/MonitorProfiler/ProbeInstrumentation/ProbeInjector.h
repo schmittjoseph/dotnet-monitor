@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "CorLibTypeTokens.h"
 #include "InstrumentationRequest.h"
 #include <vector>
 
@@ -13,11 +12,11 @@ class ProbeInjector
         static HRESULT InstallProbe(
             ICorProfilerInfo* pICorProfilerInfo,
             ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-            struct InstrumentationRequest* pRequest);
+            INSTRUMENTATION_REQUEST* pRequest);
 
     private:       
         static HRESULT GetBoxingType(
             UINT32 typeInfo,
             mdToken* ptkBoxedType,
-            struct CorLibTypeTokens* pCorLibTypeTokens);
+            COR_LIB_TYPE_TOKENS* pCorLibTypeTokens);
 };

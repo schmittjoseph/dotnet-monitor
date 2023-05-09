@@ -8,8 +8,6 @@
 #include <iostream>
 #include <vector>
 
-#include "JSFixUtils.h"
-
 typedef enum TypeCode
 {
     TYPE_CODE_EMPTY             = 0x00,
@@ -36,8 +34,12 @@ typedef enum TypeCode
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-    struct InstrumentationRequest* pRequest)
+    INSTRUMENTATION_REQUEST* pRequest)
 {
+    IfNullRet(pICorProfilerInfo);
+    IfNullRet(pICorProfilerFunctionControl);
+    IfNullRet(pRequest);
+
     HRESULT hr;
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, pRequest->moduleId, pRequest->methodDef);
 
@@ -133,8 +135,11 @@ HRESULT ProbeInjector::InstallProbe(
 HRESULT ProbeInjector::GetBoxingType(
     UINT32 typeInfo,
     mdToken* ptkBoxedType,
-    struct CorLibTypeTokens* pCorLibTypeTokens)
+    COR_LIB_TYPE_TOKENS* pCorLibTypeTokens)
 {
+    IfNullRet(ptkBoxedType);
+    IfNullRet(pCorLibTypeTokens);
+
     *ptkBoxedType = mdTokenNil;
 
     switch(typeInfo)
@@ -184,7 +189,6 @@ HRESULT ProbeInjector::GetBoxingType(
     case TypeCode::TYPE_CODE_EMPTY:
     case TypeCode::TYPE_CODE_DB_NULL:
     case TypeCode::TYPE_CODE_DATE_TIME:
-        TEMPORARY_BREAK_ON_ERROR();
         return E_FAIL;
     default:
         *ptkBoxedType = (mdToken)typeInfo;

@@ -77,6 +77,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static bool EmitParameter(StringBuilder stringBuilder, Type? type, string? name, bool isSupported, int formatIndex, ParameterInfo? paramInfo = null)
         {
+            stringBuilder.AppendLine();
+            stringBuilder.Append('\t');
             if (LogTypes)
             {
                 stringBuilder.Append('(');
@@ -134,7 +136,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
         {
             StringBuilder fmtStringBuilder = new();
 
-            fmtStringBuilder.Append($"[enter] {method.Module}!");
+            // fmtStringBuilder.Append($"[enter] {method.Module}!");
             string className = method.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
             fmtStringBuilder.Append(className);
             PrettyPrintGenericArgs(fmtStringBuilder, method.DeclaringType?.GetGenericArguments());
@@ -194,6 +196,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
                 try
                 {
+                    Thread.Sleep(500);
                     RequestFunctionProbeShutdown();
                     methodLookup.Clear();
                 }
@@ -214,12 +217,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             }
 
             return null;
-        }
-
-
-        public static void EnterProbeSlim(long uniquifier, object[] args)
-        {
-            Console.WriteLine("ENTER");
         }
 
         public static void EnterProbe(long uniquifier, object[] args)
