@@ -43,7 +43,7 @@ class EnvironmentBlockUtilities
                     return HRESULT_FROM_WIN32(dwLastError);
                 }
             }
-            else if (retValue > bufferSize)
+            else if (retValue != bufferSize)
             {
                 return S_OK;
             }
@@ -52,9 +52,8 @@ class EnvironmentBlockUtilities
 #else
             const char EnabledValue = '1';
 
-            // After C++ 11, getenv is thread-safe so long as the environment is not modified after the program has started (stenv, )
-            // ref: IEEE Std 1003.1
             // "The return value from getenv() may point to static data which may be overwritten by subsequent calls to getenv() [...]"
+            // ref: IEEE Std 1003.1
             std::lock_guard<std::mutex> lock(_getEnvMutex);
 
             char *ret = std::getenv(name);
