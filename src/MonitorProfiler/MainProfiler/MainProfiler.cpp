@@ -152,7 +152,7 @@ STDMETHODIMP MainProfiler::LoadAsNotificationOnly(BOOL *pbNotificationOnly)
     }
 
     *pbNotificationOnly = m_isNotificationOnly;
-    
+
     return S_OK;
 }
 
