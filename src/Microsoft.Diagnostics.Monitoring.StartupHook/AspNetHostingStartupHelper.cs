@@ -48,6 +48,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook
 
             //AppDomain.CurrentDomain.AssemblyResolve -= AssemblyResolver!;
             //var path = JSFIX
+            var path = @"C:\Users\joschmit\work\dotnet-monitor\artifacts\bin\Microsoft.Diagnostics.Monitoring.HostingStartup\Debug\net6.0\Microsoft.Diagnostics.Monitoring.HostingStartup.dll";
             return Assembly.LoadFile(path);
         }
 

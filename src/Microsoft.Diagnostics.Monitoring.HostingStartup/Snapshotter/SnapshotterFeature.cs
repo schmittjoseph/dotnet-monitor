@@ -11,13 +11,14 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Reflection.Metadata.Ecma335;
 using Microsoft.Diagnostics.Monitoring.HostingStartup;
+using System.Runtime.ExceptionServices;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     internal sealed class SnapshotterFeature
     {
         private readonly Probes.EnterProbeDelegate PinnedEnterProbe = Probes.EnterProbe;
-
+        private static bool didInjectProbes;
         public void DoInit()
         {
             [DllImport("MonitorProfiler", CallingConvention = CallingConvention.StdCall, PreserveSig = true)]
@@ -26,8 +27,18 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
             _ = RegisterFunctionProbe(PinnedEnterProbe.Method.MethodHandle.Value.ToInt64());
             Probes.InitBackgroundService();
 
-            ThreadPool.QueueUserWorkItem(RequestProbeInjection);
+            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
         }
+
+        private void CurrentDomain_FirstChanceException(object? sender, FirstChanceExceptionEventArgs e)
+        {
+            if (!didInjectProbes)
+            {
+                didInjectProbes = true;
+                ThreadPool.QueueUserWorkItem(RequestProbeInjection);
+            }
+        }
+
 
         private static void RequestProbeInjection(object? state)
         {
@@ -38,13 +49,11 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 [MarshalAs(UnmanagedType.LPArray)] int[] boxingTokens,
                 [MarshalAs(UnmanagedType.LPArray)] long[] boxingTokenCounts);
 
-            Console.WriteLine("Waiting 10 seconds before injecting probes");
-            Thread.Sleep(TimeSpan.FromSeconds(10));
+            Thread.Sleep(TimeSpan.FromSeconds(3));
 
-            if (InProcLoggerService.IsAvailable)
+            if (!InProcLoggerService.IsAvailable)
             {
                 Console.WriteLine("In-proc logger service is not available");
-                return;
             }
 
             MethodInfo? resolvedMethod = ResolveMethod("Mvc.dll", "Benchmarks.Controllers.MyController`1", "JsonNk");
@@ -68,7 +77,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 // it will still work as a cache handle / uniqueifier for retrieving a cached methodbase.
                 long functionId = method.MethodHandle.Value.ToInt64();
 
-                int[] methodBoxingTokens = GetBoxingTokens(method, GetTypeRefTokens(method.Module.Assembly));
+                //  GetTypeRefTokens(method.Module.Assembly)
+                int[] methodBoxingTokens = GetBoxingTokens(method, new Dictionary<string, int>());
                 bool[] argsSupported = new bool[methodBoxingTokens.Length];
                 for (int i = 0; i < methodBoxingTokens.Length; i++)
                 {
@@ -87,7 +97,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
         private static MethodInfo? ResolveMethod(string dll, string className, string methodName)
         {
-            Console.WriteLine($"Requesting probes in {dll}!{className}.{methodName}");
+            // Console.WriteLine($"Requesting probes in {dll}!{className}.{methodName}");
 
             Module? userMod = null;
             Assembly? userAssembly = null;
@@ -250,7 +260,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                         // Typespec
                         boxingTokens.Add(unsupported);
                     }
-                    else if(paramType.Assembly != method.Module.Assembly)
+                    else if (paramType.Assembly != method.Module.Assembly)
                     {
                         // Typeref
                         if (paramType.FullName != null && typerefTokens.TryGetValue(paramType.FullName, out int token))
@@ -274,12 +284,12 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 }
                 else
                 {
+                    // string?
                     boxingTokens.Add((int)Type.GetTypeCode(paramType));
                 }
             }
 
             return boxingTokens.ToArray();
         }
-
     }
 }
