@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include <corprof.h>
-#include <corhdr.h>
+#include "corprof.h"
+#include "corhdr.h"
+#include "AssemblyProbePrep.h"
+
 #include <vector>
 #include <memory>
-
-#include "AssemblyProbePrep.h"
 
 typedef struct _INSTRUMENTATION_REQUEST
 {

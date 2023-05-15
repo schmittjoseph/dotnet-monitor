@@ -3,10 +3,9 @@
 
 #pragma once
 
+#include "corhlpr.h"
 #include "AssemblyProbePrep.h"
 #include "../Utilities/TypeNameUtilities.h"
-
-#include "corhlpr.h"
 
 using namespace std;
 
