@@ -15,7 +15,7 @@ class ProbeInjector
             INSTRUMENTATION_REQUEST* pRequest);
 
     private:       
-        static HRESULT GetBoxingType(
+        static HRESULT GetBoxingToken(
             UINT32 typeInfo,
             mdToken* ptkBoxedType,
             COR_LIB_TYPE_TOKENS* pCorLibTypeTokens);

@@ -5,31 +5,26 @@
 #include "corprof.h"
 #include "ProbeInjector.h"
 #include "../Utilities/ILRewriter.h"
-#include <iostream>
 #include <vector>
 
-typedef enum TypeCode
+const UINT32 typeBoxingType = 0xff000000;
+typedef enum BoxingType
 {
-    TYPE_CODE_EMPTY             = 0x00,
-    TYPE_CODE_OBJECT            = 0x01,
-    TYPE_CODE_DB_NULL           = 0x02,
-    TYPE_CODE_BOOLEAN           = 0x03,
-    TYPE_CODE_CHAR              = 0x04,
-    TYPE_CODE_SBYTE             = 0x05,
-    TYPE_CODE_BYTE              = 0x06,
-    TYPE_CODE_INT16             = 0x07,
-    TYPE_CODE_UINT16            = 0x08,
-    TYPE_CODE_INT32             = 0x09,
-    TYPE_CODE_UINT32            = 0x0a,
-    TYPE_CODE_INT64             = 0x0b,
-    TYPE_CODE_UINT64            = 0x0c,
-    TYPE_CODE_SINGLE            = 0x0d,
-    TYPE_CODE_DOUBLE            = 0x0e,
-    TYPE_CODE_DECIMAL           = 0x0f,
-    TYPE_CODE_DATE_TIME         = 0x10,
-    // No 0x11
-    TYPE_CODE_STRING            = 0x12
-} TypeCode;
+    TYPE_UNKNOWN = 0x00,
+    TYPE_OBJECT  = 0x01,
+    TYPE_BOOLEAN = 0x02,
+    TYPE_CHAR    = 0x03,
+    TYPE_SBYTE   = 0x04,
+    TYPE_BYTE    = 0x05,
+    TYPE_INT16   = 0x06,
+    TYPE_UINT16  = 0x07,
+    TYPE_INT32   = 0x08,
+    TYPE_UINT32  = 0x09,
+    TYPE_INT64   = 0x0a,
+    TYPE_UINT64  = 0x0b,
+    TYPE_SINGLE  = 0x0c,
+    TYPE_DOUBLE  = 0x0d
+} BoxingType;
 
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
@@ -52,7 +47,7 @@ HRESULT ProbeInjector::InstallProbe(
     //
 
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
-    ILInstr * pNewInstr = nullptr;
+    ILInstr* pNewInstr = nullptr;
 
     INT32 numArgs = (INT32)pRequest->tkBoxingTypes.size();
 
@@ -91,7 +86,7 @@ HRESULT ProbeInjector::InstallProbe(
 
         // Load arg
         UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
-        if (typeInfo == (UINT32)TypeCode::TYPE_CODE_EMPTY)
+        if (typeInfo == (UINT32)BoxingType::TYPE_UNKNOWN)
         {
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;
@@ -106,7 +101,7 @@ HRESULT ProbeInjector::InstallProbe(
 
             // Resolve the box type
             mdToken tkBoxedType = mdTokenNil;
-            IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, &pRequest->assemblyProbeInformation->corLibTypeTokens));
+            IfFailRet(GetBoxingToken(typeInfo, &tkBoxedType, &pRequest->assemblyProbeInformation->corLibTypeTokens));
             if (tkBoxedType != mdTokenNil)
             {
                 pNewInstr = rewriter.NewILInstr();
@@ -132,67 +127,67 @@ HRESULT ProbeInjector::InstallProbe(
     return S_OK;
 }
 
-HRESULT ProbeInjector::GetBoxingType(
+HRESULT ProbeInjector::GetBoxingToken(
     UINT32 typeInfo,
     mdToken* ptkBoxedType,
     COR_LIB_TYPE_TOKENS* pCorLibTypeTokens)
 {
     IfNullRet(ptkBoxedType);
     IfNullRet(pCorLibTypeTokens);
-
     *ptkBoxedType = mdTokenNil;
 
-    switch(typeInfo)
+    if (TypeFromToken(typeInfo) != typeBoxingType)
     {
-    case TypeCode::TYPE_CODE_BOOLEAN:
+        *ptkBoxedType = static_cast<mdToken>(typeInfo);
+        return S_OK;
+    }
+
+    switch(static_cast<BoxingType>(RidFromToken(typeInfo)))
+    {
+    case BoxingType::TYPE_BOOLEAN:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
         break;
-    case TypeCode::TYPE_CODE_BYTE:
+    case BoxingType::TYPE_BYTE:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemByteType;
         break;
-    case TypeCode::TYPE_CODE_CHAR:
+    case BoxingType::TYPE_CHAR:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
         break;
-    case TypeCode::TYPE_CODE_DOUBLE:
+    case BoxingType::TYPE_DOUBLE:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
         break;
-    case TypeCode::TYPE_CODE_INT16:
+    case BoxingType::TYPE_INT16:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
         break;
-    case TypeCode::TYPE_CODE_INT32:
+    case BoxingType::TYPE_INT32:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
         break;
-    case TypeCode::TYPE_CODE_INT64:
+    case BoxingType::TYPE_INT64:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
         break;
-    case TypeCode::TYPE_CODE_SBYTE:
+    case BoxingType::TYPE_SBYTE:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
         break;
-    case TypeCode::TYPE_CODE_SINGLE:
+    case BoxingType::TYPE_SINGLE:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
         break;
-    case TypeCode::TYPE_CODE_UINT16:
+    case BoxingType::TYPE_UINT16:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt16Type;
         break;
-    case TypeCode::TYPE_CODE_UINT32:
+    case BoxingType::TYPE_UINT32:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt32Type;
         break;
-    case TypeCode::TYPE_CODE_UINT64:
+    case BoxingType::TYPE_UINT64:
         *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
         break;
 
-    case TypeCode::TYPE_CODE_OBJECT:
-    case TypeCode::TYPE_CODE_STRING:
+    case BoxingType::TYPE_OBJECT:
         // No boxing needed.
         break;
 
-    case TypeCode::TYPE_CODE_EMPTY:
-    case TypeCode::TYPE_CODE_DB_NULL:
-    case TypeCode::TYPE_CODE_DATE_TIME:
-        return E_FAIL;
+    case BoxingType::TYPE_UNKNOWN:
     default:
-        *ptkBoxedType = static_cast<mdToken>(typeInfo);
-        break;
+        return E_FAIL;
     }
 
     return S_OK;

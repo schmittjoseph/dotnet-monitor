@@ -25,24 +25,20 @@ class ProbeInstrumentation
         ICorProfilerInfo12* m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
 
+        /* Probe management */
         std::thread m_probeManagementThread;
         BlockingQueue<WORKER_PAYLOAD> m_probeManagementQueue;
-
         std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> m_activeInstrumentationRequests;
-
         std::mutex m_requestProcessingMutex;
 
         /* Cache */
         FunctionID m_enterProbeId;
-        mdMethodDef m_enterProbeDef;
 
         ModuleID m_resolvedCorLibId;
         tstring m_resolvedCorLibName;
 
-        NameCache m_nameCache;
-
-
         std::unordered_map<ModuleID, std::shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY>> m_AssemblyProbeCache;
+        NameCache m_nameCache;
 
     private:
         HRESULT GetTokenForType(

@@ -49,11 +49,12 @@ typedef struct _INSTRUMENTATION_REQUEST
     std::shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY> assemblyProbeInformation;
 } INSTRUMENTATION_REQUEST;
 
-enum WorkerMessage
+// JSFIX: Not worker anymore
+typedef enum WorkerMessage
 {
     INSTALL_PROBES,
     UNINSTALL_PROBES
-};
+} WorkerMessage;
 
 typedef struct _WORKER_PAYLOAD
 {
