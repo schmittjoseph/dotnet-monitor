@@ -6,18 +6,17 @@
 #include "cor.h"
 #include "corprof.h"
 #include "com.h"
+#include "AssemblyProbePrep.h"
+#include "ProbeInjector.h"
 #include "../Logging/Logger.h"
+#include "../Utilities/PairHash.h"
+#include "../Utilities/BlockingQueue.h"
 
 #include <unordered_map>
 #include <vector>
 #include <memory>
-
-#include "AssemblyProbePrep.h"
-#include "ProbeInjector.h"
 #include <mutex>
 #include <thread>
-#include "../Utilities/PairHash.h"
-#include "../Utilities/BlockingQueue.h"
 
 typedef struct _UNPROCESSED_INSTRUMENTATION_REQUEST
 {
