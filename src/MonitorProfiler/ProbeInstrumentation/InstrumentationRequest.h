@@ -3,6 +3,7 @@
 #include <corprof.h>
 #include <corhdr.h>
 #include <vector>
+#include <memory>
 
 typedef struct _COR_LIB_TYPE_TOKENS
 {
@@ -31,13 +32,31 @@ typedef struct _ASSEMBLY_PROBE_CACHE_ENTRY
     mdMemberRef tkProbeMemberRef;
 } ASSEMBLY_PROBE_CACHE_ENTRY;
 
-typedef struct _INSTRUMENTATION_REQUEST
+typedef struct _UNPROCESSED_INSTRUMENTATION_REQUEST
 {
     FunctionID functionId;
-    std::vector<UINT32> tkBoxingTypes;
+    std::vector<ULONG32> tkBoxingTypes;
+} UNPROCESSED_INSTRUMENTATION_REQUEST;
+
+typedef struct _INSTRUMENTATION_REQUEST
+{
+    UINT64 uniquifier;
+    std::vector<ULONG32> tkBoxingTypes;
 
     ModuleID moduleId;
     mdMethodDef methodDef;
 
-    ASSEMBLY_PROBE_CACHE_ENTRY* pAssemblyProbeInformation;
+    std::shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY> assemblyProbeInformation;
 } INSTRUMENTATION_REQUEST;
+
+enum WorkerMessage
+{
+    INSTALL_PROBES,
+    UNINSTALL_PROBES
+};
+
+typedef struct _WORKER_PAYLOAD
+{
+    WorkerMessage message;
+    std::vector<UNPROCESSED_INSTRUMENTATION_REQUEST> requests;
+} WORKER_PAYLOAD;

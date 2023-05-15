@@ -10,41 +10,41 @@
 #include "../Logging/Logger.h"
 
 #include <unordered_map>
+#include <memory>
 
 #include "InstrumentationRequest.h"
 #include <mutex>
 #include <thread>
 #include "../Utilities/PairHash.h"
 #include "../Utilities/BlockingQueue.h"
+#include "../Utilities/NameCache.h"
 
 class ProbeInstrumentation
 {
     private:
-        enum WorkerMessage
-        {
-            INSTALL_PROBES,
-            UNINSTALL_PROBES
-        };
-
         ICorProfilerInfo12* m_pCorProfilerInfo;
         std::shared_ptr<ILogger> m_pLogger;
 
-        std::thread _workerThread;
-        BlockingQueue<WorkerMessage> _workerQueue;
+        std::thread m_probeManagementThread;
+        BlockingQueue<WORKER_PAYLOAD> m_probeManagementQueue;
 
+        std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> m_activeInstrumentationRequests;
+
+        std::mutex m_requestProcessingMutex;
+
+        /* Cache */
         FunctionID m_enterProbeId;
         mdMethodDef m_enterProbeDef;
 
         ModuleID m_resolvedCorLibId;
         tstring m_resolvedCorLibName;
 
-        std::vector<std::pair<FunctionID, std::vector<UINT32>>> m_RequestedFunctionIds;
+        NameCache m_nameCache;
 
-        std::unordered_map<ModuleID, ASSEMBLY_PROBE_CACHE_ENTRY> m_AssemblyProbeCache;
-        std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> m_InstrumentationRequests;
 
-        std::mutex m_RequestProcessingMutex;
+        std::unordered_map<ModuleID, std::shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY>> m_AssemblyProbeCache;
 
+    private:
         HRESULT GetTokenForType(
             IMetaDataImport* pMetadataImport,
             IMetaDataEmit* pMetadataEmit,
@@ -65,7 +65,7 @@ class ProbeInstrumentation
         HRESULT PrepareAssemblyForProbes(
             ModuleID moduleId,
             mdMethodDef methodId,
-            ASSEMBLY_PROBE_CACHE_ENTRY** ppAssemblyProbeInformation);
+            std::shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY>& assemblyProbeInformation);
 
         HRESULT HydrateResolvedCorLib();
         HRESULT HydrateProbeMetadata();
@@ -75,9 +75,8 @@ class ProbeInstrumentation
             IMetaDataEmit* pMetadataEmit,
             mdAssemblyRef* ptkCorlibAssemblyRef);
 
-
         void WorkerThread();
-        HRESULT Enable();
+        HRESULT Enable(std::vector<UNPROCESSED_INSTRUMENTATION_REQUEST>& requests);
         HRESULT Disable();
 
     public:

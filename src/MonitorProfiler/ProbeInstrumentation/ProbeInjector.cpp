@@ -59,7 +59,7 @@ HRESULT ProbeInjector::InstallProbe(
     /* uniquifier */
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I8;
-    pNewInstr->m_Arg64 = (UINT64)pRequest->functionId;
+    pNewInstr->m_Arg64 = pRequest->uniquifier;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Args */
@@ -73,7 +73,7 @@ HRESULT ProbeInjector::InstallProbe(
     // Create the array
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_NEWARR;
-    pNewInstr->m_Arg32 = pRequest->pAssemblyProbeInformation->corLibTypeTokens.tkSystemObjectType;
+    pNewInstr->m_Arg32 = pRequest->assemblyProbeInformation->corLibTypeTokens.tkSystemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     for (INT32 i = 0; i < numArgs; i++)
@@ -106,7 +106,7 @@ HRESULT ProbeInjector::InstallProbe(
 
             // Resolve the box type
             mdToken tkBoxedType = mdTokenNil;
-            IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, &pRequest->pAssemblyProbeInformation->corLibTypeTokens));
+            IfFailRet(GetBoxingType(typeInfo, &tkBoxedType, &pRequest->assemblyProbeInformation->corLibTypeTokens));
             if (tkBoxedType != mdTokenNil)
             {
                 pNewInstr = rewriter.NewILInstr();
@@ -124,7 +124,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_CALL;
-    pNewInstr->m_Arg32 = pRequest->pAssemblyProbeInformation->tkProbeMemberRef;
+    pNewInstr->m_Arg32 = pRequest->assemblyProbeInformation->tkProbeMemberRef;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     IfFailRet(rewriter.Export());
@@ -191,7 +191,7 @@ HRESULT ProbeInjector::GetBoxingType(
     case TypeCode::TYPE_CODE_DATE_TIME:
         return E_FAIL;
     default:
-        *ptkBoxedType = (mdToken)typeInfo;
+        *ptkBoxedType = static_cast<mdToken>(typeInfo);
         break;
     }
 

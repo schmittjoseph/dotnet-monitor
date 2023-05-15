@@ -6,7 +6,6 @@
 #include <functional>
 #include <memory>
 #include "ProbeInjector.h"
-#include "../Utilities/NameCache.h"
 #include "../Utilities/TypeNameUtilities.h"
 
 using namespace std;
@@ -35,8 +34,7 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 
     m_pLogger->Log(LogLevel::Information, _LS("Received probes."));
 
-    // JSFIX: Do some basic validation on this (such as checking its signature / visibility) before
-    // pinning it.
+    // JSFIX: Validate the probe's signature before pinning it.
     m_enterProbeId = enterProbeId;
     
     return S_OK;
@@ -44,7 +42,7 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 
 HRESULT ProbeInstrumentation::InitBackgroundService()
 {
-    _workerThread = std::thread(&ProbeInstrumentation::WorkerThread, this);
+    m_probeManagementThread = thread(&ProbeInstrumentation::WorkerThread, this);
     return S_OK;
 }
 
@@ -59,17 +57,17 @@ void ProbeInstrumentation::WorkerThread()
 
     while (true)
     {
-        WorkerMessage message;
-        hr = _workerQueue.BlockingDequeue(message);
+        WORKER_PAYLOAD payload;
+        hr = m_probeManagementQueue.BlockingDequeue(payload);
         if (hr != S_OK)
         {
             break;
         }
 
-        switch (message)
+        switch (payload.message)
         {
         case INSTALL_PROBES:
-            hr = Enable();
+            hr = Enable(payload.requests);
             if (hr != S_OK)
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes: 0x%08x"), hr);
@@ -93,25 +91,21 @@ void ProbeInstrumentation::WorkerThread()
 
 void ProbeInstrumentation::ShutdownBackgroundService()
 {
-    // JSFIX: Make re-entrant
-    _workerQueue.Complete();
-    _workerThread.join();
+    m_probeManagementQueue.Complete();
+    m_probeManagementThread.join();
 }
 
 HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
 {
     m_pLogger->Log(LogLevel::Information, _LS("Probe installation requested"));
-    std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
-    if (!m_RequestedFunctionIds.empty())
-    {
-        // An existing request already exists
-        return E_FAIL;
-    }
+
+    vector<UNPROCESSED_INSTRUMENTATION_REQUEST> requests;
+    requests.reserve(count);
 
     ULONG offset = 0;
     for (ULONG i = 0; i < count; i++)
     {
-        std::vector<UINT32> tokens;
+        vector<UINT32> tokens;
         ULONG j;
         for (j = 0; j < boxingTokenCounts[i]; j++)
         {
@@ -120,23 +114,30 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionId
 
         offset += j;
 
-        m_RequestedFunctionIds.push_back({(FunctionID)functionIds[i], tokens});
+        UNPROCESSED_INSTRUMENTATION_REQUEST request;
+        request.functionId = (FunctionID)functionIds[i];
+        request.tkBoxingTypes = tokens;
+
+        requests.push_back(request);
     }
 
-    _workerQueue.Enqueue(WorkerMessage::INSTALL_PROBES);
+    m_probeManagementQueue.Enqueue({WorkerMessage::INSTALL_PROBES, requests});
 
     return S_OK;
 }
 
 HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
 {
+    m_pLogger->Log(LogLevel::Debug, _LS("Probe shutdown requested"));
+
     if (!IsAvailable())
     {
         return S_FALSE;
     }
 
-    m_pLogger->Log(LogLevel::Information, _LS("Probe removal requested"));
-    _workerQueue.Enqueue(WorkerMessage::UNINSTALL_PROBES);
+    WORKER_PAYLOAD payload = {};
+    payload.message = WorkerMessage::UNINSTALL_PROBES;
+    m_probeManagementQueue.Enqueue(payload);
 
     return S_OK;
 }
@@ -146,11 +147,11 @@ BOOL ProbeInstrumentation::IsAvailable()
     return m_enterProbeId != 0;
 }
 
-HRESULT ProbeInstrumentation::Enable()
+HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>& requests)
 {
     HRESULT hr;
 
-    std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
+    lock_guard<mutex> lock(m_requestProcessingMutex);
 
     if (!IsAvailable() ||
         IsEnabled())
@@ -158,25 +159,24 @@ HRESULT ProbeInstrumentation::Enable()
         return E_FAIL;
     }
 
-    std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> newRequests;
+    unordered_map<pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> newRequests;
 
     IfFailLogRet(HydrateProbeMetadata());
 
-    std::vector<ModuleID> requestedModuleIds;
-    std::vector<mdMethodDef> requestedMethodDefs;
+    vector<ModuleID> requestedModuleIds;
+    vector<mdMethodDef> requestedMethodDefs;
 
-    requestedModuleIds.reserve(m_RequestedFunctionIds.size());
-    requestedMethodDefs.reserve(m_RequestedFunctionIds.size());
+    requestedModuleIds.reserve(requests.size());
+    requestedMethodDefs.reserve(requests.size());
 
-    for (auto const& funcInfo : m_RequestedFunctionIds)
+    for (auto const& req : requests)
     {
         INSTRUMENTATION_REQUEST request;
-
-        request.functionId = funcInfo.first;
-        request.tkBoxingTypes = funcInfo.second;
+        request.uniquifier = (UINT64)req.functionId;
+        request.tkBoxingTypes = req.tkBoxingTypes;
 
         IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(
-            request.functionId,
+            req.functionId,
             NULL,
             nullptr,
             &request.moduleId,
@@ -186,7 +186,7 @@ HRESULT ProbeInstrumentation::Enable()
             nullptr));
 
         mdMemberRef tkProbeFunction = mdMemberRefNil;
-        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef, &request.pAssemblyProbeInformation));
+        IfFailLogRet(PrepareAssemblyForProbes(request.moduleId, request.methodDef, request.assemblyProbeInformation));
 
         requestedModuleIds.push_back(request.moduleId);
         requestedMethodDefs.push_back(request.methodDef);
@@ -200,23 +200,20 @@ HRESULT ProbeInstrumentation::Enable()
         requestedModuleIds.data(),
         requestedMethodDefs.data()));
 
-    m_RequestedFunctionIds.clear();
-    m_InstrumentationRequests = newRequests;
+    m_activeInstrumentationRequests = newRequests;
 
     return S_OK;
 }
 
 
-HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, ASSEMBLY_PROBE_CACHE_ENTRY** ppAssemblyProbeInformation)
+HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMethodDef methodId, shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY>& assemblyProbeInformation)
 {
-    IfNullRet(ppAssemblyProbeInformation);
-
     HRESULT hr;
 
     auto const& it = m_AssemblyProbeCache.find(moduleId);
     if (it != m_AssemblyProbeCache.end())
     {
-        *ppAssemblyProbeInformation = &it->second;
+        assemblyProbeInformation = it->second;
         return S_OK;
     }
 
@@ -242,12 +239,12 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
         return hr;
     }
 
-    ASSEMBLY_PROBE_CACHE_ENTRY cacheEntry = {};
-    IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry.corLibTypeTokens));
-    IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry.tkProbeMemberRef));
+    shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY> cacheEntry = make_shared<ASSEMBLY_PROBE_CACHE_ENTRY>();
+    IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry->corLibTypeTokens));
+    IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry->tkProbeMemberRef));
 
     auto cacheItr = m_AssemblyProbeCache.insert({moduleId, cacheEntry}).first;
-    *ppAssemblyProbeInformation = &cacheItr->second;
+    assemblyProbeInformation = cacheItr->second;
 
     return S_OK;
 }
@@ -257,20 +254,20 @@ HRESULT ProbeInstrumentation::Disable()
 {
     HRESULT hr;
 
-    std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
+    lock_guard<mutex> lock(m_requestProcessingMutex);
 
     if (!IsEnabled())
     {
         return S_FALSE;
     }
 
-    std::vector<ModuleID> moduleIds;
-    std::vector<mdMethodDef> methodDefs;
+    vector<ModuleID> moduleIds;
+    vector<mdMethodDef> methodDefs;
 
-    moduleIds.reserve(m_InstrumentationRequests.size());
-    methodDefs.reserve(m_InstrumentationRequests.size());
+    moduleIds.reserve(m_activeInstrumentationRequests.size());
+    methodDefs.reserve(m_activeInstrumentationRequests.size());
 
-    for (auto const& requestData: m_InstrumentationRequests)
+    for (auto const& requestData: m_activeInstrumentationRequests)
     {
         auto const& methodInfo = requestData.first;
         moduleIds.push_back(methodInfo.first);
@@ -283,14 +280,14 @@ HRESULT ProbeInstrumentation::Disable()
         methodDefs.data(),
         nullptr));
 
-    m_InstrumentationRequests.clear();
+    m_activeInstrumentationRequests.clear();
 
     return S_OK;
 }
 
 BOOL ProbeInstrumentation::IsEnabled()
 {
-    return !m_InstrumentationRequests.empty();
+    return !m_activeInstrumentationRequests.empty();
 }
 
 void ProbeInstrumentation::AddProfilerEventMask(DWORD& eventsLow)
@@ -304,9 +301,9 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 
     INSTRUMENTATION_REQUEST* pRequest;
     {
-        std::lock_guard<std::mutex> lock(m_RequestProcessingMutex);
-        auto const& it = m_InstrumentationRequests.find({moduleId, methodDef});
-        if (it == m_InstrumentationRequests.end())
+        lock_guard<mutex> lock(m_requestProcessingMutex);
+        auto const& it = m_activeInstrumentationRequests.find({moduleId, methodDef});
+        if (it == m_activeInstrumentationRequests.end())
         {
             return E_FAIL;
         }
@@ -336,14 +333,18 @@ HRESULT ProbeInstrumentation::HydrateProbeMetadata()
 
     HRESULT hr;
     mdMethodDef enterDef = mdTokenNil;
+    ClassID probeClassId = 0;
     IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
                                                 NULL,
-                                                nullptr,
+                                                &probeClassId,
                                                 nullptr,
                                                 &enterDef,
                                                 0,
                                                 nullptr,
                                                 nullptr));
+
+    TypeNameUtilities typeNameUtilities(m_pCorProfilerInfo);
+    IfFailRet(typeNameUtilities.CacheNames(m_nameCache, probeClassId));
 
     m_enterProbeDef = enterDef;
     return S_OK;
@@ -391,7 +392,7 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
         }
 
         //
-        // Also check the type properties to make sure it is a class and not a Value type definition
+        // Also check the type properties to make sure it is a class and not a value-type definition
         // and that this type definition isn't extending another type.
         //
         bool bExtends = curMetadataImporter->IsValidToken(tkExtends);
@@ -416,7 +417,7 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
     // .dll = 4 characters
     corLibName.erase(corLibName.length() - 4);
 
-    m_resolvedCorLibName = std::move(corLibName);
+    m_resolvedCorLibName = move(corLibName);
     m_resolvedCorLibId = candidateModuleId;
     return S_OK;
 }
@@ -524,9 +525,10 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
     *ptkProbeMemberRef = mdMemberRefNil;
 
     ModuleID probeModuleId = 0;
+    ClassID probeClassId = 0;
     IfFailRet(m_pCorProfilerInfo->GetFunctionInfo2(m_enterProbeId,
         NULL,
-        nullptr,
+        &probeClassId,
         &probeModuleId,
         nullptr,
         0,
@@ -582,9 +584,11 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
         dwFlags,
         &tkProbeAssemblyRef));
 
-    // JSFIX: Resolve class name dynamically
+    tstring className;
+    IfFailRet(m_nameCache.GetFullyQualifiedClassName(probeClassId, className));
+
     mdTypeRef refToken = mdTokenNil;
-    IfFailLogRet(pMetadataEmit->DefineTypeRefByName(tkProbeAssemblyRef, _T("Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter.Probes"), &refToken));
+    IfFailLogRet(pMetadataEmit->DefineTypeRefByName(tkProbeAssemblyRef, className.c_str(), &refToken));
     IfFailLogRet(pMetadataEmit->DefineMemberRef(refToken, funcName, pProbeSignature, probeSignatureLength, ptkProbeMemberRef));
 
     return S_OK;
