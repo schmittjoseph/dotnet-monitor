@@ -90,7 +90,7 @@ void ProbeInstrumentation::ShutdownBackgroundService()
     m_probeManagementThread.join();
 }
 
-HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
+HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG count, ULONG32 boxingTokens[], ULONG boxingTokenCounts[])
 {
     m_pLogger->Log(LogLevel::Debug, _LS("Probe installation requested"));
 
@@ -100,7 +100,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionId
     ULONG offset = 0;
     for (ULONG i = 0; i < count; i++)
     {
-        vector<UINT32> tokens;
+        vector<ULONG32> tokens;
         ULONG j;
         for (j = 0; j < boxingTokenCounts[i]; j++)
         {
@@ -111,7 +111,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionId
 
         UNPROCESSED_INSTRUMENTATION_REQUEST request;
         request.functionId = (FunctionID)functionIds[i];
-        request.tkBoxingTypes = tokens;
+        request.boxingTypes = tokens;
 
         requests.push_back(request);
     }
@@ -165,8 +165,8 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
     for (auto const& req : requests)
     {
         INSTRUMENTATION_REQUEST request;
-        request.uniquifier = (UINT64)req.functionId;
-        request.tkBoxingTypes = req.tkBoxingTypes;
+        request.uniquifier = (ULONG64)req.functionId;
+        request.boxingTypes = req.boxingTypes;
 
         IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(
             req.functionId,

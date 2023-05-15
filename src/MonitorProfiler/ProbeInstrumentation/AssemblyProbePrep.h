@@ -15,22 +15,22 @@
 typedef struct _COR_LIB_TYPE_TOKENS
 {
     mdToken
-        tkSystemBooleanType,
-        tkSystemByteType,
-        tkSystemCharType,
-        tkSystemDoubleType,
-        tkSystemInt16Type,
-        tkSystemInt32Type,
-        tkSystemInt64Type,
-        tkSystemObjectType,
-        tkSystemSByteType,
-        tkSystemSingleType,
-        tkSystemStringType,
-        tkSystemUInt16Type,
-        tkSystemUInt32Type,
-        tkSystemUInt64Type,
-        tkSystemIntPtrType,
-        tkSystemUIntPtrType;
+        systemBooleanType,
+        systemByteType,
+        systemCharType,
+        systemDoubleType,
+        systemInt16Type,
+        systemInt32Type,
+        systemInt64Type,
+        systemObjectType,
+        systemSByteType,
+        systemSingleType,
+        systemStringType,
+        systemUInt16Type,
+        systemUInt32Type,
+        systemUInt64Type,
+        systemIntPtrType,
+        systemUIntPtrType;
 } COR_LIB_TYPE_TOKENS;
 
 class AssemblyProbePrepData

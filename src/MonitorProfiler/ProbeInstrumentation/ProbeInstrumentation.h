@@ -22,7 +22,7 @@
 typedef struct _UNPROCESSED_INSTRUMENTATION_REQUEST
 {
     FunctionID functionId;
-    std::vector<ULONG32> tkBoxingTypes;
+    std::vector<ULONG32> boxingTypes;
 } UNPROCESSED_INSTRUMENTATION_REQUEST;
 
 enum class ProbeWorkerInstruction
@@ -70,7 +70,7 @@ class ProbeInstrumentation
 
         HRESULT RegisterFunctionProbe(FunctionID enterProbeId);
         HRESULT RequestFunctionProbeShutdown();
-        HRESULT RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[]);
+        HRESULT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG count, ULONG32 boxingTokens[], ULONG boxingTokenCounts[]);
 
         void AddProfilerEventMask(DWORD& eventsLow);
 

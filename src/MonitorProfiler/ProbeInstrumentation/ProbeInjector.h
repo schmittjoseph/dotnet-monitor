@@ -12,8 +12,8 @@
 
 typedef struct _INSTRUMENTATION_REQUEST
 {
-    UINT64 uniquifier;
-    std::vector<ULONG32> tkBoxingTypes;
+    ULONG64 uniquifier;
+    std::vector<ULONG32> boxingTypes;
 
     ModuleID moduleId;
     mdMethodDef methodDef;
@@ -32,7 +32,7 @@ class ProbeInjector
 
     private:       
         static HRESULT GetBoxingToken(
-            UINT32 typeInfo,
+            ULONG32 typeInfo,
             const COR_LIB_TYPE_TOKENS& corLibTypeTokens,
             mdToken& boxedType);
 };

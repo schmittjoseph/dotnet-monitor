@@ -7,24 +7,24 @@
 #include "../Utilities/ILRewriter.h"
 #include <vector>
 
-const UINT32 typeBoxingType = 0xff000000;
-typedef enum BoxingType
+const ULONG32 typeBoxingType = 0xff000000;
+enum class BoxingType : ULONG32
 {
-    TYPE_UNKNOWN = 0x00,
-    TYPE_OBJECT  = 0x01,
-    TYPE_BOOLEAN = 0x02,
-    TYPE_CHAR    = 0x03,
-    TYPE_SBYTE   = 0x04,
-    TYPE_BYTE    = 0x05,
-    TYPE_INT16   = 0x06,
-    TYPE_UINT16  = 0x07,
-    TYPE_INT32   = 0x08,
-    TYPE_UINT32  = 0x09,
-    TYPE_INT64   = 0x0a,
-    TYPE_UINT64  = 0x0b,
-    TYPE_SINGLE  = 0x0c,
-    TYPE_DOUBLE  = 0x0d
-} BoxingType;
+    TYPE_UNKNOWN = 0,
+    TYPE_OBJECT,
+    TYPE_BOOLEAN,
+    TYPE_CHAR,
+    TYPE_SBYTE,
+    TYPE_BYTE,
+    TYPE_INT16,
+    TYPE_UINT16,
+    TYPE_INT32,
+    TYPE_UINT32,
+    TYPE_INT64,
+    TYPE_UINT64,
+    TYPE_SINGLE,
+    TYPE_DOUBLE
+};
 
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
@@ -49,7 +49,7 @@ HRESULT ProbeInjector::InstallProbe(
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr* pNewInstr = nullptr;
 
-    INT32 numArgs = (INT32)request.tkBoxingTypes.size();
+    INT32 numArgs = (INT32)request.boxingTypes.size();
 
     /* uniquifier */
     pNewInstr = rewriter.NewILInstr();
@@ -68,7 +68,7 @@ HRESULT ProbeInjector::InstallProbe(
     // Create the array
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_NEWARR;
-    pNewInstr->m_Arg32 = corLibTypeTokens.tkSystemObjectType;
+    pNewInstr->m_Arg32 = corLibTypeTokens.systemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     for (INT32 i = 0; i < numArgs; i++)
@@ -85,8 +85,8 @@ HRESULT ProbeInjector::InstallProbe(
         rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
         // Load arg
-        UINT32 typeInfo = request.tkBoxingTypes.at(i);
-        if (typeInfo == (typeBoxingType | BoxingType::TYPE_UNKNOWN))
+        ULONG32 typeInfo = request.boxingTypes.at(i);
+        if (typeInfo == (typeBoxingType | (UINT32)BoxingType::TYPE_UNKNOWN))
         {
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;
@@ -143,40 +143,40 @@ HRESULT ProbeInjector::GetBoxingToken(
     switch(static_cast<BoxingType>(RidFromToken(typeInfo)))
     {
     case BoxingType::TYPE_BOOLEAN:
-        boxedType = corLibTypeTokens.tkSystemBooleanType;
+        boxedType = corLibTypeTokens.systemBooleanType;
         break;
     case BoxingType::TYPE_BYTE:
-        boxedType = corLibTypeTokens.tkSystemByteType;
+        boxedType = corLibTypeTokens.systemByteType;
         break;
     case BoxingType::TYPE_CHAR:
-        boxedType = corLibTypeTokens.tkSystemCharType;
+        boxedType = corLibTypeTokens.systemCharType;
         break;
     case BoxingType::TYPE_DOUBLE:
-        boxedType = corLibTypeTokens.tkSystemDoubleType;
+        boxedType = corLibTypeTokens.systemDoubleType;
         break;
     case BoxingType::TYPE_INT16:
-        boxedType = corLibTypeTokens.tkSystemInt16Type;
+        boxedType = corLibTypeTokens.systemInt16Type;
         break;
     case BoxingType::TYPE_INT32:
-        boxedType = corLibTypeTokens.tkSystemInt32Type;
+        boxedType = corLibTypeTokens.systemInt32Type;
         break;
     case BoxingType::TYPE_INT64:
-        boxedType = corLibTypeTokens.tkSystemInt64Type;
+        boxedType = corLibTypeTokens.systemInt64Type;
         break;
     case BoxingType::TYPE_SBYTE:
-        boxedType = corLibTypeTokens.tkSystemSByteType;
+        boxedType = corLibTypeTokens.systemSByteType;
         break;
     case BoxingType::TYPE_SINGLE:
-        boxedType = corLibTypeTokens.tkSystemSingleType;
+        boxedType = corLibTypeTokens.systemSingleType;
         break;
     case BoxingType::TYPE_UINT16:
-        boxedType = corLibTypeTokens.tkSystemUInt16Type;
+        boxedType = corLibTypeTokens.systemUInt16Type;
         break;
     case BoxingType::TYPE_UINT32:
-        boxedType = corLibTypeTokens.tkSystemUInt32Type;
+        boxedType = corLibTypeTokens.systemUInt32Type;
         break;
     case BoxingType::TYPE_UINT64:
-        boxedType = corLibTypeTokens.tkSystemUInt64Type;
+        boxedType = corLibTypeTokens.systemUInt64Type;
         break;
 
     case BoxingType::TYPE_OBJECT:

@@ -151,22 +151,22 @@ HRESULT AssemblyProbePrep::EmitNecessaryCorLibTypeTokens(
         name, \
         token))
 
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Boolean"), corLibTypeTokens.tkSystemBooleanType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Byte"), corLibTypeTokens.tkSystemByteType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Char"), corLibTypeTokens.tkSystemCharType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Double"), corLibTypeTokens.tkSystemDoubleType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int16"), corLibTypeTokens.tkSystemInt16Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int32"), corLibTypeTokens.tkSystemInt32Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int64"), corLibTypeTokens.tkSystemInt64Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Object"), corLibTypeTokens.tkSystemObjectType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.SByte"), corLibTypeTokens.tkSystemSByteType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Single"), corLibTypeTokens.tkSystemSingleType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.String"), corLibTypeTokens.tkSystemStringType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt16"), corLibTypeTokens.tkSystemUInt16Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt32"), corLibTypeTokens.tkSystemUInt32Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt64"), corLibTypeTokens.tkSystemUInt64Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.IntPtr"), corLibTypeTokens.tkSystemIntPtrType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UIntPtr"), corLibTypeTokens.tkSystemUIntPtrType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Boolean"), corLibTypeTokens.systemBooleanType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Byte"), corLibTypeTokens.systemByteType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Char"), corLibTypeTokens.systemCharType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Double"), corLibTypeTokens.systemDoubleType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int16"), corLibTypeTokens.systemInt16Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int32"), corLibTypeTokens.systemInt32Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int64"), corLibTypeTokens.systemInt64Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Object"), corLibTypeTokens.systemObjectType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.SByte"), corLibTypeTokens.systemSByteType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Single"), corLibTypeTokens.systemSingleType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.String"), corLibTypeTokens.systemStringType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt16"), corLibTypeTokens.systemUInt16Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt32"), corLibTypeTokens.systemUInt32Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt64"), corLibTypeTokens.systemUInt64Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.IntPtr"), corLibTypeTokens.systemIntPtrType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UIntPtr"), corLibTypeTokens.systemUIntPtrType);
 
     return S_OK;
 }
