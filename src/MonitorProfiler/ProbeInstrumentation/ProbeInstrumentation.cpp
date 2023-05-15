@@ -2,9 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #include "corhlpr.h"
-
 #include "ProbeInstrumentation.h"
-#include "ProbeInjector.h"
 
 using namespace std;
 
@@ -54,16 +52,16 @@ void ProbeInstrumentation::WorkerThread()
 
     while (true)
     {
-        WORKER_PAYLOAD payload;
+        PROBE_WORKER_PAYLOAD payload;
         hr = m_probeManagementQueue.BlockingDequeue(payload);
         if (hr != S_OK)
         {
             break;
         }
 
-        switch (payload.message)
+        switch (payload.instruction)
         {
-        case INSTALL_PROBES:
+        case ProbeWorkerInstruction::INSTALL_PROBES:
             hr = Enable(payload.requests);
             if (hr != S_OK)
             {
@@ -71,7 +69,7 @@ void ProbeInstrumentation::WorkerThread()
             }
             break;
 
-        case UNINSTALL_PROBES:
+        case ProbeWorkerInstruction::UNINSTALL_PROBES:
             hr = Disable();
             if (hr != S_OK)
             {
@@ -118,7 +116,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionId
         requests.push_back(request);
     }
 
-    m_probeManagementQueue.Enqueue({WorkerMessage::INSTALL_PROBES, requests});
+    m_probeManagementQueue.Enqueue({ProbeWorkerInstruction::INSTALL_PROBES, requests});
 
     return S_OK;
 }
@@ -132,8 +130,8 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
         return S_FALSE;
     }
 
-    WORKER_PAYLOAD payload = {};
-    payload.message = WorkerMessage::UNINSTALL_PROBES;
+    PROBE_WORKER_PAYLOAD payload = {};
+    payload.instruction = ProbeWorkerInstruction::UNINSTALL_PROBES;
     m_probeManagementQueue.Enqueue(payload);
 
     return S_OK;
@@ -254,7 +252,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 {
     HRESULT hr;
 
-    INSTRUMENTATION_REQUEST* pRequest;
+    INSTRUMENTATION_REQUEST request;
     {
         lock_guard<mutex> lock(m_requestProcessingMutex);
         auto const& it = m_activeInstrumentationRequests.find({moduleId, methodDef});
@@ -262,13 +260,13 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
         {
             return E_FAIL;
         }
-        pRequest = &it->second;
+        request = it->second;
     }
 
     hr = ProbeInjector::InstallProbe(
         m_pCorProfilerInfo,
         pFunctionControl,
-        pRequest);
+        request);
 
     if (FAILED(hr))
     {

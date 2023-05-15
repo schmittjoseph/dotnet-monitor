@@ -99,21 +99,20 @@ class AssemblyProbePrep
         HRESULT GetTokenForType(
             IMetaDataImport* pMetadataImport,
             IMetaDataEmit* pMetadataEmit,
-            mdToken tkResolutionScope,
+            mdToken resolutionScope,
             tstring name,
-            mdToken* ptkType);
+            mdToken& typeToken);
 
         HRESULT EmitProbeReference(
-            IMetaDataEmit* pMetadataEmit,
-            mdMemberRef* ptkProbeMemberRef);
+            ModuleID moduleId,
+            mdMemberRef& probeMemberRef);
 
         HRESULT EmitNecessaryCorLibTypeTokens(
-            IMetaDataImport* pMetadataImport,
-            IMetaDataEmit* pMetadataEmit,
-            COR_LIB_TYPE_TOKENS* pCorLibTypeTokens);
+            ModuleID moduleId,
+            COR_LIB_TYPE_TOKENS& pCorLibTypeTokens);
             
         HRESULT GetTokenForCorLibAssemblyRef(
             IMetaDataImport* pMetadataImport,
             IMetaDataEmit* pMetadataEmit,
-            mdAssemblyRef* ptkCorlibAssemblyRef);
+            mdAssemblyRef& corlibAssemblyRef);
 };

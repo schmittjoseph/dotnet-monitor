@@ -9,27 +9,33 @@
 #include "../Logging/Logger.h"
 
 #include <unordered_map>
+#include <vector>
 #include <memory>
 
-#include "InstrumentationRequest.h"
 #include "AssemblyProbePrep.h"
+#include "ProbeInjector.h"
 #include <mutex>
 #include <thread>
 #include "../Utilities/PairHash.h"
 #include "../Utilities/BlockingQueue.h"
 
-// JSFIX: Not worker anymore
-typedef enum WorkerMessage
+typedef struct _UNPROCESSED_INSTRUMENTATION_REQUEST
+{
+    FunctionID functionId;
+    std::vector<ULONG32> tkBoxingTypes;
+} UNPROCESSED_INSTRUMENTATION_REQUEST;
+
+enum class ProbeWorkerInstruction
 {
     INSTALL_PROBES,
     UNINSTALL_PROBES
-} WorkerMessage;
+};
 
-typedef struct _WORKER_PAYLOAD
+typedef struct _PROBE_WORKER_PAYLOAD
 {
-    WorkerMessage message;
+    ProbeWorkerInstruction instruction;
     std::vector<UNPROCESSED_INSTRUMENTATION_REQUEST> requests;
-} WORKER_PAYLOAD;
+} PROBE_WORKER_PAYLOAD;
 
 class ProbeInstrumentation
 {
@@ -42,7 +48,7 @@ class ProbeInstrumentation
 
         /* Probe management */
         std::thread m_probeManagementThread;
-        BlockingQueue<WORKER_PAYLOAD> m_probeManagementQueue;
+        BlockingQueue<PROBE_WORKER_PAYLOAD> m_probeManagementQueue;
         std::unordered_map<std::pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> m_activeInstrumentationRequests;
         std::mutex m_requestProcessingMutex;
 

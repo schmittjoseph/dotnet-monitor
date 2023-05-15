@@ -3,9 +3,24 @@
 
 #pragma once
 
-#include "InstrumentationRequest.h"
-#include "AssemblyProbePrep.h"
+#include <corprof.h>
+#include <corhdr.h>
 #include <vector>
+#include <memory>
+
+#include "AssemblyProbePrep.h"
+
+typedef struct _INSTRUMENTATION_REQUEST
+{
+    UINT64 uniquifier;
+    std::vector<ULONG32> tkBoxingTypes;
+
+    ModuleID moduleId;
+    mdMethodDef methodDef;
+
+    std::shared_ptr<AssemblyProbePrepData> pAssemblyData;
+} INSTRUMENTATION_REQUEST;
+
 
 class ProbeInjector
 {
@@ -13,11 +28,11 @@ class ProbeInjector
         static HRESULT InstallProbe(
             ICorProfilerInfo* pICorProfilerInfo,
             ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-            INSTRUMENTATION_REQUEST* pRequest);
+            const INSTRUMENTATION_REQUEST& request);
 
     private:       
         static HRESULT GetBoxingToken(
             UINT32 typeInfo,
-            mdToken* ptkBoxedType,
-            const COR_LIB_TYPE_TOKENS pCorLibTypeTokens);
+            const COR_LIB_TYPE_TOKENS& corLibTypeTokens,
+            mdToken& boxedType);
 };

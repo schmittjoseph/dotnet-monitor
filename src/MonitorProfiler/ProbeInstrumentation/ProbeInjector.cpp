@@ -29,16 +29,16 @@ typedef enum BoxingType
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-    INSTRUMENTATION_REQUEST* pRequest)
+    const INSTRUMENTATION_REQUEST& request)
 {
     IfNullRet(pICorProfilerInfo);
     IfNullRet(pICorProfilerFunctionControl);
-    IfNullRet(pRequest);
 
     HRESULT hr;
-    ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, pRequest->moduleId, pRequest->methodDef);
-
+    ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, request.moduleId, request.methodDef);
     IfFailRet(rewriter.Import());
+
+    const COR_LIB_TYPE_TOKENS corLibTypeTokens = request.pAssemblyData->GetCorLibTypeTokens();
 
     //
     // JSFIX: Wrap the probe in a try/catch.
@@ -49,12 +49,12 @@ HRESULT ProbeInjector::InstallProbe(
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr* pNewInstr = nullptr;
 
-    INT32 numArgs = (INT32)pRequest->tkBoxingTypes.size();
+    INT32 numArgs = (INT32)request.tkBoxingTypes.size();
 
     /* uniquifier */
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_I8;
-    pNewInstr->m_Arg64 = pRequest->uniquifier;
+    pNewInstr->m_Arg64 = request.uniquifier;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     /* Args */
@@ -68,7 +68,7 @@ HRESULT ProbeInjector::InstallProbe(
     // Create the array
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_NEWARR;
-    pNewInstr->m_Arg32 = pRequest->pAssemblyData->GetCorLibTypeTokens().tkSystemObjectType;
+    pNewInstr->m_Arg32 = corLibTypeTokens.tkSystemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     for (INT32 i = 0; i < numArgs; i++)
@@ -85,7 +85,7 @@ HRESULT ProbeInjector::InstallProbe(
         rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
         // Load arg
-        UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
+        UINT32 typeInfo = request.tkBoxingTypes.at(i);
         if (typeInfo == (typeBoxingType | BoxingType::TYPE_UNKNOWN))
         {
             pNewInstr = rewriter.NewILInstr();
@@ -100,13 +100,13 @@ HRESULT ProbeInjector::InstallProbe(
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
             // Resolve the box type
-            mdToken tkBoxedType = mdTokenNil;
-            IfFailRet(GetBoxingToken(typeInfo, &tkBoxedType, pRequest->pAssemblyData->GetCorLibTypeTokens()));
-            if (tkBoxedType != mdTokenNil)
+            mdToken boxedTypeToken = mdTokenNil;
+            IfFailRet(GetBoxingToken(typeInfo, corLibTypeTokens, boxedTypeToken));
+            if (boxedTypeToken != mdTokenNil)
             {
                 pNewInstr = rewriter.NewILInstr();
                 pNewInstr->m_opcode = CEE_BOX;
-                pNewInstr->m_Arg32 = tkBoxedType;
+                pNewInstr->m_Arg32 = boxedTypeToken;
                 rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
             }
         }
@@ -119,7 +119,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_CALL;
-    pNewInstr->m_Arg32 = pRequest->pAssemblyData->GetProbeMemberRef();
+    pNewInstr->m_Arg32 = request.pAssemblyData->GetProbeMemberRef();
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     IfFailRet(rewriter.Export());
@@ -129,55 +129,54 @@ HRESULT ProbeInjector::InstallProbe(
 
 HRESULT ProbeInjector::GetBoxingToken(
     UINT32 typeInfo,
-    mdToken* ptkBoxedType,
-    const COR_LIB_TYPE_TOKENS corLibTypeTokens)
+    const COR_LIB_TYPE_TOKENS& corLibTypeTokens,
+    mdToken& boxedType)
 {
-    IfNullRet(ptkBoxedType);
-    *ptkBoxedType = mdTokenNil;
+    boxedType = mdTokenNil;
 
     if (TypeFromToken(typeInfo) != typeBoxingType)
     {
-        *ptkBoxedType = static_cast<mdToken>(typeInfo);
+        boxedType = static_cast<mdToken>(typeInfo);
         return S_OK;
     }
 
     switch(static_cast<BoxingType>(RidFromToken(typeInfo)))
     {
     case BoxingType::TYPE_BOOLEAN:
-        *ptkBoxedType = corLibTypeTokens.tkSystemBooleanType;
+        boxedType = corLibTypeTokens.tkSystemBooleanType;
         break;
     case BoxingType::TYPE_BYTE:
-        *ptkBoxedType = corLibTypeTokens.tkSystemByteType;
+        boxedType = corLibTypeTokens.tkSystemByteType;
         break;
     case BoxingType::TYPE_CHAR:
-        *ptkBoxedType = corLibTypeTokens.tkSystemCharType;
+        boxedType = corLibTypeTokens.tkSystemCharType;
         break;
     case BoxingType::TYPE_DOUBLE:
-        *ptkBoxedType = corLibTypeTokens.tkSystemDoubleType;
+        boxedType = corLibTypeTokens.tkSystemDoubleType;
         break;
     case BoxingType::TYPE_INT16:
-        *ptkBoxedType = corLibTypeTokens.tkSystemInt16Type;
+        boxedType = corLibTypeTokens.tkSystemInt16Type;
         break;
     case BoxingType::TYPE_INT32:
-        *ptkBoxedType = corLibTypeTokens.tkSystemInt32Type;
+        boxedType = corLibTypeTokens.tkSystemInt32Type;
         break;
     case BoxingType::TYPE_INT64:
-        *ptkBoxedType = corLibTypeTokens.tkSystemInt64Type;
+        boxedType = corLibTypeTokens.tkSystemInt64Type;
         break;
     case BoxingType::TYPE_SBYTE:
-        *ptkBoxedType = corLibTypeTokens.tkSystemSByteType;
+        boxedType = corLibTypeTokens.tkSystemSByteType;
         break;
     case BoxingType::TYPE_SINGLE:
-        *ptkBoxedType = corLibTypeTokens.tkSystemSingleType;
+        boxedType = corLibTypeTokens.tkSystemSingleType;
         break;
     case BoxingType::TYPE_UINT16:
-        *ptkBoxedType = corLibTypeTokens.tkSystemUInt16Type;
+        boxedType = corLibTypeTokens.tkSystemUInt16Type;
         break;
     case BoxingType::TYPE_UINT32:
-        *ptkBoxedType = corLibTypeTokens.tkSystemUInt32Type;
+        boxedType = corLibTypeTokens.tkSystemUInt32Type;
         break;
     case BoxingType::TYPE_UINT64:
-        *ptkBoxedType = corLibTypeTokens.tkSystemUInt64Type;
+        boxedType = corLibTypeTokens.tkSystemUInt64Type;
         break;
 
     case BoxingType::TYPE_OBJECT:

@@ -13,6 +13,8 @@ using namespace std;
 #define ENUM_BUFFER_SIZE 10
 #define STRING_BUFFER_LEN 256
 
+#define IfNotExplicitSuccessRet(EXPR) do { hr = (EXPR); if(hr != S_OK) { return (hr); } } while (0)
+
 AssemblyProbePrep::AssemblyProbePrep(ICorProfilerInfo12* profilerInfo, FunctionID probeFunctionId) :
     m_pCorProfilerInfo(profilerInfo),
     m_resolvedCorLibId(0),
@@ -36,40 +38,18 @@ bool AssemblyProbePrep::TryGetAssemblyPrepData(ModuleID moduleId, shared_ptr<Ass
 HRESULT AssemblyProbePrep::PrepareAssemblyForProbes(ModuleID moduleId)
 {
     HRESULT hr;
-
+    
     auto const& it = m_assemblyProbeCache.find(moduleId);
     if (it != m_assemblyProbeCache.end())
     {
         return S_OK;
     }
 
-    ComPtr<IMetaDataImport> pMetadataImport;
-    hr = m_pCorProfilerInfo->GetModuleMetaData(
-        moduleId,
-        ofRead,
-        IID_IMetaDataImport,
-        reinterpret_cast<IUnknown **>(&pMetadataImport));
-    if (hr != S_OK)
-    {
-        return hr;
-    }
-    
-    ComPtr<IMetaDataEmit> pMetadataEmit;
-    hr = m_pCorProfilerInfo->GetModuleMetaData(
-        moduleId,
-        ofRead | ofWrite,
-        IID_IMetaDataEmit,
-        reinterpret_cast<IUnknown **>(&pMetadataEmit));
-    if (hr != S_OK)
-    {
-        return hr;
-    }
-
-    COR_LIB_TYPE_TOKENS corLibTypeTokens;
-    IfFailRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &corLibTypeTokens));
+    COR_LIB_TYPE_TOKENS corLibTypeTokens = {};
+    IfFailRet(EmitNecessaryCorLibTypeTokens(moduleId, corLibTypeTokens));
 
     mdMemberRef probeMemberRef;
-    IfFailRet(EmitProbeReference(pMetadataEmit, &probeMemberRef));
+    IfFailRet(EmitProbeReference(moduleId, probeMemberRef));
 
     shared_ptr<AssemblyProbePrepData> data(new (nothrow) AssemblyProbePrepData(probeMemberRef, corLibTypeTokens));
     IfNullRet(data);
@@ -79,14 +59,11 @@ HRESULT AssemblyProbePrep::PrepareAssemblyForProbes(ModuleID moduleId)
 }
 
 HRESULT AssemblyProbePrep::EmitProbeReference(
-    IMetaDataEmit* pMetadataEmit,
-    mdMemberRef* ptkProbeMemberRef)
+    ModuleID moduleId,
+    mdMemberRef& probeMemberRef)
 {
-    IfNullRet(pMetadataEmit);
-    IfNullRet(ptkProbeMemberRef);
-
     HRESULT hr;
-    *ptkProbeMemberRef = mdMemberRefNil;
+    probeMemberRef = mdMemberRefNil;
 
     IfFailRet(HydrateProbeMetadata());
 
@@ -97,6 +74,13 @@ HRESULT AssemblyProbePrep::EmitProbeReference(
     {
         return E_UNEXPECTED;
     }
+  
+    ComPtr<IMetaDataEmit> pMetadataEmit;
+    IfFailRet(m_pCorProfilerInfo->GetModuleMetaData(
+        moduleId,
+        ofRead | ofWrite,
+        IID_IMetaDataEmit,
+        reinterpret_cast<IUnknown **>(&pMetadataEmit)));
 
     ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
     mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
@@ -114,54 +98,75 @@ HRESULT AssemblyProbePrep::EmitProbeReference(
     tstring className;
     IfFailRet(m_nameCache.GetFullyQualifiedClassName(probeFunctionData->GetClass(), className));
 
-    mdTypeRef refToken = mdTokenNil;
-    IfFailRet(pMetadataEmit->DefineTypeRefByName(tkProbeAssemblyRef, className.c_str(), &refToken));
-    IfFailRet(pMetadataEmit->DefineMemberRef(refToken, probeFunctionData->GetName().c_str(), m_probeCache.signature.get(), m_probeCache.signatureLength, ptkProbeMemberRef));
+    mdTypeRef classTypeRef;
+    IfFailRet(pMetadataEmit->DefineTypeRefByName(
+        tkProbeAssemblyRef,
+        className.c_str(),
+        &classTypeRef));
+
+    mdMemberRef memberRef;
+    IfFailRet(pMetadataEmit->DefineMemberRef(
+        classTypeRef,
+        probeFunctionData->GetName().c_str(),
+        m_probeCache.signature.get(),
+        m_probeCache.signatureLength,
+        &memberRef));
+
+    probeMemberRef = memberRef;
 
     return S_OK;
 }
 
 HRESULT AssemblyProbePrep::EmitNecessaryCorLibTypeTokens(
-    IMetaDataImport* pMetadataImport,
-    IMetaDataEmit* pMetadataEmit,
-    COR_LIB_TYPE_TOKENS* pCorLibTypeTokens)
+    ModuleID moduleId,
+    COR_LIB_TYPE_TOKENS& corLibTypeTokens)
 {
-    IfNullRet(pMetadataImport);
-    IfNullRet(pMetadataEmit);
-    IfNullRet(pCorLibTypeTokens);
-
     HRESULT hr;
 
-    mdAssemblyRef tkCorlibAssemblyRef = mdAssemblyRefNil;
+    ComPtr<IMetaDataImport> pMetadataImport;
+    IfFailRet(m_pCorProfilerInfo->GetModuleMetaData(
+        moduleId,
+        ofRead,
+        IID_IMetaDataImport,
+        reinterpret_cast<IUnknown **>(&pMetadataImport)));
+    
+    ComPtr<IMetaDataEmit> pMetadataEmit;
+    IfFailRet(m_pCorProfilerInfo->GetModuleMetaData(
+        moduleId,
+        ofRead | ofWrite,
+        IID_IMetaDataEmit,
+        reinterpret_cast<IUnknown **>(&pMetadataEmit)));
+
+    mdAssemblyRef corlibAssemblyRef;
     IfFailRet(GetTokenForCorLibAssemblyRef(
         pMetadataImport,
         pMetadataEmit,
-        &tkCorlibAssemblyRef));
+        corlibAssemblyRef));
 
-#define GET_OR_DEFINE_TYPE_TOKEN(name, pToken) \
+#define GET_OR_DEFINE_TYPE_TOKEN(name, token) \
     IfFailRet(GetTokenForType( \
         pMetadataImport, \
         pMetadataEmit, \
-        tkCorlibAssemblyRef, \
+        corlibAssemblyRef, \
         name, \
-        pToken))
+        token))
 
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Boolean"), &pCorLibTypeTokens->tkSystemBooleanType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Byte"), &pCorLibTypeTokens->tkSystemByteType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Char"), &pCorLibTypeTokens->tkSystemCharType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Double"), &pCorLibTypeTokens->tkSystemDoubleType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int16"), &pCorLibTypeTokens->tkSystemInt16Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int32"), &pCorLibTypeTokens->tkSystemInt32Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int64"), &pCorLibTypeTokens->tkSystemInt64Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Object"), &pCorLibTypeTokens->tkSystemObjectType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.SByte"), &pCorLibTypeTokens->tkSystemSByteType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Single"), &pCorLibTypeTokens->tkSystemSingleType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.String"), &pCorLibTypeTokens->tkSystemStringType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt16"), &pCorLibTypeTokens->tkSystemUInt16Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt32"), &pCorLibTypeTokens->tkSystemUInt32Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt64"), &pCorLibTypeTokens->tkSystemUInt64Type);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.IntPtr"), &pCorLibTypeTokens->tkSystemIntPtrType);
-    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UIntPtr"), &pCorLibTypeTokens->tkSystemUIntPtrType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Boolean"), corLibTypeTokens.tkSystemBooleanType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Byte"), corLibTypeTokens.tkSystemByteType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Char"), corLibTypeTokens.tkSystemCharType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Double"), corLibTypeTokens.tkSystemDoubleType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int16"), corLibTypeTokens.tkSystemInt16Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int32"), corLibTypeTokens.tkSystemInt32Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Int64"), corLibTypeTokens.tkSystemInt64Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Object"), corLibTypeTokens.tkSystemObjectType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.SByte"), corLibTypeTokens.tkSystemSByteType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.Single"), corLibTypeTokens.tkSystemSingleType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.String"), corLibTypeTokens.tkSystemStringType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt16"), corLibTypeTokens.tkSystemUInt16Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt32"), corLibTypeTokens.tkSystemUInt32Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UInt64"), corLibTypeTokens.tkSystemUInt64Type);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.IntPtr"), corLibTypeTokens.tkSystemIntPtrType);
+    GET_OR_DEFINE_TYPE_TOKEN(_T("System.UIntPtr"), corLibTypeTokens.tkSystemUIntPtrType);
 
     return S_OK;
 }
@@ -169,44 +174,42 @@ HRESULT AssemblyProbePrep::EmitNecessaryCorLibTypeTokens(
 HRESULT AssemblyProbePrep::GetTokenForType(
     IMetaDataImport* pMetadataImport,
     IMetaDataEmit* pMetadataEmit,
-    mdToken tkResolutionScope,
+    mdToken resolutionScope,
     tstring name,
-    mdToken* ptkType)
+    mdToken& typeToken)
 {
     IfNullRet(pMetadataImport);
     IfNullRet(pMetadataEmit);
-    IfNullRet(ptkType);
 
     HRESULT hr;
 
-    *ptkType = mdTokenNil;
+    typeToken = mdTokenNil;
 
     mdTypeRef tkType;
     hr = pMetadataImport->FindTypeRef(
-        tkResolutionScope,
+        resolutionScope,
         name.c_str(),
         &tkType);
 
     if (FAILED(hr) || tkType == mdTokenNil)
     {
         IfFailRet(pMetadataEmit->DefineTypeRefByName(
-            tkResolutionScope,
+            resolutionScope,
             name.c_str(),
             &tkType));
     }
 
-    *ptkType = tkType;
+    typeToken = tkType;
     return S_OK;
 }
 
-HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, mdAssemblyRef* ptkCorlibAssemblyRef)
+HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetadataImport, IMetaDataEmit* pMetadataEmit, mdAssemblyRef& corlibAssemblyRef)
 {
     IfNullRet(pMetadataImport);
     IfNullRet(pMetadataEmit);
-    IfNullRet(ptkCorlibAssemblyRef);
 
     HRESULT hr;
-    *ptkCorlibAssemblyRef = mdAssemblyRefNil;
+    corlibAssemblyRef = mdAssemblyRefNil;
 
     IfFailRet(HydrateResolvedCorLib());
 
@@ -214,7 +217,7 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
     IfFailRet(pMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pMetadataAssemblyImport)));
 
     // JSFIX: Consider RAII for scope guarding instead of closing this enum in all needed cases.
-    HCORENUM hEnum = 0;
+    HCORENUM corEnum = 0;
     mdAssemblyRef mdRefs[ENUM_BUFFER_SIZE];
     ULONG count = 0;  
 
@@ -222,7 +225,7 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
     unique_ptr<WCHAR[]> assemblyName(new (nothrow) WCHAR[expectedLength]);
     IfNullRet(assemblyName);
 
-    while ((hr = pMetadataAssemblyImport->EnumAssemblyRefs(&hEnum, mdRefs, ENUM_BUFFER_SIZE, &count)) == S_OK)
+    while ((hr = pMetadataAssemblyImport->EnumAssemblyRefs(&corEnum, mdRefs, ENUM_BUFFER_SIZE, &count)) == S_OK)
     {
         for (ULONG i = 0; i < count; i++)
         {
@@ -234,7 +237,7 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
                 curRef,
                 nullptr, nullptr, // public key or token
                 assemblyName.get(), expectedLength, &cchName, // name
-                nullptr, // metadata`
+                nullptr, // metadata
                 nullptr, nullptr, // hash value
                 nullptr); // flags
 
@@ -245,7 +248,7 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
             }
             else if (hr != S_OK)
             {
-                pMetadataAssemblyImport->CloseEnum(hEnum);
+                pMetadataAssemblyImport->CloseEnum(corEnum);
                 return hr;
             }
 
@@ -256,16 +259,16 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
 
             tstring assemblyNameStr = tstring(assemblyName.get());
             if (assemblyNameStr == m_resolvedCorLibName) {
-                pMetadataAssemblyImport->CloseEnum(hEnum);
-                *ptkCorlibAssemblyRef = curRef;
+                pMetadataAssemblyImport->CloseEnum(corEnum);
+                corlibAssemblyRef = curRef;
                 return S_OK;
             }
         }
     }
 
-    if (hEnum)
+    if (corEnum)
     {
-        pMetadataAssemblyImport->CloseEnum(hEnum);
+        pMetadataAssemblyImport->CloseEnum(corEnum);
     }
 
     ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
@@ -275,6 +278,7 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
     ASSEMBLYMETADATA corLibMetadata = {};
     corLibMetadata.usMajorVersion = 4;
 
+    mdAssemblyRef newAssemblyRef;
     IfFailRet(pMetadataAssemblyEmit->DefineAssemblyRef(
         publicKeyToken,
         sizeof(publicKeyToken),
@@ -283,7 +287,9 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
         nullptr,
         0,
         afContentType_Default,
-        ptkCorlibAssemblyRef));
+        &newAssemblyRef));
+
+    corlibAssemblyRef = newAssemblyRef;
 
     return S_OK;
 }
@@ -388,11 +394,11 @@ HRESULT AssemblyProbePrep::HydrateProbeMetadata()
     }
 
     ComPtr<IMetaDataImport> pProbeMetadataImport;
-    hr = m_pCorProfilerInfo->GetModuleMetaData(probeFunctionData->GetModuleId(), ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pProbeMetadataImport));
-    if (hr != S_OK)
-    {
-        return hr;
-    }
+    IfFailRet(m_pCorProfilerInfo->GetModuleMetaData(
+        probeFunctionData->GetModuleId(),
+        ofRead,
+        IID_IMetaDataImport,
+        reinterpret_cast<IUnknown **>(&pProbeMetadataImport)));
 
     ComPtr<IMetaDataAssemblyImport> pProbeAssemblyImport;
     IfFailRet(pProbeMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pProbeAssemblyImport)));
