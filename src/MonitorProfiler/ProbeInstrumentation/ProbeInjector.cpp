@@ -86,7 +86,7 @@ HRESULT ProbeInjector::InstallProbe(
 
         // Load arg
         UINT32 typeInfo = pRequest->tkBoxingTypes.at(i);
-        if (typeInfo == (UINT32)BoxingType::TYPE_UNKNOWN)
+        if (typeInfo == (typeBoxingType | BoxingType::TYPE_UNKNOWN))
         {
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;

@@ -249,7 +249,6 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
     return S_OK;
 }
 
-
 HRESULT ProbeInstrumentation::Disable()
 {
     HRESULT hr;
@@ -317,6 +316,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 
     if (FAILED(hr))
     {
+        m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes, reverting (hr: 0x%08x)"), hr);
         RequestFunctionProbeShutdown();
         return hr;
     }
