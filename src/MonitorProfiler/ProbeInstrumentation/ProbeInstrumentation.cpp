@@ -90,7 +90,7 @@ void ProbeInstrumentation::ShutdownBackgroundService()
     m_probeManagementThread.join();
 }
 
-HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG count, ULONG32 boxingTokens[], ULONG boxingTokenCounts[])
+HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG32 count, ULONG32 argumentBoxingInfo[], ULONG32 argumentCounts[])
 {
     m_pLogger->Log(LogLevel::Debug, _LS("Probe installation requested"));
 
@@ -102,15 +102,20 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(ULONG64 functionI
     {
         vector<ULONG32> tokens;
         ULONG j;
-        for (j = 0; j < boxingTokenCounts[i]; j++)
+
+        for (j = 0; j < argumentCounts[i]; j++)
         {
-            tokens.push_back(boxingTokens[offset+j]);
+            tokens.push_back(argumentBoxingInfo[offset+j]);
         }
 
+        if (UINT32_MAX - offset < argumentCounts[i])
+        {
+            return E_INVALIDARG;
+        }
         offset += j;
 
         UNPROCESSED_INSTRUMENTATION_REQUEST request;
-        request.functionId = (FunctionID)functionIds[i];
+        request.functionId = static_cast<FunctionID>(functionIds[i]);
         request.boxingTypes = tokens;
 
         requests.push_back(request);
@@ -165,7 +170,7 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
     for (auto const& req : requests)
     {
         INSTRUMENTATION_REQUEST request;
-        request.uniquifier = (ULONG64)req.functionId;
+        request.uniquifier = static_cast<ULONG64>(req.functionId);
         request.boxingTypes = req.boxingTypes;
 
         IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(
@@ -194,7 +199,7 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
 
     IfFailLogRet(m_pCorProfilerInfo->RequestReJITWithInliners(
         COR_PRF_REJIT_BLOCK_INLINING | COR_PRF_REJIT_INLINING_CALLBACKS,
-        (ULONG)requestedModuleIds.size(),
+        static_cast<ULONG>(requestedModuleIds.size()),
         requestedModuleIds.data(),
         requestedMethodDefs.data()));
 
@@ -228,7 +233,7 @@ HRESULT ProbeInstrumentation::Disable()
     }
 
     IfFailLogRet(m_pCorProfilerInfo->RequestRevert(
-        (ULONG)moduleIds.size(),
+        static_cast<ULONG>(moduleIds.size()),
         moduleIds.data(),
         methodDefs.data(),
         nullptr));

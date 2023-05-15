@@ -34,6 +34,11 @@ HRESULT ProbeInjector::InstallProbe(
     IfNullRet(pICorProfilerInfo);
     IfNullRet(pICorProfilerFunctionControl);
 
+    if (request.boxingTypes.size() > UINT32_MAX)
+    {
+        return E_INVALIDARG;
+    }
+
     HRESULT hr;
     ILRewriter rewriter(pICorProfilerInfo, pICorProfilerFunctionControl, request.moduleId, request.methodDef);
     IfFailRet(rewriter.Import());
@@ -49,7 +54,7 @@ HRESULT ProbeInjector::InstallProbe(
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr* pNewInstr = nullptr;
 
-    INT32 numArgs = (INT32)request.boxingTypes.size();
+    UINT32 numArgs = static_cast<UINT32>(request.boxingTypes.size());
 
     /* uniquifier */
     pNewInstr = rewriter.NewILInstr();
@@ -71,7 +76,7 @@ HRESULT ProbeInjector::InstallProbe(
     pNewInstr->m_Arg32 = corLibTypeTokens.systemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-    for (INT32 i = 0; i < numArgs; i++)
+    for (UINT32 i = 0; i < numArgs; i++)
     {
         // New entry on the evaluation stack
         pNewInstr = rewriter.NewILInstr();
@@ -86,7 +91,7 @@ HRESULT ProbeInjector::InstallProbe(
 
         // Load arg
         ULONG32 typeInfo = request.boxingTypes.at(i);
-        if (typeInfo == (typeBoxingType | (UINT32)BoxingType::TYPE_UNKNOWN))
+        if (typeInfo == (typeBoxingType | static_cast<ULONG32>(BoxingType::TYPE_UNKNOWN)))
         {
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;
@@ -100,7 +105,7 @@ HRESULT ProbeInjector::InstallProbe(
             rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
             // Resolve the box type
-            mdToken boxedTypeToken = mdTokenNil;
+            mdToken boxedTypeToken;
             IfFailRet(GetBoxingToken(typeInfo, corLibTypeTokens, boxedTypeToken));
             if (boxedTypeToken != mdTokenNil)
             {

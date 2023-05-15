@@ -55,7 +55,7 @@ public:
 
 public:
     STDMETHOD(RegisterFunctionProbe)(FunctionID enterProbeId);
-    STDMETHOD(RequestFunctionProbeInstallation)(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[]);
+    STDMETHOD(RequestFunctionProbeInstallation)(UINT64 functionIds[], ULONG32 count, ULONG32 argumentBoxingInfo[], ULONG32 argumentCounts[]);
     STDMETHOD(RequestFunctionProbeShutdown)();
 
 private:

@@ -86,7 +86,7 @@ HRESULT AssemblyProbePrep::EmitProbeReference(
     mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
     IfFailRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
     IfFailRet(pMetadataAssemblyEmit->DefineAssemblyRef(
-        (const void *)m_probeCache.publicKey.get(),
+        reinterpret_cast<const void *>(m_probeCache.publicKey.get()),
         m_probeCache.publicKeyLength,
         m_probeCache.assemblyName.c_str(),
         &m_probeCache.assemblyMetadata,

@@ -70,7 +70,7 @@ class ProbeInstrumentation
 
         HRESULT RegisterFunctionProbe(FunctionID enterProbeId);
         HRESULT RequestFunctionProbeShutdown();
-        HRESULT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG count, ULONG32 boxingTokens[], ULONG boxingTokenCounts[]);
+        HRESULT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG32 count, ULONG32 argumentBoxingInfo[], ULONG32 argumentCounts[]);
 
         void AddProfilerEventMask(DWORD& eventsLow);
 
