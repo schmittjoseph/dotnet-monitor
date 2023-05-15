@@ -4,6 +4,7 @@
 #include <corhdr.h>
 #include <vector>
 #include <memory>
+#include "tstring.h"
 
 typedef struct _COR_LIB_TYPE_TOKENS
 {
@@ -61,3 +62,17 @@ typedef struct _WORKER_PAYLOAD
     WorkerMessage message;
     std::vector<UNPROCESSED_INSTRUMENTATION_REQUEST> requests;
 } WORKER_PAYLOAD;
+
+typedef struct _PROBE_CACHE
+{
+    FunctionID functionId;
+    tstring assemblyName;
+    std::unique_ptr<BYTE[]> signature;
+    ULONG signatureLength;
+
+    std::unique_ptr<BYTE[]> publicKey;
+    ULONG publicKeyLength;
+
+    ASSEMBLYMETADATA assemblyMetadata;
+    DWORD assemblyFlags;
+} PROBE_CACHE;

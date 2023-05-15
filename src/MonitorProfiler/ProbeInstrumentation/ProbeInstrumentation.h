@@ -32,7 +32,8 @@ class ProbeInstrumentation
         std::mutex m_requestProcessingMutex;
 
         /* Cache */
-        FunctionID m_enterProbeId;
+        BOOL m_didHydrateCache;
+        PROBE_CACHE m_probeCache;
 
         ModuleID m_resolvedCorLibId;
         tstring m_resolvedCorLibName;
@@ -49,7 +50,6 @@ class ProbeInstrumentation
             mdToken* ptkType);
 
         HRESULT EmitProbeReference(
-            IMetaDataImport* pMetadataImport,
             IMetaDataEmit* pMetadataEmit,
             mdMemberRef* ptkProbeMemberRef);
 

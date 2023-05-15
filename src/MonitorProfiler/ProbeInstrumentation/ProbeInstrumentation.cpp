@@ -18,9 +18,10 @@ using namespace std;
 ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo) :
     m_pCorProfilerInfo(profilerInfo),
     m_pLogger(logger),
-    m_enterProbeId(0),
+    m_didHydrateCache(false),
     m_resolvedCorLibId(0)
 {
+    m_probeCache.functionId = 0;
 }
 
 HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
@@ -34,7 +35,7 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
     m_pLogger->Log(LogLevel::Information, _LS("Received probes."));
 
     // JSFIX: Validate the probe's signature before pinning it.
-    m_enterProbeId = enterProbeId;
+    m_probeCache.functionId = enterProbeId;
     
     return S_OK;
 }
@@ -143,7 +144,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
 
 BOOL ProbeInstrumentation::IsAvailable()
 {
-    return m_enterProbeId != 0;
+    return m_probeCache.functionId != 0;
 }
 
 HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>& requests)
@@ -240,7 +241,7 @@ HRESULT ProbeInstrumentation::PrepareAssemblyForProbes(ModuleID moduleId, mdMeth
 
     shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY> cacheEntry = make_shared<ASSEMBLY_PROBE_CACHE_ENTRY>();
     IfFailLogRet(EmitNecessaryCorLibTypeTokens(pMetadataImport, pMetadataEmit, &cacheEntry->corLibTypeTokens));
-    IfFailLogRet(EmitProbeReference(pMetadataImport, pMetadataEmit, &cacheEntry->tkProbeMemberRef));
+    IfFailLogRet(EmitProbeReference(pMetadataEmit, &cacheEntry->tkProbeMemberRef));
 
     auto cacheItr = m_AssemblyProbeCache.insert({moduleId, cacheEntry}).first;
     assemblyProbeInformation = cacheItr->second;
@@ -325,9 +326,75 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 
 HRESULT ProbeInstrumentation::HydrateProbeMetadata()
 {
+    if (m_didHydrateCache)
+    {
+        return S_OK;
+    }
+
     HRESULT hr;
     TypeNameUtilities typeNameUtilities(m_pCorProfilerInfo);
-    IfFailRet(typeNameUtilities.CacheNames(m_nameCache, m_enterProbeId, NULL));
+    IfFailRet(typeNameUtilities.CacheNames(m_nameCache, m_probeCache.functionId, NULL));
+
+    std::shared_ptr<FunctionData> probeFunctionData;
+    std::shared_ptr<ModuleData> probeModuleData;
+    if (!m_nameCache.TryGetFunctionData(m_probeCache.functionId, probeFunctionData) ||
+        !m_nameCache.TryGetModuleData(probeFunctionData->GetModuleId(), probeModuleData))
+    {
+        return E_UNEXPECTED;
+    }
+
+    ComPtr<IMetaDataImport> pProbeMetadataImport;
+    hr = m_pCorProfilerInfo->GetModuleMetaData(probeFunctionData->GetModuleId(), ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pProbeMetadataImport));
+    if (hr != S_OK)
+    {
+        return hr;
+    }
+
+    ComPtr<IMetaDataAssemblyImport> pProbeAssemblyImport;
+    IfFailLogRet(pProbeMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pProbeAssemblyImport)));
+    mdAssembly tkProbeAssembly;
+    IfFailLogRet(pProbeAssemblyImport->GetAssemblyFromScope(&tkProbeAssembly));
+
+    const BYTE *pPublicKey;
+    ULONG publicKeyLength = 0;
+    ASSEMBLYMETADATA metadata = {};
+    WCHAR szName[STRING_BUFFER_LEN];
+    ULONG actualLength = 0;
+    IfFailLogRet(pProbeAssemblyImport->GetAssemblyProps(
+        tkProbeAssembly,
+        (const void **)&pPublicKey,
+        &m_probeCache.publicKeyLength,
+        nullptr,
+        szName,
+        STRING_BUFFER_LEN,
+        &actualLength,
+        &metadata,
+        &m_probeCache.assemblyFlags));
+
+    m_probeCache.assemblyMetadata = metadata;
+    m_probeCache.assemblyName = tstring(szName);
+    m_probeCache.publicKey.reset(new (nothrow) BYTE[m_probeCache.publicKeyLength ]);
+    IfNullRet(m_probeCache.publicKey);
+    memcpy_s(m_probeCache.publicKey.get(), m_probeCache.publicKeyLength, pPublicKey, m_probeCache.publicKeyLength );
+
+    PCCOR_SIGNATURE pProbeSignature;
+    IfFailRet(pProbeMetadataImport->GetMethodProps(
+        probeFunctionData->GetMethodToken(),
+        nullptr,
+        nullptr,
+        NULL,
+        nullptr,
+        nullptr,
+        &pProbeSignature,
+        &m_probeCache.signatureLength,
+        nullptr,
+        nullptr));
+
+    m_probeCache.signature.reset(new (nothrow) BYTE[m_probeCache.signatureLength]);
+    IfNullRet(m_probeCache.signature);
+    memcpy_s(m_probeCache.signature.get(), m_probeCache.signatureLength, pProbeSignature, m_probeCache.signatureLength);
+
+    m_didHydrateCache = true;
 
     return S_OK;
 }
@@ -394,8 +461,16 @@ HRESULT ProbeInstrumentation::HydrateResolvedCorLib()
 
     tstring corLibName;
     TypeNameUtilities nameUtilities(m_pCorProfilerInfo);
-    IfFailLogRet(nameUtilities.GetModuleNameWithoutCache(candidateModuleId, corLibName));
-    
+    nameUtilities.CacheModuleNames(m_nameCache, candidateModuleId);
+
+    std::shared_ptr<ModuleData> moduleData;
+    if (!m_nameCache.TryGetModuleData(candidateModuleId, moduleData))
+    {
+        return E_UNEXPECTED;
+    }
+
+    corLibName = moduleData->GetName();
+   
     // .dll = 4 characters
     corLibName.erase(corLibName.length() - 4);
 
@@ -494,11 +569,9 @@ HRESULT ProbeInstrumentation::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMet
 }
 
 HRESULT ProbeInstrumentation::EmitProbeReference(
-    IMetaDataImport* pMetadataImport,
     IMetaDataEmit* pMetadataEmit,
     mdMemberRef* ptkProbeMemberRef)
 {
-    IfNullRet(pMetadataImport);
     IfNullRet(pMetadataEmit);
     IfNullRet(ptkProbeMemberRef);
 
@@ -507,57 +580,23 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
 
     std::shared_ptr<FunctionData> probeFunctionData;
     std::shared_ptr<ModuleData> probeModuleData;
-    if (!m_nameCache.TryGetFunctionData(m_enterProbeId, probeFunctionData) ||
+    if (!m_nameCache.TryGetFunctionData(m_probeCache.functionId, probeFunctionData) ||
         !m_nameCache.TryGetModuleData(probeFunctionData->GetModuleId(), probeModuleData))
     {
         return E_UNEXPECTED;
     }
 
-    ComPtr<IMetaDataImport> pProbeMetadataImport;
-    hr = m_pCorProfilerInfo->GetModuleMetaData(probeFunctionData->GetModuleId(), ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pProbeMetadataImport));
-    if (hr != S_OK)
-    {
-        return hr;
-    }
-
-    PCCOR_SIGNATURE pProbeSignature;
-    ULONG probeSignatureLength;
-    IfFailRet(pProbeMetadataImport->GetMethodProps(
-        probeFunctionData->GetMethodToken(),
-        nullptr,
-        nullptr,
-        NULL,
-        nullptr,
-        nullptr,
-        &pProbeSignature,
-        &probeSignatureLength,
-        nullptr,
-        nullptr));
-
-    ComPtr<IMetaDataAssemblyImport> pProbeAssemblyImport;
-    IfFailLogRet(pProbeMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pProbeAssemblyImport)));
-    mdAssembly tkProbeAssembly;
-    IfFailLogRet(pProbeAssemblyImport->GetAssemblyFromScope(&tkProbeAssembly));
-
-    const BYTE *pbPublicKey;
-    ULONG cbPublicKey = 0;
-    ASSEMBLYMETADATA metaData = {};
-    WCHAR szName[STRING_BUFFER_LEN];
-    ULONG actualLength = 0;
-    DWORD dwFlags = 0;
-    IfFailLogRet(pProbeAssemblyImport->GetAssemblyProps(tkProbeAssembly, (const void **)&pbPublicKey, &cbPublicKey, nullptr, szName, STRING_BUFFER_LEN, &actualLength, &metaData, &dwFlags));
-
     ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
     mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
     IfFailLogRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
     IfFailLogRet(pMetadataAssemblyEmit->DefineAssemblyRef(
-        (const void *)pbPublicKey,
-        cbPublicKey,
-        szName,
-        &metaData,
+        (const void *)m_probeCache.publicKey.get(),
+        m_probeCache.publicKeyLength,
+        m_probeCache.assemblyName.c_str(),
+        &m_probeCache.assemblyMetadata,
         NULL,
         0,
-        dwFlags,
+        m_probeCache.assemblyFlags,
         &tkProbeAssemblyRef));
 
     tstring className;
@@ -565,7 +604,7 @@ HRESULT ProbeInstrumentation::EmitProbeReference(
 
     mdTypeRef refToken = mdTokenNil;
     IfFailLogRet(pMetadataEmit->DefineTypeRefByName(tkProbeAssemblyRef, className.c_str(), &refToken));
-    IfFailLogRet(pMetadataEmit->DefineMemberRef(refToken, probeFunctionData->GetName().c_str(), pProbeSignature, probeSignatureLength, ptkProbeMemberRef));
+    IfFailLogRet(pMetadataEmit->DefineMemberRef(refToken, probeFunctionData->GetName().c_str(), m_probeCache.signature.get(), m_probeCache.signatureLength, ptkProbeMemberRef));
 
     return S_OK;
 }
