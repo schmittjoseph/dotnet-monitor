@@ -26,7 +26,10 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
         return E_FAIL;
     }
 
-    m_pLogger->Log(LogLevel::Information, _LS("Received probes."));
+    m_pLogger->Log(LogLevel::Debug, _LS("Received probes"));
+
+    m_pAssemblyProbePrep.reset(new (nothrow) AssemblyProbePrep(m_pCorProfilerInfo, enterProbeId));
+    IfNullRet(m_pAssemblyProbePrep);
 
     // JSFIX: Validate the probe's signature before pinning it.
     m_probeFunctionId = enterProbeId;
@@ -91,7 +94,7 @@ void ProbeInstrumentation::ShutdownBackgroundService()
 
 HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(UINT64 functionIds[], ULONG count, UINT32 boxingTokens[], ULONG boxingTokenCounts[])
 {
-    m_pLogger->Log(LogLevel::Information, _LS("Probe installation requested"));
+    m_pLogger->Log(LogLevel::Debug, _LS("Probe installation requested"));
 
     vector<UNPROCESSED_INSTRUMENTATION_REQUEST> requests;
     requests.reserve(count);
@@ -151,12 +154,6 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
         IsEnabled())
     {
         return E_FAIL;
-    }
-
-    if (!m_pAssemblyProbePrep)
-    {
-        m_pAssemblyProbePrep.reset(new (nothrow) AssemblyProbePrep(m_pCorProfilerInfo, m_probeFunctionId));
-        IfNullRet(m_pAssemblyProbePrep);
     }
 
     unordered_map<pair<ModuleID, mdMethodDef>, INSTRUMENTATION_REQUEST, PairHash<ModuleID, mdMethodDef>> newRequests;
@@ -275,7 +272,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 
     if (FAILED(hr))
     {
-        m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes, reverting (hr: 0x%08x)"), hr);
+        m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes, reverting: 0x%08x"), hr);
         RequestFunctionProbeShutdown();
         return hr;
     }
