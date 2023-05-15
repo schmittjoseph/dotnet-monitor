@@ -231,19 +231,22 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
         {
             mdAssemblyRef curRef = mdRefs[i];
 
-            // Get the name.
-            ULONG cchName = 0;
+            ULONG nameLength = 0;
             hr = pMetadataAssemblyImport->GetAssemblyRefProps(
                 curRef,
-                nullptr, nullptr, // public key or token
-                assemblyName.get(), expectedLength, &cchName, // name
-                nullptr, // metadata
-                nullptr, nullptr, // hash value
-                nullptr); // flags
+                nullptr,
+                nullptr,
+                assemblyName.get(),
+                expectedLength,
+                &nameLength,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr);
 
-            // Current assembly's name is longer than corlib's
             if (hr == CLDB_S_TRUNCATION)
             {
+                // Current assembly's name is longer than corlib's
                 continue;
             }
             else if (hr != S_OK)
@@ -252,7 +255,7 @@ HRESULT AssemblyProbePrep::GetTokenForCorLibAssemblyRef(IMetaDataImport* pMetada
                 return hr;
             }
 
-            if (cchName != expectedLength)
+            if (nameLength != expectedLength)
             {
                 continue;
             }
