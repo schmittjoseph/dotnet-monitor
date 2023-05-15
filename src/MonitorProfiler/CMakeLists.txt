@@ -29,6 +29,7 @@ set(SOURCES
     MainProfiler/ThreadDataManager.cpp
     Stacks/StacksEventProvider.cpp
     Stacks/StackSampler.cpp
+    ProbeInstrumentation/AssemblyProbePrep.cpp
     ProbeInstrumentation/ProbeInstrumentation.cpp
     ProbeInstrumentation/ProbeInjector.cpp
     Utilities/ILRewriter.cpp

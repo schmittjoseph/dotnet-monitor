@@ -4,6 +4,7 @@
 #pragma once
 
 #include "InstrumentationRequest.h"
+#include "AssemblyProbePrep.h"
 #include <vector>
 
 class ProbeInjector
@@ -18,5 +19,5 @@ class ProbeInjector
         static HRESULT GetBoxingToken(
             UINT32 typeInfo,
             mdToken* ptkBoxedType,
-            COR_LIB_TYPE_TOKENS* pCorLibTypeTokens);
+            const COR_LIB_TYPE_TOKENS pCorLibTypeTokens);
 };

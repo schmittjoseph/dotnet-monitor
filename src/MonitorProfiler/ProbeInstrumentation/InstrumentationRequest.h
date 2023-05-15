@@ -4,34 +4,8 @@
 #include <corhdr.h>
 #include <vector>
 #include <memory>
+#include "AssemblyProbePrep.h"
 #include "tstring.h"
-
-typedef struct _COR_LIB_TYPE_TOKENS
-{
-    mdToken
-        tkSystemBooleanType,
-        tkSystemByteType,
-        tkSystemCharType,
-        tkSystemDoubleType,
-        tkSystemInt16Type,
-        tkSystemInt32Type,
-        tkSystemInt64Type,
-        tkSystemObjectType,
-        tkSystemSByteType,
-        tkSystemSingleType,
-        tkSystemStringType,
-        tkSystemUInt16Type,
-        tkSystemUInt32Type,
-        tkSystemUInt64Type,
-        tkSystemIntPtrType,
-        tkSystemUIntPtrType;
-} COR_LIB_TYPE_TOKENS;
-
-typedef struct _ASSEMBLY_PROBE_CACHE_ENTRY
-{
-    COR_LIB_TYPE_TOKENS corLibTypeTokens;
-    mdMemberRef tkProbeMemberRef;
-} ASSEMBLY_PROBE_CACHE_ENTRY;
 
 typedef struct _UNPROCESSED_INSTRUMENTATION_REQUEST
 {
@@ -47,32 +21,5 @@ typedef struct _INSTRUMENTATION_REQUEST
     ModuleID moduleId;
     mdMethodDef methodDef;
 
-    std::shared_ptr<ASSEMBLY_PROBE_CACHE_ENTRY> assemblyProbeInformation;
+    std::shared_ptr<AssemblyProbePrepData> pAssemblyData;
 } INSTRUMENTATION_REQUEST;
-
-// JSFIX: Not worker anymore
-typedef enum WorkerMessage
-{
-    INSTALL_PROBES,
-    UNINSTALL_PROBES
-} WorkerMessage;
-
-typedef struct _WORKER_PAYLOAD
-{
-    WorkerMessage message;
-    std::vector<UNPROCESSED_INSTRUMENTATION_REQUEST> requests;
-} WORKER_PAYLOAD;
-
-typedef struct _PROBE_CACHE
-{
-    FunctionID functionId;
-    tstring assemblyName;
-    std::unique_ptr<BYTE[]> signature;
-    ULONG signatureLength;
-
-    std::unique_ptr<BYTE[]> publicKey;
-    ULONG publicKeyLength;
-
-    ASSEMBLYMETADATA assemblyMetadata;
-    DWORD assemblyFlags;
-} PROBE_CACHE;

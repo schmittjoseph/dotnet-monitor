@@ -68,7 +68,7 @@ HRESULT ProbeInjector::InstallProbe(
     // Create the array
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_NEWARR;
-    pNewInstr->m_Arg32 = pRequest->assemblyProbeInformation->corLibTypeTokens.tkSystemObjectType;
+    pNewInstr->m_Arg32 = pRequest->pAssemblyData->GetCorLibTypeTokens().tkSystemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     for (INT32 i = 0; i < numArgs; i++)
@@ -101,7 +101,7 @@ HRESULT ProbeInjector::InstallProbe(
 
             // Resolve the box type
             mdToken tkBoxedType = mdTokenNil;
-            IfFailRet(GetBoxingToken(typeInfo, &tkBoxedType, &pRequest->assemblyProbeInformation->corLibTypeTokens));
+            IfFailRet(GetBoxingToken(typeInfo, &tkBoxedType, pRequest->pAssemblyData->GetCorLibTypeTokens()));
             if (tkBoxedType != mdTokenNil)
             {
                 pNewInstr = rewriter.NewILInstr();
@@ -119,7 +119,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_CALL;
-    pNewInstr->m_Arg32 = pRequest->assemblyProbeInformation->tkProbeMemberRef;
+    pNewInstr->m_Arg32 = pRequest->pAssemblyData->GetProbeMemberRef();
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     IfFailRet(rewriter.Export());
@@ -130,10 +130,9 @@ HRESULT ProbeInjector::InstallProbe(
 HRESULT ProbeInjector::GetBoxingToken(
     UINT32 typeInfo,
     mdToken* ptkBoxedType,
-    COR_LIB_TYPE_TOKENS* pCorLibTypeTokens)
+    const COR_LIB_TYPE_TOKENS corLibTypeTokens)
 {
     IfNullRet(ptkBoxedType);
-    IfNullRet(pCorLibTypeTokens);
     *ptkBoxedType = mdTokenNil;
 
     if (TypeFromToken(typeInfo) != typeBoxingType)
@@ -145,40 +144,40 @@ HRESULT ProbeInjector::GetBoxingToken(
     switch(static_cast<BoxingType>(RidFromToken(typeInfo)))
     {
     case BoxingType::TYPE_BOOLEAN:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemBooleanType;
+        *ptkBoxedType = corLibTypeTokens.tkSystemBooleanType;
         break;
     case BoxingType::TYPE_BYTE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemByteType;
+        *ptkBoxedType = corLibTypeTokens.tkSystemByteType;
         break;
     case BoxingType::TYPE_CHAR:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemCharType;
+        *ptkBoxedType = corLibTypeTokens.tkSystemCharType;
         break;
     case BoxingType::TYPE_DOUBLE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemDoubleType;
+        *ptkBoxedType = corLibTypeTokens.tkSystemDoubleType;
         break;
     case BoxingType::TYPE_INT16:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt16Type;
+        *ptkBoxedType = corLibTypeTokens.tkSystemInt16Type;
         break;
     case BoxingType::TYPE_INT32:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt32Type;
+        *ptkBoxedType = corLibTypeTokens.tkSystemInt32Type;
         break;
     case BoxingType::TYPE_INT64:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemInt64Type;
+        *ptkBoxedType = corLibTypeTokens.tkSystemInt64Type;
         break;
     case BoxingType::TYPE_SBYTE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemSByteType;
+        *ptkBoxedType = corLibTypeTokens.tkSystemSByteType;
         break;
     case BoxingType::TYPE_SINGLE:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemSingleType;
+        *ptkBoxedType = corLibTypeTokens.tkSystemSingleType;
         break;
     case BoxingType::TYPE_UINT16:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt16Type;
+        *ptkBoxedType = corLibTypeTokens.tkSystemUInt16Type;
         break;
     case BoxingType::TYPE_UINT32:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt32Type;
+        *ptkBoxedType = corLibTypeTokens.tkSystemUInt32Type;
         break;
     case BoxingType::TYPE_UINT64:
-        *ptkBoxedType = pCorLibTypeTokens->tkSystemUInt64Type;
+        *ptkBoxedType = corLibTypeTokens.tkSystemUInt64Type;
         break;
 
     case BoxingType::TYPE_OBJECT:
