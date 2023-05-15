@@ -19,7 +19,6 @@ class TypeNameUtilities
         HRESULT CacheNames(NameCache& nameCache, ClassID classId);
         HRESULT CacheNames(NameCache& nameCache, FunctionID functionId, COR_PRF_FRAME_INFO frameInfo);
         HRESULT CacheModuleNames(NameCache& nameCache, ModuleID moduleId);
-        HRESULT GetModuleNameWithoutCache(ModuleID moduleId, tstring& name);
 
     private:
         HRESULT GetFunctionInfo(NameCache& nameCache, FunctionID id, COR_PRF_FRAME_INFO frameInfo);

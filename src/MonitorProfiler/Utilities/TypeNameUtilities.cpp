@@ -79,10 +79,10 @@ HRESULT TypeNameUtilities::GetFunctionInfo(NameCache& nameCache, FunctionID id, 
         256,
         0,
         0,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr));
+        NULL,
+        NULL,
+        NULL,
+        NULL));
 
     IfFailRet(GetModuleInfo(nameCache, moduleId));
 
@@ -179,7 +179,7 @@ HRESULT TypeNameUtilities::GetTypeDefName(NameCache& nameCache, ModuleID moduleI
     HRESULT hr;
     ComPtr<IMetaDataImport2> pMDImport;
     IfFailRet(_profilerInfo->GetModuleMetaData(moduleId,
-        ofRead,
+        (ofRead | ofWrite),
         IID_IMetaDataImport2,
         (IUnknown**)&pMDImport));
 
@@ -214,7 +214,7 @@ HRESULT TypeNameUtilities::GetTypeDefName(NameCache& nameCache, ModuleID moduleI
     return S_OK;
 }
 
-HRESULT TypeNameUtilities::GetModuleNameWithoutCache(ModuleID moduleId, tstring& name)
+HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId)
 {
     if (moduleId == 0)
     {
@@ -223,13 +223,19 @@ HRESULT TypeNameUtilities::GetModuleNameWithoutCache(ModuleID moduleId, tstring&
 
     HRESULT hr;
 
+    std::shared_ptr<ModuleData> mod;
+    if (nameCache.TryGetModuleData(moduleId, mod))
+    {
+        return S_OK;
+    }
+
     WCHAR moduleFullName[256];
     ULONG nameLength = 0;
     AssemblyID assemblyID;
 
     IfFailRet(_profilerInfo->GetModuleInfo(moduleId,
         nullptr,
-        sizeof(moduleFullName)/sizeof(WCHAR),
+        256,
         &nameLength,
         moduleFullName,
         &assemblyID));
@@ -256,29 +262,6 @@ HRESULT TypeNameUtilities::GetModuleNameWithoutCache(ModuleID moduleId, tstring&
         moduleName = tstring(moduleFullName, pathSeparatorIndex + 1, nameLength - pathSeparatorIndex - 1);
     }
 
-    name = std::move(moduleName);
-
-    return S_OK;
-}
-
-
-HRESULT TypeNameUtilities::GetModuleInfo(NameCache& nameCache, ModuleID moduleId)
-{
-    if (moduleId == 0)
-    {
-        return E_INVALIDARG;
-    }
-
-    HRESULT hr;
-
-    std::shared_ptr<ModuleData> mod;
-    if (nameCache.TryGetModuleData(moduleId, mod))
-    {
-        return S_OK;
-    }
-
-    tstring moduleName;
-    IfFailRet(GetModuleNameWithoutCache(moduleId, moduleName));
     nameCache.AddModuleData(moduleId, std::move(moduleName));
 
     return S_OK;
