@@ -415,20 +415,20 @@ HRESULT AssemblyProbePrep::HydrateProbeMetadata()
     ULONG publicKeyLength = 0;
     ASSEMBLYMETADATA metadata = {};
 
-    WCHAR szName[STRING_BUFFER_LEN];
+    WCHAR assemblyName[STRING_BUFFER_LEN];
     IfFailRet(pProbeAssemblyImport->GetAssemblyProps(
         probeAssemblyToken,
         (const void **)&pPublicKey,
         &m_probeCache.publicKeyLength,
         nullptr,
-        szName,
+        assemblyName,
         STRING_BUFFER_LEN,
         nullptr,
         &metadata,
         &m_probeCache.assemblyFlags));
 
     m_probeCache.assemblyMetadata = metadata;
-    m_probeCache.assemblyName = tstring(szName);
+    m_probeCache.assemblyName = tstring(assemblyName);
     m_probeCache.publicKey.reset(new (nothrow) BYTE[m_probeCache.publicKeyLength ]);
     IfNullRet(m_probeCache.publicKey);
     memcpy_s(m_probeCache.publicKey.get(), m_probeCache.publicKeyLength, pPublicKey, m_probeCache.publicKeyLength );

@@ -18,7 +18,7 @@ ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, IC
 
 HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 {
-    if (IsAvailable())
+    if (HasProbes())
     {
         // Probes have already been pinned.
         return E_FAIL;
@@ -101,6 +101,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(ULONG64 functionI
     for (ULONG i = 0; i < count; i++)
     {
         vector<ULONG32> tokens;
+        tokens.reserve(argumentCounts[i]);
         ULONG j;
 
         for (j = 0; j < argumentCounts[i]; j++)
@@ -130,7 +131,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
 {
     m_pLogger->Log(LogLevel::Debug, _LS("Probe shutdown requested"));
 
-    if (!IsAvailable())
+    if (!HasProbes())
     {
         return S_FALSE;
     }
@@ -142,7 +143,7 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeShutdown()
     return S_OK;
 }
 
-BOOL ProbeInstrumentation::IsAvailable()
+BOOL ProbeInstrumentation::HasProbes()
 {
     return m_probeFunctionId != 0;
 }
@@ -153,7 +154,7 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
 
     lock_guard<mutex> lock(m_requestProcessingMutex);
 
-    if (!IsAvailable() ||
+    if (!HasProbes() ||
         IsEnabled())
     {
         return E_FAIL;
