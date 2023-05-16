@@ -49,8 +49,7 @@ private:
     COR_LIB_TYPE_TOKENS m_corLibTypeTokens;
 };
 
-
-typedef struct _PROBE_CACHE
+typedef struct _PROBE_INFO_CACHE
 {
     tstring assemblyName;
     std::unique_ptr<BYTE[]> signature;
@@ -61,8 +60,7 @@ typedef struct _PROBE_CACHE
 
     ASSEMBLYMETADATA assemblyMetadata;
     DWORD assemblyFlags;
-} PROBE_CACHE;
-
+} PROBE_INFO_CACHE;
 
 class AssemblyProbePrep
 {
@@ -76,7 +74,7 @@ class AssemblyProbePrep
 
         FunctionID m_probeFunctionId;
         bool m_didHydrateProbeCache;
-        PROBE_CACHE m_probeCache;
+        PROBE_INFO_CACHE m_probeCache;
 
         std::unordered_map<ModuleID, std::shared_ptr<AssemblyProbePrepData>> m_assemblyProbeCache;
 

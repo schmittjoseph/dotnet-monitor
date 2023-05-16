@@ -8,8 +8,8 @@
 
 #include <vector>
 
-const ULONG32 typeBoxingType = 0xff000000;
-enum class BoxingType : ULONG32
+constexpr ULONG32 SpecialCaseBoxingTypeFlag = 0xff000000;
+enum class SpecialCaseBoxingTypes : ULONG32
 {
     TYPE_UNKNOWN = 0,
     TYPE_OBJECT,
@@ -48,8 +48,8 @@ HRESULT ProbeInjector::InstallProbe(
 
     //
     // JSFIX: Wrap the probe in a try/catch.
-    // In the catch PINVOKE into the profiler, notifying that a probe exception
-    // occurred and the probes need to be uninstalled.
+    // Consider: In the catch, try/catch a PINVOKE into the profiler,
+    // notifying that a probe exception occurred and the probes need to be uninstalled.
     //
 
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
@@ -92,7 +92,7 @@ HRESULT ProbeInjector::InstallProbe(
 
         // Load arg
         ULONG32 typeInfo = request.boxingTypes.at(i);
-        if (typeInfo == (typeBoxingType | static_cast<ULONG32>(BoxingType::TYPE_UNKNOWN)))
+        if (typeInfo == (SpecialCaseBoxingTypeFlag | static_cast<ULONG32>(SpecialCaseBoxingTypes::TYPE_UNKNOWN)))
         {
             pNewInstr = rewriter.NewILInstr();
             pNewInstr->m_opcode = CEE_LDNULL;
@@ -140,56 +140,56 @@ HRESULT ProbeInjector::GetBoxingToken(
 {
     boxedType = mdTokenNil;
 
-    if (TypeFromToken(typeInfo) != typeBoxingType)
+    if (TypeFromToken(typeInfo) != SpecialCaseBoxingTypeFlag)
     {
         boxedType = static_cast<mdToken>(typeInfo);
         return S_OK;
     }
 
-    switch(static_cast<BoxingType>(RidFromToken(typeInfo)))
+    switch(static_cast<SpecialCaseBoxingTypes>(RidFromToken(typeInfo)))
     {
-    case BoxingType::TYPE_BOOLEAN:
+    case SpecialCaseBoxingTypes::TYPE_BOOLEAN:
         boxedType = corLibTypeTokens.systemBooleanType;
         break;
-    case BoxingType::TYPE_BYTE:
+    case SpecialCaseBoxingTypes::TYPE_BYTE:
         boxedType = corLibTypeTokens.systemByteType;
         break;
-    case BoxingType::TYPE_CHAR:
+    case SpecialCaseBoxingTypes::TYPE_CHAR:
         boxedType = corLibTypeTokens.systemCharType;
         break;
-    case BoxingType::TYPE_DOUBLE:
+    case SpecialCaseBoxingTypes::TYPE_DOUBLE:
         boxedType = corLibTypeTokens.systemDoubleType;
         break;
-    case BoxingType::TYPE_INT16:
+    case SpecialCaseBoxingTypes::TYPE_INT16:
         boxedType = corLibTypeTokens.systemInt16Type;
         break;
-    case BoxingType::TYPE_INT32:
+    case SpecialCaseBoxingTypes::TYPE_INT32:
         boxedType = corLibTypeTokens.systemInt32Type;
         break;
-    case BoxingType::TYPE_INT64:
+    case SpecialCaseBoxingTypes::TYPE_INT64:
         boxedType = corLibTypeTokens.systemInt64Type;
         break;
-    case BoxingType::TYPE_SBYTE:
+    case SpecialCaseBoxingTypes::TYPE_SBYTE:
         boxedType = corLibTypeTokens.systemSByteType;
         break;
-    case BoxingType::TYPE_SINGLE:
+    case SpecialCaseBoxingTypes::TYPE_SINGLE:
         boxedType = corLibTypeTokens.systemSingleType;
         break;
-    case BoxingType::TYPE_UINT16:
+    case SpecialCaseBoxingTypes::TYPE_UINT16:
         boxedType = corLibTypeTokens.systemUInt16Type;
         break;
-    case BoxingType::TYPE_UINT32:
+    case SpecialCaseBoxingTypes::TYPE_UINT32:
         boxedType = corLibTypeTokens.systemUInt32Type;
         break;
-    case BoxingType::TYPE_UINT64:
+    case SpecialCaseBoxingTypes::TYPE_UINT64:
         boxedType = corLibTypeTokens.systemUInt64Type;
         break;
 
-    case BoxingType::TYPE_OBJECT:
+    case SpecialCaseBoxingTypes::TYPE_OBJECT:
         // No boxing needed.
         break;
 
-    case BoxingType::TYPE_UNKNOWN:
+    case SpecialCaseBoxingTypes::TYPE_UNKNOWN:
     default:
         return E_FAIL;
     }
