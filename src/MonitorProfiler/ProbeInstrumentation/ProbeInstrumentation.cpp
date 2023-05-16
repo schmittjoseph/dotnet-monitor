@@ -170,6 +170,9 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
     for (auto const& req : requests)
     {
         INSTRUMENTATION_REQUEST request;
+
+        // For now just use the function id as the uniquifier.
+        // Consider allowing the calling to specificy one.
         request.uniquifier = static_cast<ULONG64>(req.functionId);
         request.boxingTypes = req.boxingTypes;
 
@@ -183,7 +186,6 @@ HRESULT ProbeInstrumentation::Enable(vector<UNPROCESSED_INSTRUMENTATION_REQUEST>
             nullptr,
             nullptr));
 
-        mdMemberRef tkProbeFunction = mdMemberRefNil;
         IfFailLogRet(m_pAssemblyProbePrep->PrepareAssemblyForProbes(request.moduleId));
 
         requestedModuleIds.push_back(request.moduleId);

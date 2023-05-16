@@ -12,8 +12,6 @@ using namespace std;
 #define ENUM_BUFFER_SIZE 10
 #define STRING_BUFFER_LEN 256
 
-#define IfNotExplicitSuccessRet(EXPR) do { hr = (EXPR); if(hr != S_OK) { return (hr); } } while (0)
-
 AssemblyProbePrep::AssemblyProbePrep(ICorProfilerInfo12* profilerInfo, FunctionID probeFunctionId) :
     m_pCorProfilerInfo(profilerInfo),
     m_resolvedCorLibId(0),
@@ -82,7 +80,7 @@ HRESULT AssemblyProbePrep::EmitProbeReference(
         reinterpret_cast<IUnknown **>(&pMetadataEmit)));
 
     ComPtr<IMetaDataAssemblyEmit> pMetadataAssemblyEmit;
-    mdAssemblyRef tkProbeAssemblyRef = mdAssemblyRefNil;
+    mdAssemblyRef probeAssemblyRefToken = mdAssemblyRefNil;
     IfFailRet(pMetadataEmit->QueryInterface(IID_IMetaDataAssemblyEmit, reinterpret_cast<void **>(&pMetadataAssemblyEmit)));
     IfFailRet(pMetadataAssemblyEmit->DefineAssemblyRef(
         reinterpret_cast<const void *>(m_probeCache.publicKey.get()),
@@ -92,14 +90,14 @@ HRESULT AssemblyProbePrep::EmitProbeReference(
         NULL,
         0,
         m_probeCache.assemblyFlags,
-        &tkProbeAssemblyRef));
+        &probeAssemblyRefToken));
 
     tstring className;
     IfFailRet(m_nameCache.GetFullyQualifiedClassName(probeFunctionData->GetClass(), className));
 
     mdTypeRef classTypeRef;
     IfFailRet(pMetadataEmit->DefineTypeRefByName(
-        tkProbeAssemblyRef,
+        probeAssemblyRefToken,
         className.c_str(),
         &classTypeRef));
 
@@ -184,21 +182,21 @@ HRESULT AssemblyProbePrep::GetTokenForType(
 
     typeToken = mdTokenNil;
 
-    mdTypeRef tkType;
+    mdTypeRef typeRefToken;
     hr = pMetadataImport->FindTypeRef(
         resolutionScope,
         name.c_str(),
-        &tkType);
+        &typeRefToken);
 
-    if (FAILED(hr) || tkType == mdTokenNil)
+    if (FAILED(hr))
     {
         IfFailRet(pMetadataEmit->DefineTypeRefByName(
             resolutionScope,
             name.c_str(),
-            &tkType));
+            &typeRefToken));
     }
 
-    typeToken = tkType;
+    typeToken = typeRefToken;
     return S_OK;
 }
 
@@ -304,35 +302,35 @@ HRESULT AssemblyProbePrep::HydrateResolvedCorLib()
     }
 
     HRESULT hr;
-    ModuleID candidateModuleId = 0;
-    ComPtr<ICorProfilerModuleEnum> pEnum = NULL;
-    ModuleID curModule;
+    ModuleID corLibId;
+    ComPtr<ICorProfilerModuleEnum> pEnum;
+    ModuleID curModuleId;
     mdTypeDef sysObjectTypeDef = mdTypeDefNil;
 
     IfFailRet(m_pCorProfilerInfo->EnumModules(&pEnum));
-    while (pEnum->Next(1, &curModule, NULL) == S_OK)
+    while (pEnum->Next(1, &curModuleId, NULL) == S_OK)
     {
         //
         // Determine the identity of the System assembly by querying if the Assembly defines the
         // well known type "System.Object" as that type must be defined by the System assembly
         //
-        mdTypeDef tkObjectTypeDef = mdTypeDefNil;
+        mdTypeDef objectTypeDef = mdTypeDefNil;
 
-        ComPtr<IMetaDataImport> curMetadataImporter;
-        hr = m_pCorProfilerInfo->GetModuleMetaData(curModule, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&curMetadataImporter));
+        ComPtr<IMetaDataImport> pMetadataImport;
+        hr = m_pCorProfilerInfo->GetModuleMetaData(curModuleId, ofRead, IID_IMetaDataImport, reinterpret_cast<IUnknown **>(&pMetadataImport));
         if (hr != S_OK)
         {
             continue;
         }
 
-        if (curMetadataImporter->FindTypeDefByName(_T("System.Object"), mdTokenNil, &tkObjectTypeDef) != S_OK)
+        if (pMetadataImport->FindTypeDefByName(_T("System.Object"), mdTokenNil, &objectTypeDef) != S_OK)
         {
             continue;
         }
 
-        DWORD dwClassAttrs = 0;
-        mdToken tkExtends = mdTokenNil;
-        if (curMetadataImporter->GetTypeDefProps(tkObjectTypeDef, nullptr, 0, nullptr, &dwClassAttrs, &tkExtends) != S_OK)
+        DWORD classAttributes = 0;
+        mdToken extendsToken = mdTokenNil;
+        if (pMetadataImport->GetTypeDefProps(objectTypeDef, nullptr, 0, nullptr, &classAttributes, &extendsToken) != S_OK)
         {
             continue;
         }
@@ -341,12 +339,12 @@ HRESULT AssemblyProbePrep::HydrateResolvedCorLib()
         // Also check the type properties to make sure it is a class and not a value-type definition
         // and that this type definition isn't extending another type.
         //
-        bool bExtends = curMetadataImporter->IsValidToken(tkExtends);
-        bool isClass = ((dwClassAttrs & tdClassSemanticsMask) == tdClass);
-        if (isClass & !bExtends)
+        bool doesExtend = pMetadataImport->IsValidToken(extendsToken);
+        bool isClass = ((classAttributes & tdClassSemanticsMask) == tdClass);
+        if (isClass & !doesExtend)
         {
-            candidateModuleId = curModule;
-            sysObjectTypeDef = tkObjectTypeDef;
+            corLibId = curModuleId;
+            sysObjectTypeDef = objectTypeDef;
             break;
         }
     }
@@ -358,21 +356,27 @@ HRESULT AssemblyProbePrep::HydrateResolvedCorLib()
 
     tstring corLibName;
     TypeNameUtilities nameUtilities(m_pCorProfilerInfo);
-    nameUtilities.CacheModuleNames(m_nameCache, candidateModuleId);
+    nameUtilities.CacheModuleNames(m_nameCache, corLibId);
 
     std::shared_ptr<ModuleData> moduleData;
-    if (!m_nameCache.TryGetModuleData(candidateModuleId, moduleData))
+    if (!m_nameCache.TryGetModuleData(corLibId, moduleData))
     {
         return E_UNEXPECTED;
     }
 
     corLibName = moduleData->GetName();
    
-    // .dll = 4 characters
-    corLibName.erase(corLibName.length() - 4);
+    // Trim the .dll file extension
+    constexpr LPCWSTR dllExtension = _T(".dll");
+    constexpr ULONG dllExtensionLength = sizeof(dllExtension)/sizeof(WCHAR);
+    if (corLibName.size() > dllExtensionLength &&
+        corLibName.compare(corLibName.length() - dllExtensionLength, dllExtensionLength, dllExtension))
+    {
+        corLibName.erase(corLibName.length() - dllExtensionLength);
+    }
 
     m_resolvedCorLibName = move(corLibName);
-    m_resolvedCorLibId = candidateModuleId;
+    m_resolvedCorLibId = corLibId;
     return S_OK;
 }
 
@@ -404,22 +408,22 @@ HRESULT AssemblyProbePrep::HydrateProbeMetadata()
 
     ComPtr<IMetaDataAssemblyImport> pProbeAssemblyImport;
     IfFailRet(pProbeMetadataImport->QueryInterface(IID_IMetaDataAssemblyImport, reinterpret_cast<void **>(&pProbeAssemblyImport)));
-    mdAssembly tkProbeAssembly;
-    IfFailRet(pProbeAssemblyImport->GetAssemblyFromScope(&tkProbeAssembly));
+    mdAssembly probeAssemblyToken;
+    IfFailRet(pProbeAssemblyImport->GetAssemblyFromScope(&probeAssemblyToken));
 
     const BYTE *pPublicKey;
     ULONG publicKeyLength = 0;
     ASSEMBLYMETADATA metadata = {};
+
     WCHAR szName[STRING_BUFFER_LEN];
-    ULONG actualLength = 0;
     IfFailRet(pProbeAssemblyImport->GetAssemblyProps(
-        tkProbeAssembly,
+        probeAssemblyToken,
         (const void **)&pPublicKey,
         &m_probeCache.publicKeyLength,
         nullptr,
         szName,
         STRING_BUFFER_LEN,
-        &actualLength,
+        nullptr,
         &metadata,
         &m_probeCache.assemblyFlags));
 
