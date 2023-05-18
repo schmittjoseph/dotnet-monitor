@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections;
 using System.Reflection;
 using System.Text;
 
@@ -15,33 +14,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (value == null)
             {
                 stringBuilder.Append("null");
-                return;
-            }
-
-            //  else if (typeOverride.IsArray)
-            // https://learn.microsoft.com/dotnet/csharp/programming-guide/arrays/multidimensional-arrays (rank)
-            IEnumerable? enumerable = (value as IEnumerable);
-            if (enumerable != null && value is not string)
-            {
-                stringBuilder.Append('[');
-                int j = 0;
-                foreach (object element in enumerable)
-                {
-                    if (j != 0)
-                    {
-                        stringBuilder.Append(", ");
-                    }
-
-                    if (j > 10)
-                    {
-                        EmitWrappedValue(stringBuilder, ParameterCapturingStrings.TruncatedArgumentValue, "{", "}");
-                        break;
-                    }
-
-                    EmitSerializedObject(stringBuilder, element);
-                    j++;
-                }
-                stringBuilder.Append(']');
                 return;
             }
 
