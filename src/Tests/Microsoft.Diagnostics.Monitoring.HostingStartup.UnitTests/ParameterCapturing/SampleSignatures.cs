@@ -16,6 +16,7 @@ namespace SampleSignatures
         public void ImplicitThis() { }
     }
 
+
 #pragma warning restore CA1822 // Mark members as static
 
     internal static class StaticTestMethodSignatures
@@ -51,6 +52,8 @@ namespace SampleSignatures
         public static void ValueTypeRef(TypeCode typeCode) { }
 
         public static void ValueTypeSpec(bool? b) { }
+
+        public static void Unicode_ΦΨ(bool δ) { }
 
     }
 }

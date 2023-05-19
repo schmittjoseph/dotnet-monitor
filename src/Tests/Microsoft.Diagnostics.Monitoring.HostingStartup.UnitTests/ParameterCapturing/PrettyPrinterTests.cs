@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [InlineData(typeof(TestMethodSignatures), nameof(TestMethodSignatures.ImplicitThis), "SampleSignatures.TestMethodSignatures.ImplicitThis(this: {0})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefStruct), "SampleSignatures.StaticTestMethodSignatures.RefStruct(ref myRefStruct: {{unsupported}})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.GenericParameters), "SampleSignatures.StaticTestMethodSignatures.GenericParameters<T, K>(t: {0}, k: {1})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Unicode_ΦΨ), "SampleSignatures.StaticTestMethodSignatures.Unicode_ΦΨ(δ: {0})")]
         public void MethodFormatString(Type t, string methodName, string formatString)
         {
             // Arrange
@@ -34,10 +35,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             uint[] tokens = BoxingTokens.GetBoxingTokens(method);
             bool[] supportedArgs = BoxingTokens.GetSupportedArgs(tokens);
             string actualFormatString = PrettyPrinter.ConstructFormattableStringFromMethod(method, supportedArgs);
-            actualFormatString = actualFormatString.ReplaceLineEndings("").Replace("\t", "");
-            _outputHelper.WriteLine(actualFormatString);
 
             // Assert
+            actualFormatString = actualFormatString.ReplaceLineEndings("").Replace("\t", "");
+            _outputHelper.WriteLine(actualFormatString);
             Assert.Equal(formatString, actualFormatString);
         }
     }
