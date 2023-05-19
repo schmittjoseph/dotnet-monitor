@@ -48,13 +48,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             int index = 0;
             ParameterInfo[] parameters = method.GetParameters();
 
-            if (parameters.Length != supportedArgs.Length)
+            int numberOfParameters = parameters.Length + (method.CallingConvention.HasFlag(CallingConventions.HasThis) ? 1 : 0);
+            if (numberOfParameters != supportedArgs.Length)
             {
                 return null;
             }
 
             if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
             {
+
                 if (EmitParameter(fmtStringBuilder, method.DeclaringType, "this", supportedArgs[index], fmtIndex))
                 {
                     fmtIndex++;
