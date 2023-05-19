@@ -52,6 +52,8 @@ public:
     /// </summary>
     HRESULT SetProductVersion();
 
+    HRESULT SetReflectivePath();
+
     HRESULT GetRuntimeInstanceId(tstring& instanceId);
 
     HRESULT GetSharedPath(tstring& instanceId);

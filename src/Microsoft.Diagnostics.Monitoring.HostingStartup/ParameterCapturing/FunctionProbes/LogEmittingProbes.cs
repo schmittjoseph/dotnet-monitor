@@ -6,28 +6,29 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
-    // Must be public.
-    public sealed class LogEmittingProbes : IFunctionProbes
+    public static class LogEmittingProbes
     {
-        private readonly InstrumentedMethodCache _methodCache;
-        private readonly EnterProbeDelegate _pinnedProbeDelegate;
-        private readonly ILogger _logger;
+        public delegate void EnterProbeDelegate(ulong uniquifier, object[] args);
 
-        public LogEmittingProbes(ILogger logger, InstrumentedMethodCache cache)
+        private static InstrumentedMethodCache? s_methodCache;
+        private static readonly EnterProbeDelegate s_pinnedProbeDelegate = EnterProbe;
+        private static ILogger? s_logger;
+
+        public static void Init(ILogger logger, InstrumentedMethodCache cache)
         {
-            _logger = logger;
-            _methodCache = cache;
-            _pinnedProbeDelegate = EnterProbe;
+            s_logger = logger;
+            s_methodCache = cache;
         }
 
-        public ulong GetProbeFunctionId()
+        public static ulong GetProbeFunctionId()
         {
-            return (ulong)_pinnedProbeDelegate.Method.MethodHandle.Value.ToInt64();
+            return (ulong)s_pinnedProbeDelegate.Method.MethodHandle.Value.ToInt64();
         }
 
-        public void EnterProbe(ulong uniquifier, object[] args)
+        public static void EnterProbe(ulong uniquifier, object[] args)
         {
-            if (!_methodCache.TryGetValue(uniquifier, out InstrumentedMethod instrumentedMethod) ||
+            if (s_logger == null ||
+                s_methodCache?.TryGetValue(uniquifier, out InstrumentedMethod instrumentedMethod) != true ||
                 args?.Length != instrumentedMethod.Parameters.Length)
             {
                 return;
@@ -47,7 +48,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 argBuilder.Clear();
             }
 
-            _logger.LogInformation(instrumentedMethod.PrettyPrintStringFormat, argValues);
+            s_logger.LogInformation(instrumentedMethod.PrettyPrintStringFormat, argValues);
             return;
         }
     }

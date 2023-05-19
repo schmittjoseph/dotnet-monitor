@@ -30,6 +30,19 @@ HRESULT EnvironmentHelper::GetDebugLoggerLevel(LogLevel& level)
     return S_OK;
 }
 
+HRESULT EnvironmentHelper::SetReflectivePath()
+{
+    HRESULT hr = S_OK;
+
+    tstring tstrLevel;
+    IfFailLogRet(_environment->SetEnvironmentVariable(
+        ProfilerVersionEnvVar,
+        tstrLevel
+        ));
+
+    return S_OK;
+}
+
 HRESULT EnvironmentHelper::SetProductVersion()
 {
     HRESULT hr = S_OK;

@@ -7,9 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -34,7 +32,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokenCounts);
 
 
-        private readonly IFunctionProbes? _probes;
         private readonly InstrumentedMethodCache? _instrumentedMethodCache;
         private readonly ILogger? _logger;
         private readonly bool _isAvailable;
@@ -49,15 +46,33 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             try
             {
+                // NativeLibrary.SetDllImportResolver(typeof(ParameterCapturingService).Assembly, ResolveDllImport);
+
                 _instrumentedMethodCache = new();
-                _probes = new LogEmittingProbes(_logger, _instrumentedMethodCache);
-                RegisterFunctionProbe(_probes.GetProbeFunctionId());
+                LogEmittingProbes.Init(_logger, _instrumentedMethodCache);
+                RegisterFunctionProbe(LogEmittingProbes.GetProbeFunctionId());
                 _isAvailable = true;
             }
             catch (Exception ex)
             {
                 _logger.Log(LogLevel.Debug, ex.ToString());
             }
+        }
+
+        private static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            // DllImport for Windows automatically loads in-memory modules (such as the profiler). This is not the case for Linux/MacOS.
+            // If we fail resolving the DllImport, we have to load the profiler ourselves.
+
+            string? loadedProfilerPath = Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ReflectivePath);
+            // This environment variable should only ever be set by our profiler if it has been loaded, so we don't risk accidentally
+            // loading the profiler if it isn't already present.
+            if (!string.IsNullOrEmpty(loadedProfilerPath) && NativeLibrary.TryLoad(loadedProfilerPath, out IntPtr handle))
+            {
+                return handle;
+            }
+
+            return IntPtr.Zero;
         }
 
         private void RequestProbeInstallation(IEnumerable<MethodInfo> methods)
@@ -89,7 +104,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!_isAvailable || _probes == null || _instrumentedMethodCache == null)
+            if (!_isAvailable || _instrumentedMethodCache == null)
             {
                 return Task.Delay(Timeout.Infinite, stoppingToken);
             }
