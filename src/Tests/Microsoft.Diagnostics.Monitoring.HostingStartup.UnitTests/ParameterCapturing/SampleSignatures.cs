@@ -24,6 +24,8 @@ namespace SampleSignatures
 
     internal static class StaticTestMethodSignatures
     {
+        public delegate int MyDelegate(int i, int j);
+
         public static void BasicTypes(string s, int[] intArray, bool[,] multidimensionalArray, uint uInt) { }
 
         public static void NoArgs() { }
@@ -33,6 +35,8 @@ namespace SampleSignatures
         public static void RefStruct(ref MyRefStruct myRefStruct) { }
 
         public static unsafe void Pointer(byte* test) { }
+
+        public static void Delegate(MyDelegate func) { }
 
         public static void RefParam(ref int i) { }
 

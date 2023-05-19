@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
         [Theory]
         [InlineData(typeof(TestMethodSignatures), nameof(TestMethodSignatures.ImplicitThis), "SampleSignatures.TestMethodSignatures.ImplicitThis(this: {0})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Delegate), "SampleSignatures.StaticTestMethodSignatures.Delegate(func: {0})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.BasicTypes), "SampleSignatures.StaticTestMethodSignatures.BasicTypes(s: {0}, intArray: {1}, multidimensionalArray: {2}, uInt: {3})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefStruct), "SampleSignatures.StaticTestMethodSignatures.RefStruct(ref myRefStruct: {{unsupported}})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.GenericParameters), "SampleSignatures.StaticTestMethodSignatures.GenericParameters<T, K>(t: {0}, k: {1})")]
