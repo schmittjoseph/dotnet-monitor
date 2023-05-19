@@ -30,6 +30,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             Double,
         };
 
+        public static bool[] GetSupportedArgs(uint[] boxingTokens)
+        {
+            bool[] supportedArgs = new bool[boxingTokens.Length];
+            for (int i = 0; i < boxingTokens.Length; i++)
+            {
+                supportedArgs[i] = boxingTokens[i] != GetBoxingType(SpecialCaseBoxingTypes.Unknown);
+            }
+
+            return supportedArgs;
+        }
+
         public static uint[] GetBoxingTokens(MethodInfo method)
         {
             ParameterInfo[] methodParams = method.GetParameters();

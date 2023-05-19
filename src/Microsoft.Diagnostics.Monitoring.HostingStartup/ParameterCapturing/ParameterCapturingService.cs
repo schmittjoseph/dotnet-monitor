@@ -86,11 +86,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 ulong functionId = (ulong)method.MethodHandle.Value.ToInt64();
 
                 uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
-                bool[] supportedArgs = new bool[methodBoxingTokens.Length];
-                for (int i = 0; i < methodBoxingTokens.Length; i++)
-                {
-                    supportedArgs[i] = methodBoxingTokens[i] != (int)TypeCode.Empty;
-                }
+                bool[] supportedArgs = BoxingTokens.GetSupportedArgs(methodBoxingTokens);
 
                 _instrumentedMethodCache!.Add(method, supportedArgs);
                 functionIds.Add(functionId);

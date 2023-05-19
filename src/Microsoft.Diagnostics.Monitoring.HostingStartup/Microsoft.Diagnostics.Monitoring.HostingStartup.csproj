@@ -17,4 +17,8 @@
     <Compile Include="..\Tools\dotnet-monitor\Profiler\ProfilerIdentifiers.cs" />
  </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests" />
+  </ItemGroup>
+
 </Project>
