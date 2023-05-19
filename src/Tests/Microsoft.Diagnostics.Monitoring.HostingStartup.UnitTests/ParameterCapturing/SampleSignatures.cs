@@ -21,6 +21,8 @@ namespace SampleSignatures
 
     internal static class StaticTestMethodSignatures
     {
+        public static void BasicTypes(string s, int[] intArray, bool[,] multidimensionalArray, uint uInt) { }
+
         public static void NoArgs() { }
 
         public static void ExplicitThis(this object thisObj) { }

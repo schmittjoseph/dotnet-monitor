@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
         [Theory]
         [InlineData(typeof(TestMethodSignatures), nameof(TestMethodSignatures.ImplicitThis), "SampleSignatures.TestMethodSignatures.ImplicitThis(this: {0})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.BasicTypes), "SampleSignatures.StaticTestMethodSignatures.BasicTypes(s: {0}, intArray: {1}, multidimensionalArray: {2}, uInt: {3})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefStruct), "SampleSignatures.StaticTestMethodSignatures.RefStruct(ref myRefStruct: {{unsupported}})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.GenericParameters), "SampleSignatures.StaticTestMethodSignatures.GenericParameters<T, K>(t: {0}, k: {1})")]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Unicode_ΦΨ), "SampleSignatures.StaticTestMethodSignatures.Unicode_ΦΨ(δ: {0})")]
@@ -30,6 +31,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         {
             // Arrange
             MethodInfo method = t.GetMethod(methodName);
+            Assert.NotNull(method);
 
             // Act
             uint[] tokens = BoxingTokens.GetBoxingTokens(method);
@@ -37,6 +39,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             string actualFormatString = PrettyPrinter.ConstructFormattableStringFromMethod(method, supportedArgs);
 
             // Assert
+            Assert.NotNull(actualFormatString);
             actualFormatString = actualFormatString.ReplaceLineEndings("").Replace("\t", "");
             _outputHelper.WriteLine(actualFormatString);
             Assert.Equal(formatString, actualFormatString);
