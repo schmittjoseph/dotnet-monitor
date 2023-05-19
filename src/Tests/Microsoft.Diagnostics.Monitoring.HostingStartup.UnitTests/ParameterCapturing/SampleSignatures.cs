@@ -8,7 +8,10 @@ namespace SampleSignatures
 {
     internal struct MyTestStruct { }
     internal ref struct MyRefStruct { }
-    internal enum MyEnum { }
+    internal enum MyEnum
+    {
+        ValueA = 1
+    }
 
 #pragma warning disable CA1822 // Mark members as static
     internal sealed class TestMethodSignatures

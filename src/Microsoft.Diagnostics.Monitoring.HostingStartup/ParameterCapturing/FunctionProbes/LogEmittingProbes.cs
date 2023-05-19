@@ -34,7 +34,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 return;
             }
 
-            StringBuilder argBuilder = new();
             string[] argValues = new string[args.Length];
             for (int i = 0; i < args?.Length; i++)
             {
@@ -42,10 +41,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 {
                     continue;
                 }
-
-                PrettyPrinter.EmitSerializedObject(argBuilder, args[i]);
-                argValues[i] = argBuilder.ToString();
-                argBuilder.Clear();
+                
+                argValues[i] = PrettyPrinter.SerializeObject(args[i]);
             }
 
             s_logger.LogInformation(instrumentedMethod.PrettyPrintStringFormat, argValues);

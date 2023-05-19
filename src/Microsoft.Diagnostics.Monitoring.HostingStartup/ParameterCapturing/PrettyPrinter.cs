@@ -9,25 +9,24 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal static class PrettyPrinter
     {
-        public static void EmitSerializedObject(StringBuilder stringBuilder, object value)
+        public static string SerializeObject(object value)
         {
             if (value == null)
             {
-                stringBuilder.Append("null");
-                return;
+                return "null";
             }
 
             if (value is IConvertible ic and not string)
             {
-                stringBuilder.Append(ic.ToString(null) ?? string.Empty);
+                return ic.ToString(null) ?? string.Empty;
             }
             else if (value is IFormattable formattable)
             {
-                EmitWrappedValue(stringBuilder, formattable.ToString(null, null));
+                return string.Concat('\'', formattable.ToString(null, null), '\'');
             }
             else
             {
-                EmitWrappedValue(stringBuilder, value.ToString());
+                return string.Concat('\'', value.ToString(), '\'');
             }
         }
 

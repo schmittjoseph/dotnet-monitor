@@ -8,6 +8,7 @@ using System;
 using Xunit;
 using SampleSignatures;
 using Xunit.Abstractions;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing
 {
@@ -43,6 +44,20 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             actualFormatString = actualFormatString.ReplaceLineEndings("").Replace("\t", "");
             _outputHelper.WriteLine(actualFormatString);
             Assert.Equal(formatString, actualFormatString);
+        }
+
+        [Theory]
+        [InlineData(null, "null")]
+        [InlineData("test", "'test'")]
+        [InlineData(5, "5")]
+        [InlineData(MyEnum.ValueA, nameof(MyEnum.ValueA))]
+        public void SerializeObject(object obj, string value)
+        {
+            // Act
+            string actualValue = PrettyPrinter.SerializeObject(obj);
+
+            // Assert
+            Assert.Equal(value, actualValue);
         }
     }
 }
