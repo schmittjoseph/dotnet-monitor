@@ -4,6 +4,8 @@
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
 
@@ -19,6 +21,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.ExplicitThis), true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefParam), false)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.OutParam), false)]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeDef), true)]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeRef), true)]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeSpec), true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeDefValueType), true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeRefValueType), false)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeSpecValueType), false)]
@@ -73,6 +78,22 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         {
             i = 0;
         }
+
+        public static void TypeRef(Uri uri)
+        {
+
+        }
+
+        public static void TypeDef(TestMethodSignatures t)
+        {
+
+        }
+
+        public static void TypeSpec(IList<IEnumerable<bool>> list)
+        {
+
+        }
+
 
         public static void TypeDefValueType(MyEnum myEnum)
         {
