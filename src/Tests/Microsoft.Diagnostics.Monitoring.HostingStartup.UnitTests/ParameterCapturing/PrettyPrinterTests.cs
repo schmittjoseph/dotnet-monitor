@@ -8,7 +8,6 @@ using System;
 using Xunit;
 using SampleSignatures;
 using Xunit.Abstractions;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing
 {
