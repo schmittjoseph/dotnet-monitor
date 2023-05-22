@@ -12,10 +12,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
- <ItemGroup>
+  <ItemGroup>
     <Compile Include="..\Tools\dotnet-monitor\ToolIdentifiers.cs" />
     <Compile Include="..\Tools\dotnet-monitor\Profiler\ProfilerIdentifiers.cs" />
- </ItemGroup>
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests" />
