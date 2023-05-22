@@ -102,6 +102,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                         boxingTokens.Add((uint)paramType.MetadataToken);
                     }
                 }
+                else if (paramType.IsGenericParameter)
+                {
+                    boxingTokens.Add(unsupported);
+                }
                 else if (paramType.IsArray ||
                     paramType.HasMetadataToken())
                 {

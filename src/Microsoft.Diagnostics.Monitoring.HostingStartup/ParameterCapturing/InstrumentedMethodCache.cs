@@ -19,13 +19,23 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             MethodInfo = methodInfo;
             PrettyPrintStringFormat = prettyPrintStringFormat;
+
             SupportedArgs = supportedArgs;
+            foreach (bool isArgSupported in supportedArgs)
+            {
+                if (isArgSupported)
+                {
+                    NumberOfSupportedArgs++;
+                }
+            }
+
             HasImplicitThis = hasImplicitThis;
             DeclaringType = declaringType;
             Parameters = parameters;
         }
 
         public MethodInfo MethodInfo { get; }
+        public int NumberOfSupportedArgs { get; }
         public bool[] SupportedArgs { get; }
         public bool HasImplicitThis { get; }
         public Type? DeclaringType { get; }

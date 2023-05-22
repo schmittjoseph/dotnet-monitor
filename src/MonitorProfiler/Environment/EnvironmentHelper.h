@@ -52,7 +52,7 @@ public:
     /// </summary>
     HRESULT SetProductVersion();
 
-    HRESULT SetReflectivePath();
+    HRESULT SetProfilerPath();
 
     HRESULT GetRuntimeInstanceId(tstring& instanceId);
 

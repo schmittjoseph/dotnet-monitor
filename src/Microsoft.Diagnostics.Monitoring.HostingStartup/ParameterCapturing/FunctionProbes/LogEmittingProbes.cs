@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
@@ -29,12 +28,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         {
             if (s_logger == null ||
                 s_methodCache?.TryGetValue(uniquifier, out InstrumentedMethod instrumentedMethod) != true ||
-                args?.Length != instrumentedMethod.Parameters.Length)
+                args?.Length != instrumentedMethod.SupportedArgs.Length)
             {
                 return;
             }
 
-            string[] argValues = new string[args.Length];
+            string[] argValues = new string[instrumentedMethod.NumberOfSupportedArgs];
+            int fmtIndex = 0;
             for (int i = 0; i < args?.Length; i++)
             {
                 if (!instrumentedMethod.SupportedArgs[i])
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     continue;
                 }
                 
-                argValues[i] = PrettyPrinter.SerializeObject(args[i]);
+                argValues[fmtIndex++] = PrettyPrinter.SerializeObject(args[i]);
             }
 
             s_logger.LogInformation(instrumentedMethod.PrettyPrintStringFormat, argValues);

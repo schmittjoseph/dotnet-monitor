@@ -30,7 +30,7 @@ HRESULT EnvironmentHelper::GetDebugLoggerLevel(LogLevel& level)
     return S_OK;
 }
 
-HRESULT EnvironmentHelper::SetReflectivePath()
+HRESULT EnvironmentHelper::SetProfilerPath()
 {
     HRESULT hr = S_OK;
 
