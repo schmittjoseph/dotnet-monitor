@@ -6,7 +6,9 @@
 #include "corhlpr.h"
 #include "AssemblyProbePrep.h"
 #include "../Utilities/TypeNameUtilities.h"
-
+#include "../Utilities/StringUtilities.h"
+#include <stdio.h>
+#include <iostream>
 using namespace std;
 
 #define ENUM_BUFFER_SIZE 10
@@ -367,12 +369,13 @@ HRESULT AssemblyProbePrep::HydrateResolvedCorLib()
     corLibName = moduleData->GetName();
    
     // Trim the .dll file extension
-    constexpr LPCWSTR dllExtension = _T(".dll");
-    constexpr ULONG dllExtensionLength = sizeof(dllExtension)/sizeof(WCHAR);
-    if (corLibName.size() > dllExtensionLength &&
-        corLibName.compare(corLibName.length() - dllExtensionLength, dllExtensionLength, dllExtension))
+    std::wcout << corLibName.c_str() << std::endl;
+    const tstring dllExtension = _T(".dll");
+    if (corLibName.length() > dllExtension.length() &&
+        StringUtilities::CompareIgnoreCase(corLibName.substr(corLibName.length() - dllExtension.length()), dllExtension) == 0)
     {
-        corLibName.erase(corLibName.length() - dllExtensionLength);
+        corLibName.erase(corLibName.length() - dllExtension.length());
+        std::wcout << corLibName.c_str() << std::endl;
     }
 
     m_resolvedCorLibName = move(corLibName);

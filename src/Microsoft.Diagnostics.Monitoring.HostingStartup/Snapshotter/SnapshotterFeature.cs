@@ -17,6 +17,25 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 {
     internal sealed class SnapshotterFeature
     {
+        private const uint SpecialCaseBoxingTypeFlag = 0xff000000;
+        private enum SpecialCaseBoxingTypes
+        {
+            Unknown = 0,
+            Object,
+            Boolean,
+            Char,
+            SByte,
+            Byte,
+            Int16,
+            UInt16,
+            Int32,
+            UInt32,
+            Int64,
+            UInt64,
+            Single,
+            Double,
+        };
+
         private readonly Probes.EnterProbeDelegate PinnedEnterProbe = Probes.EnterProbe;
         private static bool didInjectProbes;
         public void DoInit()
@@ -153,33 +172,52 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 return nameToTyperefToken;
             }
 
-            unsafe
-            {
-                int rawMetadataLength;
-                byte* rawMetadata;
-
-                if (assembly.TryGetRawMetadata(out rawMetadata, out rawMetadataLength) != true)
-                {
-                    return nameToTyperefToken;
-                }
-
-                MetadataReader reader = new(rawMetadata, rawMetadataLength);
-
-                foreach (TypeReferenceHandle handle in reader.TypeReferences)
-                {
-                    TypeReference typeRef = reader.GetTypeReference(handle);
-                    if (typeRef.Name.IsNil || typeRef.Namespace.IsNil)
-                    {
-                        continue;
-                    }
-
-                    string tNamespace = reader.GetString(typeRef.Namespace);
-                    string name = reader.GetString(typeRef.Name);
-                    nameToTyperefToken.Add(string.Concat(tNamespace, ".", name), reader.GetToken(handle));
-                }
-            }
-
             return nameToTyperefToken;
+        }
+
+        private static int GetBoxingType(TypeCode typeCode)
+        {
+            return (int)(SpecialCaseBoxingTypeFlag | (uint)GetSpecialCaseBoxingType(typeCode));
+        }
+
+        private static int GetBoxingType(SpecialCaseBoxingTypes type)
+        {
+            return (int)(SpecialCaseBoxingTypeFlag | (uint)type);
+        }
+
+        private static SpecialCaseBoxingTypes GetSpecialCaseBoxingType(TypeCode typeCode)
+        {
+            switch (typeCode)
+            {
+                case TypeCode.Object:
+                    return SpecialCaseBoxingTypes.Object;
+                case TypeCode.Boolean:
+                    return SpecialCaseBoxingTypes.Boolean;
+                case TypeCode.Char:
+                    return SpecialCaseBoxingTypes.Char;
+                case TypeCode.SByte:
+                    return SpecialCaseBoxingTypes.SByte;
+                case TypeCode.Byte:
+                    return SpecialCaseBoxingTypes.Byte;
+                case TypeCode.Int16:
+                    return SpecialCaseBoxingTypes.Int16;
+                case TypeCode.UInt16:
+                    return SpecialCaseBoxingTypes.UInt16;
+                case TypeCode.Int32:
+                    return SpecialCaseBoxingTypes.Int32;
+                case TypeCode.UInt32:
+                    return SpecialCaseBoxingTypes.UInt32;
+                case TypeCode.Int64:
+                    return SpecialCaseBoxingTypes.Int64;
+                case TypeCode.UInt64:
+                    return SpecialCaseBoxingTypes.UInt64;
+                case TypeCode.Single:
+                    return SpecialCaseBoxingTypes.Single;
+                case TypeCode.Double:
+                    return SpecialCaseBoxingTypes.Double;
+                default:
+                    return SpecialCaseBoxingTypes.Unknown;
+            }
         }
 
         private static int[] GetBoxingTokens(MethodInfo method, IDictionary<string, int> typerefTokens)
@@ -189,8 +227,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
 
             List<int> boxingTokens = new List<int>(methodParams.Length);
 
-            const int unsupported = (int)TypeCode.Empty;
-            const int skipBoxing = (int)TypeCode.Object;
+            int unsupported = GetBoxingType(SpecialCaseBoxingTypes.Unknown);
+            int skipBoxing = GetBoxingType(SpecialCaseBoxingTypes.Object);
 
             if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
             {
@@ -249,7 +287,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 }
                 else if (paramType.IsPrimitive)
                 {
-                    boxingTokens.Add((int)Type.GetTypeCode(paramType));
+                    boxingTokens.Add(GetBoxingType(Type.GetTypeCode(paramType)));
                 }
                 else if (paramType.IsValueType)
                 {
@@ -285,7 +323,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Snapshotter
                 else
                 {
                     // string?
-                    boxingTokens.Add((int)Type.GetTypeCode(paramType));
+                    boxingTokens.Add(GetBoxingType(Type.GetTypeCode(paramType)));
                 }
             }
 
