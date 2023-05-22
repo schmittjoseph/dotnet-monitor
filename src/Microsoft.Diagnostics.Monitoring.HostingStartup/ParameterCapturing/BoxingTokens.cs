@@ -45,24 +45,24 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             ParameterInfo[] methodParams = method.GetParameters();
             List<Type> methodParamTypes = methodParams.Select(p => p.ParameterType).ToList();
-
             List<uint> boxingTokens = new List<uint>(methodParams.Length);
 
             uint unsupported = GetBoxingType(SpecialCaseBoxingTypes.Unknown);
             uint skipBoxing = GetBoxingType(SpecialCaseBoxingTypes.Object);
 
+            // Handle implicit this
             if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
             {
                 Debug.Assert(!method.IsStatic);
 
-                Type? contextfulType = method.DeclaringType;
-                if (contextfulType == null)
+                Type? thisType = method.DeclaringType;
+                if (thisType == null)
                 {
                     boxingTokens.Add(unsupported);
                 }
                 else
                 {
-                    methodParamTypes.Insert(0, contextfulType);
+                    methodParamTypes.Insert(0, thisType);
                 }
             }
 
@@ -102,8 +102,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                         boxingTokens.Add((uint)paramType.MetadataToken);
                     }
                 }
-                else if (paramType.HasMetadataToken() ||
-                        paramType.IsArray)
+                else if (paramType.IsArray ||
+                    paramType.HasMetadataToken())
                 {
                     boxingTokens.Add(skipBoxing);
                 }
@@ -116,50 +116,35 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return boxingTokens.ToArray();
         }
 
-
-        private static uint GetBoxingType(TypeCode typeCode)
-        {
-            return (SpecialCaseBoxingTypeFlag | (uint)GetSpecialCaseBoxingType(typeCode));
-        }
-
         private static uint GetBoxingType(SpecialCaseBoxingTypes type)
         {
             return (SpecialCaseBoxingTypeFlag | (uint)type);
         }
 
+        private static uint GetBoxingType(TypeCode typeCode)
+        {
+            return GetBoxingType(GetSpecialCaseBoxingType(typeCode));
+        }
+
         private static SpecialCaseBoxingTypes GetSpecialCaseBoxingType(TypeCode typeCode)
         {
-            switch (typeCode)
+            return typeCode switch
             {
-                case TypeCode.Object:
-                    return SpecialCaseBoxingTypes.Object;
-                case TypeCode.Boolean:
-                    return SpecialCaseBoxingTypes.Boolean;
-                case TypeCode.Char:
-                    return SpecialCaseBoxingTypes.Char;
-                case TypeCode.SByte:
-                    return SpecialCaseBoxingTypes.SByte;
-                case TypeCode.Byte:
-                    return SpecialCaseBoxingTypes.Byte;
-                case TypeCode.Int16:
-                    return SpecialCaseBoxingTypes.Int16;
-                case TypeCode.UInt16:
-                    return SpecialCaseBoxingTypes.UInt16;
-                case TypeCode.Int32:
-                    return SpecialCaseBoxingTypes.Int32;
-                case TypeCode.UInt32:
-                    return SpecialCaseBoxingTypes.UInt32;
-                case TypeCode.Int64:
-                    return SpecialCaseBoxingTypes.Int64;
-                case TypeCode.UInt64:
-                    return SpecialCaseBoxingTypes.UInt64;
-                case TypeCode.Single:
-                    return SpecialCaseBoxingTypes.Single;
-                case TypeCode.Double:
-                    return SpecialCaseBoxingTypes.Double;
-                default:
-                    return SpecialCaseBoxingTypes.Unknown;
-            }
+                TypeCode.Object => SpecialCaseBoxingTypes.Object,
+                TypeCode.Boolean => SpecialCaseBoxingTypes.Boolean,
+                TypeCode.Char => SpecialCaseBoxingTypes.Char,
+                TypeCode.SByte => SpecialCaseBoxingTypes.SByte,
+                TypeCode.Byte => SpecialCaseBoxingTypes.Byte,
+                TypeCode.Int16 => SpecialCaseBoxingTypes.Int16,
+                TypeCode.UInt16 => SpecialCaseBoxingTypes.UInt16,
+                TypeCode.Int32 => SpecialCaseBoxingTypes.Int32,
+                TypeCode.UInt32 => SpecialCaseBoxingTypes.UInt32,
+                TypeCode.Int64 => SpecialCaseBoxingTypes.Int64,
+                TypeCode.UInt64 => SpecialCaseBoxingTypes.UInt64,
+                TypeCode.Single => SpecialCaseBoxingTypes.Single,
+                TypeCode.Double => SpecialCaseBoxingTypes.Double,
+                _ => SpecialCaseBoxingTypes.Unknown,
+            };
         }
     }
 }
