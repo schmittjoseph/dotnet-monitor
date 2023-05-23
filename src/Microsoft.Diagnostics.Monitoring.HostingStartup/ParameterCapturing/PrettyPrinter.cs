@@ -48,17 +48,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             StringBuilder fmtStringBuilder = new();
 
+            // Class name
             string className = method.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
             fmtStringBuilder.Append(className);
             EmitGenericArguments(fmtStringBuilder, method.DeclaringType?.GetGenericArguments());
 
-            fmtStringBuilder.Append($".{method.Name}");
+            // Method name
+            fmtStringBuilder.Append('.');
+            fmtStringBuilder.Append(method.Name);
             EmitGenericArguments(fmtStringBuilder, method.GetGenericArguments());
 
+            // Method parameters
             fmtStringBuilder.Append('(');
 
             int fmtIndex = 0;
-            int index = 0;
+            int parameterIndex = 0;
             ParameterInfo[] explicitParameters = method.GetParameters();
 
             int numberOfParameters = explicitParameters.Length + (method.CallingConvention.HasFlag(CallingConventions.HasThis) ? 1 : 0);
@@ -67,29 +71,40 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return null;
             }
 
+            // Implicit this
             if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
             {
-
-                if (EmitParameter(fmtStringBuilder, method.DeclaringType, "this", supportedParameters[index], fmtIndex))
+                if (EmitParameter(
+                    fmtStringBuilder,
+                    method.DeclaringType,
+                    ParameterCapturingStrings.ThisParameterName,
+                    supportedParameters[parameterIndex],
+                    fmtIndex))
                 {
                     fmtIndex++;
                 }
-                index++;
+                parameterIndex++;
             }
 
             foreach (ParameterInfo paramInfo in explicitParameters)
             {
-                if (index != 0 || fmtIndex != 0)
+                if (parameterIndex != 0 || fmtIndex != 0)
                 {
                     fmtStringBuilder.Append(", ");
                 }
 
-                if (EmitParameter(fmtStringBuilder, paramInfo.ParameterType, paramInfo.Name, supportedParameters[index], fmtIndex, paramInfo))
+                if (EmitParameter(
+                    fmtStringBuilder,
+                    paramInfo.ParameterType,
+                    paramInfo.Name,
+                    supportedParameters[parameterIndex],
+                    fmtIndex,
+                    paramInfo))
                 {
                     fmtIndex++;
                 }
 
-                index++;
+                parameterIndex++;
             }
 
             fmtStringBuilder.Append(')');
@@ -105,22 +120,25 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             // Modifiers
             if (paramInfo?.IsIn == true)
             {
-                stringBuilder.Append("in ");
+                stringBuilder.Append(ParameterCapturingStrings.ParameterModifier_In);
+                stringBuilder.Append(' ');
             }
             else if (paramInfo?.IsOut == true)
             {
-                stringBuilder.Append("out ");
+                stringBuilder.Append(ParameterCapturingStrings.ParameterModifier_Out);
+                stringBuilder.Append(' ');
             }
             else if (type?.IsByRef == true ||
                     type?.IsByRefLike == true)
             {
-                stringBuilder.Append("ref ");
+                stringBuilder.Append(ParameterCapturingStrings.ParameterModifier_RefOrRefLike);
+                stringBuilder.Append(' ');
             }
 
             // Name
             if (string.IsNullOrEmpty(name))
             {
-                EmitResourceString(stringBuilder, ParameterCapturingStrings.UnknownParameterName);
+                EmitReservedPlaceholder(stringBuilder, ParameterCapturingStrings.UnknownParameterName);
             }
             else
             {
@@ -129,7 +147,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             stringBuilder.Append(": ");
 
-            // Value
+            // Value (format item or unsupported)
             if (isSupported)
             {
                 stringBuilder.Append('{');
@@ -139,7 +157,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
             else
             {
-                EmitResourceString(stringBuilder, ParameterCapturingStrings.UnsupportedParameter);
+                EmitReservedPlaceholder(stringBuilder, ParameterCapturingStrings.UnsupportedParameter);
                 return false;
             }
         }
@@ -164,7 +182,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             stringBuilder.Append('>');
         }
 
-        private static void EmitResourceString(StringBuilder stringBuilder, string value)
+        private static void EmitReservedPlaceholder(StringBuilder stringBuilder, string value)
         {
             stringBuilder.Append("{{");
             stringBuilder.Append(value);

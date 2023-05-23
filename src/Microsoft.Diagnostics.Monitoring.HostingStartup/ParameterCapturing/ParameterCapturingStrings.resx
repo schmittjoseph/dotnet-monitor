@@ -126,6 +126,18 @@
   <data name="NullArgumentValue" xml:space="preserve">
     <value>null</value>
   </data>
+  <data name="ParameterModifier_In" xml:space="preserve">
+    <value>in</value>
+  </data>
+  <data name="ParameterModifier_Out" xml:space="preserve">
+    <value>out</value>
+  </data>
+  <data name="ParameterModifier_RefOrRefLike" xml:space="preserve">
+    <value>ref</value>
+  </data>
+  <data name="ThisParameterName" xml:space="preserve">
+    <value>this</value>
+  </data>
   <data name="UnknownArgumentValue" xml:space="preserve">
     <value>unknown</value>
   </data>

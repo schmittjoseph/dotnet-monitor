@@ -89,6 +89,42 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to in.
+        /// </summary>
+        internal static string ParameterModifier_In {
+            get {
+                return ResourceManager.GetString("ParameterModifier_In", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to out.
+        /// </summary>
+        internal static string ParameterModifier_Out {
+            get {
+                return ResourceManager.GetString("ParameterModifier_Out", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ref.
+        /// </summary>
+        internal static string ParameterModifier_RefOrRefLike {
+            get {
+                return ResourceManager.GetString("ParameterModifier_RefOrRefLike", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to this.
+        /// </summary>
+        internal static string ThisParameterName {
+            get {
+                return ResourceManager.GetString("ThisParameterName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to unknown.
         /// </summary>
         internal static string UnknownArgumentValue {
