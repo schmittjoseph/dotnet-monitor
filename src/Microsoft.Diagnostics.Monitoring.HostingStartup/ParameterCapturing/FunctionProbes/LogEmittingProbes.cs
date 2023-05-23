@@ -19,16 +19,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         public void EnterProbe(ulong uniquifier, object[] args)
         {
             if (_methodCache?.TryGetValue(uniquifier, out InstrumentedMethod instrumentedMethod) != true ||
-                args?.Length != instrumentedMethod.SupportedArgs.Length)
+                args?.Length != instrumentedMethod.SupportedParameters.Length)
             {
                 return;
             }
 
-            string[] argValues = new string[instrumentedMethod.NumberOfSupportedArgs];
+            string[] argValues = new string[instrumentedMethod.NumberOfSupportedParameters];
             int fmtIndex = 0;
             for (int i = 0; i < args?.Length; i++)
             {
-                if (!instrumentedMethod.SupportedArgs[i])
+                if (!instrumentedMethod.SupportedParameters[i])
                 {
                     continue;
                 }
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 argValues[fmtIndex++] = PrettyPrinter.SerializeObject(args[i]);
             }
 
-            _logger.LogInformation(instrumentedMethod.PrettyPrintStringFormat, argValues);
+            _logger.LogInformation(instrumentedMethod.MethodWithParametersFormatString, argValues);
             return;
         }
     }

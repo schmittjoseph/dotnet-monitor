@@ -13,42 +13,56 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             if (value == null)
             {
-                return "null";
+                return ParameterCapturingStrings.NullArgumentValue;
             }
 
-            if (value is IConvertible ic and not string)
+            try
             {
-                return ic.ToString(null) ?? string.Empty;
+                bool doWrapValue = false;
+                string serializedValue;
+                if (value is IConvertible ic)
+                {
+                    serializedValue = ic.ToString(provider: null);
+                    doWrapValue = (value is string);
+                }
+                else if (value is IFormattable formattable)
+                {
+                    serializedValue = formattable.ToString(format: null, formatProvider: null);
+                    doWrapValue = true;
+                }
+                else
+                {
+                    serializedValue = value.ToString() ?? string.Empty;
+                    doWrapValue = true;
+                }
+
+                return doWrapValue ? string.Concat('\'', serializedValue, '\'') : serializedValue;
             }
-            else if (value is IFormattable formattable)
+            catch
             {
-                return string.Concat('\'', formattable.ToString(null, null), '\'');
-            }
-            else
-            {
-                return string.Concat('\'', value.ToString(), '\'');
+                return ParameterCapturingStrings.UnknownArgumentValue;
             }
         }
 
-        public static string? ConstructFormattableStringFromMethod(MethodInfo method, bool[] supportedArgs)
+        public static string? ConstructFormattableStringFromMethod(MethodInfo method, bool[] supportedParameters)
         {
             StringBuilder fmtStringBuilder = new();
 
             string className = method.DeclaringType?.FullName?.Split('`')?[0] ?? string.Empty;
             fmtStringBuilder.Append(className);
-            PrettyPrintGenericArgs(fmtStringBuilder, method.DeclaringType?.GetGenericArguments());
+            EmitGenericArguments(fmtStringBuilder, method.DeclaringType?.GetGenericArguments());
 
             fmtStringBuilder.Append($".{method.Name}");
-            PrettyPrintGenericArgs(fmtStringBuilder, method.GetGenericArguments());
+            EmitGenericArguments(fmtStringBuilder, method.GetGenericArguments());
 
             fmtStringBuilder.Append('(');
 
             int fmtIndex = 0;
             int index = 0;
-            ParameterInfo[] parameters = method.GetParameters();
+            ParameterInfo[] explicitParameters = method.GetParameters();
 
-            int numberOfParameters = parameters.Length + (method.CallingConvention.HasFlag(CallingConventions.HasThis) ? 1 : 0);
-            if (numberOfParameters != supportedArgs.Length)
+            int numberOfParameters = explicitParameters.Length + (method.CallingConvention.HasFlag(CallingConventions.HasThis) ? 1 : 0);
+            if (numberOfParameters != supportedParameters.Length)
             {
                 return null;
             }
@@ -56,21 +70,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
             {
 
-                if (EmitParameter(fmtStringBuilder, method.DeclaringType, "this", supportedArgs[index], fmtIndex))
+                if (EmitParameter(fmtStringBuilder, method.DeclaringType, "this", supportedParameters[index], fmtIndex))
                 {
                     fmtIndex++;
                 }
                 index++;
             }
 
-            foreach (ParameterInfo paramInfo in parameters)
+            foreach (ParameterInfo paramInfo in explicitParameters)
             {
-                if (fmtIndex != 0)
+                if (index != 0 || fmtIndex != 0)
                 {
                     fmtStringBuilder.Append(", ");
                 }
 
-                if (EmitParameter(fmtStringBuilder, paramInfo.ParameterType, paramInfo.Name, supportedArgs[index], fmtIndex, paramInfo))
+                if (EmitParameter(fmtStringBuilder, paramInfo.ParameterType, paramInfo.Name, supportedParameters[index], fmtIndex, paramInfo))
                 {
                     fmtIndex++;
                 }
@@ -87,22 +101,26 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             stringBuilder.AppendLine();
             stringBuilder.Append('\t');
-            if (paramInfo?.IsOut == true)
+
+            // Modifiers
+            if (paramInfo?.IsIn == true)
+            {
+                stringBuilder.Append("in ");
+            }
+            else if (paramInfo?.IsOut == true)
             {
                 stringBuilder.Append("out ");
             }
-            else if (type?.IsByRefLike == true)
-            {
-                stringBuilder.Append("ref struct ");
-            }
-            else if (type?.IsByRef == true)
+            else if (type?.IsByRef == true ||
+                    type?.IsByRefLike == true)
             {
                 stringBuilder.Append("ref ");
             }
 
+            // Name
             if (string.IsNullOrEmpty(name))
             {
-                EmitWrappedValue(stringBuilder, ParameterCapturingStrings.UnknownArgumentName, "{{", "}}");
+                EmitResourceString(stringBuilder, ParameterCapturingStrings.UnknownParameterName);
             }
             else
             {
@@ -111,6 +129,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             stringBuilder.Append(": ");
 
+            // Value
             if (isSupported)
             {
                 stringBuilder.Append('{');
@@ -120,12 +139,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
             else
             {
-                EmitWrappedValue(stringBuilder, ParameterCapturingStrings.UnsupportedArgument, "{{", "}}");
+                EmitResourceString(stringBuilder, ParameterCapturingStrings.UnsupportedParameter);
                 return false;
             }
         }
 
-        private static void PrettyPrintGenericArgs(StringBuilder stringBuilder, Type[]? genericArgs)
+        private static void EmitGenericArguments(StringBuilder stringBuilder, Type[]? genericArgs)
         {
             if (genericArgs == null || genericArgs.Length == 0)
             {
@@ -145,11 +164,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             stringBuilder.Append('>');
         }
 
-        private static void EmitWrappedValue(StringBuilder stringBuilder, string? value, string prefix = "'", string postfix = "'")
+        private static void EmitResourceString(StringBuilder stringBuilder, string value)
         {
-            stringBuilder.Append(prefix);
-            stringBuilder.Append(value ?? string.Empty);
-            stringBuilder.Append(postfix);
+            stringBuilder.Append("{{");
+            stringBuilder.Append(value);
+            stringBuilder.Append("}}");
         }
     }
 }

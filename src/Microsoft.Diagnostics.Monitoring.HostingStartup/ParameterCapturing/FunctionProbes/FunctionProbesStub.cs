@@ -6,18 +6,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
     public static class FunctionProbesStub
     {
         private delegate void EnterProbeDelegate(ulong uniquifier, object[] args);
-        private static readonly EnterProbeDelegate s_pinnedProbeDelegate = EnterProbeStub;
+        private static readonly EnterProbeDelegate s_fixedEnterProbeDelegate = EnterProbeStub;
 
         internal static IFunctionProbes? Instance { get; set; }
 
         internal static ulong GetProbeFunctionId()
         {
-            return s_pinnedProbeDelegate.Method.GetFunctionId();
+            return s_fixedEnterProbeDelegate.Method.GetFunctionId();
         }
 
         public static void EnterProbeStub(ulong uniquifier, object[] args)
         {
-            Instance?.EnterProbe(uniquifier, args);
+            IFunctionProbes? probes = Instance;
+            probes?.EnterProbe(uniquifier, args);
         }
     }
 }

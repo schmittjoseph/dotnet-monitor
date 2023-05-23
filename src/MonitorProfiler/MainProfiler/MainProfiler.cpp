@@ -176,8 +176,6 @@ HRESULT MainProfiler::InitializeCommon()
     m_pProbeInstrumentation.reset(new (nothrow) ProbeInstrumentation(m_pLogger, m_pCorProfilerInfo));
     IfNullRet(m_pProbeInstrumentation);
 
-    IfFailLogRet(_environmentHelper->SetProfilerPath());
-
     // Set product version environment variable to allow discovery of if the profiler
     // as been applied to a target process. Diagnostic tools must use the diagnostic
     // communication channel's GetProcessEnvironment command to get this value.

@@ -62,29 +62,56 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to truncated.
+        ///   Looks up a localized string similar to Starting parameter capturing for {0} methods.
         /// </summary>
-        internal static string TruncatedArgumentValue {
+        internal static string LogMessage_StartCapturing {
             get {
-                return ResourceManager.GetString("TruncatedArgumentValue", resourceCulture);
+                return ResourceManager.GetString("LogMessage_StartCapturing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stopping parameter capturing.
+        /// </summary>
+        internal static string LogMessage_StopCapturing {
+            get {
+                return ResourceManager.GetString("LogMessage_StopCapturing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to null.
+        /// </summary>
+        internal static string NullArgumentValue {
+            get {
+                return ResourceManager.GetString("NullArgumentValue", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to unknown.
         /// </summary>
-        internal static string UnknownArgumentName {
+        internal static string UnknownArgumentValue {
             get {
-                return ResourceManager.GetString("UnknownArgumentName", resourceCulture);
+                return ResourceManager.GetString("UnknownArgumentValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to unknown.
+        /// </summary>
+        internal static string UnknownParameterName {
+            get {
+                return ResourceManager.GetString("UnknownParameterName", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to unsupported.
         /// </summary>
-        internal static string UnsupportedArgument {
+        internal static string UnsupportedParameter {
             get {
-                return ResourceManager.GetString("UnsupportedArgument", resourceCulture);
+                return ResourceManager.GetString("UnsupportedParameter", resourceCulture);
             }
         }
     }

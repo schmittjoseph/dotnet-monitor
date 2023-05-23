@@ -12,6 +12,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
     internal static class BoxingTokens
     {
         private const uint SpecialCaseBoxingTypeFlag = 0xff000000;
+        private const uint UnsupportedParameterToken = SpecialCaseBoxingTypeFlag | (uint)SpecialCaseBoxingTypes.Unknown;
+        private const uint SkipBoxingToken = SpecialCaseBoxingTypeFlag | (uint)SpecialCaseBoxingTypes.Object;
+
         private enum SpecialCaseBoxingTypes
         {
             Unknown = 0,
@@ -30,25 +33,26 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             Double,
         };
 
-        public static bool[] GetSupportedArgs(uint[] boxingTokens)
+        public static bool IsParameterSupported(uint token)
         {
-            bool[] supportedArgs = new bool[boxingTokens.Length];
-            for (int i = 0; i < boxingTokens.Length; i++)
+            return token != UnsupportedParameterToken;
+        }
+
+        public static bool[] AreParametersSupported(uint[] tokens)
+        {
+            bool[] supported = new bool[tokens.Length];
+            for (int i = 0; i < supported.Length; i++)
             {
-                supportedArgs[i] = boxingTokens[i] != GetBoxingType(SpecialCaseBoxingTypes.Unknown);
+                supported[i] = IsParameterSupported(tokens[i]);
             }
 
-            return supportedArgs;
+            return supported;
         }
 
         public static uint[] GetBoxingTokens(MethodInfo method)
         {
-            ParameterInfo[] methodParams = method.GetParameters();
-            List<Type> methodParamTypes = methodParams.Select(p => p.ParameterType).ToList();
-            List<uint> boxingTokens = new List<uint>(methodParams.Length);
-
-            uint unsupported = GetBoxingType(SpecialCaseBoxingTypes.Unknown);
-            uint skipBoxing = GetBoxingType(SpecialCaseBoxingTypes.Object);
+            List<Type> methodParameterTypes = method.GetParameters().Select(p => p.ParameterType).ToList();
+            List<uint> boxingTokens = new List<uint>(methodParameterTypes.Count);
 
             // Handle implicit this
             if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
@@ -56,31 +60,27 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 Debug.Assert(!method.IsStatic);
 
                 Type? thisType = method.DeclaringType;
-                if (thisType == null)
+                if (thisType != null)
                 {
-                    boxingTokens.Add(unsupported);
+                    methodParameterTypes.Insert(0, thisType);
                 }
                 else
                 {
-                    methodParamTypes.Insert(0, thisType);
+                    boxingTokens.Add(UnsupportedParameterToken);
                 }
             }
 
-            foreach (Type paramType in methodParamTypes)
+            foreach (Type paramType in methodParameterTypes)
             {
-                if (paramType == null)
-                {
-                    boxingTokens.Add(unsupported);
-                }
-                else if (paramType.IsByRef ||
+                if (paramType.IsByRef ||
                     paramType.IsByRefLike ||
                     paramType.IsPointer)
                 {
-                    boxingTokens.Add(unsupported);
+                    boxingTokens.Add(UnsupportedParameterToken);
                 }
                 else if (paramType.IsPrimitive)
                 {
-                    boxingTokens.Add(GetBoxingType(Type.GetTypeCode(paramType)));
+                    boxingTokens.Add(GetSpecialCaseBoxingToken(Type.GetTypeCode(paramType)));
                 }
                 else if (paramType.IsValueType)
                 {
@@ -89,12 +89,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     if (paramType.IsGenericType)
                     {
                         // Typespec
-                        boxingTokens.Add(unsupported);
+                        boxingTokens.Add(UnsupportedParameterToken);
                     }
                     else if (paramType.Assembly != method.Module.Assembly)
                     {
                         // Typeref
-                        boxingTokens.Add(unsupported);
+                        boxingTokens.Add(UnsupportedParameterToken);
                     }
                     else
                     {
@@ -104,30 +104,26 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
                 else if (paramType.IsGenericParameter)
                 {
-                    boxingTokens.Add(unsupported);
+                    boxingTokens.Add(UnsupportedParameterToken);
                 }
                 else if (paramType.IsArray ||
-                    paramType.HasMetadataToken())
+                    paramType.IsClass ||
+                    paramType.IsInterface)
                 {
-                    boxingTokens.Add(skipBoxing);
+                    boxingTokens.Add(SkipBoxingToken);
                 }
                 else
                 {
-                    boxingTokens.Add(unsupported);
+                    boxingTokens.Add(UnsupportedParameterToken);
                 }
             }
 
             return boxingTokens.ToArray();
         }
 
-        private static uint GetBoxingType(SpecialCaseBoxingTypes type)
+        private static uint GetSpecialCaseBoxingToken(TypeCode typeCode)
         {
-            return (SpecialCaseBoxingTypeFlag | (uint)type);
-        }
-
-        private static uint GetBoxingType(TypeCode typeCode)
-        {
-            return GetBoxingType(GetSpecialCaseBoxingType(typeCode));
+            return SpecialCaseBoxingTypeFlag | (uint)GetSpecialCaseBoxingType(typeCode);
         }
 
         private static SpecialCaseBoxingTypes GetSpecialCaseBoxingType(TypeCode typeCode)

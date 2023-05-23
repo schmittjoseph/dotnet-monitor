@@ -11,36 +11,66 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
     {
         public InstrumentedMethod(
             MethodInfo methodInfo,
-            string prettyPrintStringFormat,
-            bool[] supportedArgs,
+            string methodWithParametersFormatString,
+            bool[] supportedParameters,
             bool hasImplicitThis,
             Type? declaringType,
-            ParameterInfo[] parameters)
+            ParameterInfo[] explicitParameters)
         {
             MethodInfo = methodInfo;
-            PrettyPrintStringFormat = prettyPrintStringFormat;
+            MethodWithParametersFormatString = methodWithParametersFormatString;
+            SupportedParameters = supportedParameters;
 
-            SupportedArgs = supportedArgs;
-            foreach (bool isArgSupported in supportedArgs)
+            foreach (bool isParameterSupported in supportedParameters)
             {
-                if (isArgSupported)
+                if (isParameterSupported)
                 {
-                    NumberOfSupportedArgs++;
+                    NumberOfSupportedParameters++;
                 }
             }
 
             HasImplicitThis = hasImplicitThis;
             DeclaringType = declaringType;
-            Parameters = parameters;
+            ExplicitParameters = explicitParameters;
         }
 
+        /// <summary>
+        /// The MethodInfo associated with this entry.
+        /// </summary>
         public MethodInfo MethodInfo { get; }
-        public int NumberOfSupportedArgs { get; }
-        public bool[] SupportedArgs { get; }
+
+        /// <summary>
+        /// The total number of parameters (implicit and explicit) that are supported.
+        /// </summary>
+        public int NumberOfSupportedParameters { get; }
+
+        /// <summary>
+        /// An array containing whether each parameter (implicit and explicit) is supported.
+        /// </summary>
+        public bool[] SupportedParameters { get; }
+
+        /// <summary>
+        /// If the method has an implicit this.
+        /// </summary>
         public bool HasImplicitThis { get; }
+
+        /// <summary>
+        /// If the method has an implicit this, the type associated with it.
+        /// </summary>
         public Type? DeclaringType { get; }
-        public ParameterInfo[] Parameters { get; }
-        public string PrettyPrintStringFormat { get; }
+
+        /// <summary>
+        /// Contains all explicit parameters for a function (does not include the implicit this).
+        /// </summary>
+        public ParameterInfo[] ExplicitParameters { get; }
+
+        /// <summary>
+        /// A format string that contains the full method name with parameter names and
+        /// format items for each supported parameter.
+        /// 
+        /// The number of format items equals NumberOfSupportedParameters.
+        /// </summary>
+        public string MethodWithParametersFormatString { get; }
     }
 
     public sealed class InstrumentedMethodCache
@@ -57,21 +87,24 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return _cache.TryGetValue(id, out entry);
         }
 
-        public void Add(MethodInfo method, bool[] supportedArgs)
+        public bool TryAdd(MethodInfo method, uint[] boxingTokens)
         {
-            string? formattableString = PrettyPrinter.ConstructFormattableStringFromMethod(method, supportedArgs);
+            bool[] supportedParameters = BoxingTokens.AreParametersSupported(boxingTokens);
+            string? formattableString = PrettyPrinter.ConstructFormattableStringFromMethod(method, supportedParameters);
             if (formattableString == null)
             {
-                return;
+                return false;
             }
 
             _cache[method.GetFunctionId()] = new InstrumentedMethod(
                 method,
                 formattableString,
-                supportedArgs,
+                supportedParameters,
                 method.CallingConvention.HasFlag(CallingConventions.HasThis),
                 method.DeclaringType,
                 method.GetParameters());
+
+            return true;
         }
 
         public void Clear()

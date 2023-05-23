@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
+using Microsoft.Diagnostics.Tools.Monitor;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
-    internal sealed class ParameterCapturingService : BackgroundService
+    internal sealed class ParameterCapturingService : BackgroundService, IDisposable
     {
         [DllImport(ProfilerIdentifiers.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void RegisterFunctionProbe(ulong enterProbeId);
@@ -30,13 +31,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokens,
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokenCounts);
 
-
-        private readonly InstrumentedMethodCache? _instrumentedMethodCache;
+        private readonly InstrumentedMethodCache _instrumentedMethodCache = new();
         private readonly ILogger? _logger;
-        private readonly bool _isAvailable;
         private static string? _profilerModulePath;
-
-        private readonly LocalDev localDev = new();
+        private long _disposedState;
+        private readonly bool _isAvailable;
 
         public ParameterCapturingService(IServiceProvider services)
         {
@@ -58,7 +57,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 NativeLibrary.SetDllImportResolver(typeof(ParameterCapturingService).Assembly, ResolveDllImport);
 
                 RegisterFunctionProbe(FunctionProbesStub.GetProbeFunctionId());
-                _instrumentedMethodCache = new();
                 FunctionProbesStub.Instance = new LogEmittingProbes(_logger, _instrumentedMethodCache);
 
                 _isAvailable = true;
@@ -68,7 +66,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 _logger.Log(LogLevel.Debug, ex.ToString());
             }
         }
-
 
         private static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
@@ -90,25 +87,46 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         public void StopCapturing()
         {
-            _instrumentedMethodCache?.Clear();
+            if (!_isAvailable)
+            {
+                throw new InvalidOperationException();
+            }
+
+            _logger?.LogDebug(ParameterCapturingStrings.LogMessage_StopCapturing);
+
+            _instrumentedMethodCache.Clear();
             RequestFunctionProbeUninstallation();
         }
 
         public void StartCapturing(IList<MethodInfo> methods)
         {
+            if (!_isAvailable)
+            {
+                throw new InvalidOperationException();
+            }
+
+            if (methods.Count == 0)
+            {
+                throw new ArgumentException(nameof(methods));
+            }
+
+            _logger?.LogDebug(ParameterCapturingStrings.LogMessage_StartCapturing, methods.Count);
+
             List<ulong> functionIds = new(methods.Count);
             List<uint> argumentCounts = new(methods.Count);
             List<uint> boxingTokens = new();
 
             foreach (MethodInfo method in methods)
             {
-                ulong functionId = method.GetFunctionId();
                 uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
-                bool[] supportedArgs = BoxingTokens.GetSupportedArgs(methodBoxingTokens);
 
-                _instrumentedMethodCache!.Add(method, supportedArgs);
-                functionIds.Add(functionId);
+                if (!_instrumentedMethodCache.TryAdd(method, methodBoxingTokens))
+                {
+                    _instrumentedMethodCache.Clear();
+                    return;
+                }
 
+                functionIds.Add(method.GetFunctionId());
                 argumentCounts.Add((uint)methodBoxingTokens.Length);
                 boxingTokens.AddRange(methodBoxingTokens);
             }
@@ -120,22 +138,32 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 argumentCounts.ToArray());
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!_isAvailable || _instrumentedMethodCache == null)
+            if (!_isAvailable)
             {
-                return;
+                return Task.CompletedTask;
             }
+
+            return Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+
+        public override void Dispose()
+        {
+            if (!DisposableHelper.CanDispose(ref _disposedState))
+                return;
 
             try
             {
-                await localDev.RunDemoScenario(this, stoppingToken).ConfigureAwait(false);
+                FunctionProbesStub.Instance = null;
                 StopCapturing();
             }
             catch
             {
 
             }
+
+            base.Dispose();
         }
     }
 }

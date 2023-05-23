@@ -117,13 +117,22 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="TruncatedArgumentValue" xml:space="preserve">
-    <value>truncated</value>
+  <data name="LogMessage_StartCapturing" xml:space="preserve">
+    <value>Starting parameter capturing for {0} methods</value>
   </data>
-  <data name="UnknownArgumentName" xml:space="preserve">
+  <data name="LogMessage_StopCapturing" xml:space="preserve">
+    <value>Stopping parameter capturing</value>
+  </data>
+  <data name="NullArgumentValue" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="UnknownArgumentValue" xml:space="preserve">
     <value>unknown</value>
   </data>
-  <data name="UnsupportedArgument" xml:space="preserve">
+  <data name="UnknownParameterName" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="UnsupportedParameter" xml:space="preserve">
     <value>unsupported</value>
   </data>
 </root>

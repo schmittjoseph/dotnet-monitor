@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Monitoring.TestCommon;
 using System.Reflection;
 using System;
 using Xunit;
-using SampleSignatures;
+using SampleMethods;
 using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing
@@ -22,28 +22,31 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         }
 
         [Theory]
-        [InlineData(typeof(TestMethodSignatures), nameof(TestMethodSignatures.ImplicitThis), "SampleSignatures.TestMethodSignatures.ImplicitThis(this: {0})")]
-        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Delegate), "SampleSignatures.StaticTestMethodSignatures.Delegate(func: {0})")]
-        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.BasicTypes), "SampleSignatures.StaticTestMethodSignatures.BasicTypes(s: {0}, intArray: {1}, multidimensionalArray: {2}, uInt: {3})")]
-        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefStruct), "SampleSignatures.StaticTestMethodSignatures.RefStruct(ref myRefStruct: {{unsupported}})")]
-        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.GenericParameters), "SampleSignatures.StaticTestMethodSignatures.GenericParameters<T, K>(t: {0}, k: {1})")]
-        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Unicode_ΦΨ), "SampleSignatures.StaticTestMethodSignatures.Unicode_ΦΨ(δ: {0})")]
-        public void MethodFormatString(Type t, string methodName, string formatString)
+        [InlineData(typeof(TestMethodSignatures), nameof(TestMethodSignatures.ImplicitThis), "SampleMethods.TestMethodSignatures.ImplicitThis(this: {0})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Delegate), "SampleMethods.StaticTestMethodSignatures.Delegate(func: {0})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.BasicTypes), "SampleMethods.StaticTestMethodSignatures.BasicTypes(s: {0}, intArray: {1}, multidimensionalArray: {2}, uInt: {3})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.InParam), "SampleMethods.StaticTestMethodSignatures.InParam(in i: {{unsupported}})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.OutParam), "SampleMethods.StaticTestMethodSignatures.OutParam(out i: {{unsupported}})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefParam), "SampleMethods.StaticTestMethodSignatures.RefParam(ref i: {{unsupported}})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.RefStruct), "SampleMethods.StaticTestMethodSignatures.RefStruct(ref myRefStruct: {{unsupported}})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.GenericParameters), "SampleMethods.StaticTestMethodSignatures.GenericParameters<T, K>(t: {{unsupported}}, k: {{unsupported}})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.VarArgs), "SampleMethods.StaticTestMethodSignatures.VarArgs(b: {0}, myInts: {1})")]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Unicode_ΦΨ), "SampleMethods.StaticTestMethodSignatures.Unicode_ΦΨ(δ: {0})")]
+        public void MethodFormattableString(Type containingClassType, string methodName, string formattableString)
         {
             // Arrange
-            MethodInfo method = t.GetMethod(methodName);
+            MethodInfo method = containingClassType.GetMethod(methodName);
             Assert.NotNull(method);
 
             // Act
-            uint[] tokens = BoxingTokens.GetBoxingTokens(method);
-            bool[] supportedArgs = BoxingTokens.GetSupportedArgs(tokens);
-            string actualFormatString = PrettyPrinter.ConstructFormattableStringFromMethod(method, supportedArgs);
+            bool[] supportedParameters = BoxingTokens.AreParametersSupported(BoxingTokens.GetBoxingTokens(method));
+            string actualFormattableString = PrettyPrinter.ConstructFormattableStringFromMethod(method, supportedParameters);
 
             // Assert
-            Assert.NotNull(actualFormatString);
-            actualFormatString = actualFormatString.ReplaceLineEndings("").Replace("\t", "");
-            _outputHelper.WriteLine(actualFormatString);
-            Assert.Equal(formatString, actualFormatString);
+            Assert.NotNull(actualFormattableString);
+            actualFormattableString = actualFormattableString.ReplaceLineEndings("").Replace("\t", "");
+            _outputHelper.WriteLine(actualFormattableString);
+            Assert.Equal(formattableString, actualFormattableString);
         }
 
         [Theory]
