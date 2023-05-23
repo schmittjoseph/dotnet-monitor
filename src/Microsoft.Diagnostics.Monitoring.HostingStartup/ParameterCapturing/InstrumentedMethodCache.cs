@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         public string PrettyPrintStringFormat { get; }
     }
 
-    public class InstrumentedMethodCache
+    public sealed class InstrumentedMethodCache
     {
         private readonly ConcurrentDictionary<ulong, InstrumentedMethod> _cache = new();
 
@@ -65,8 +65,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
-            ulong id = (ulong)method.MethodHandle.Value.ToInt64();
-            _cache[id] = new InstrumentedMethod(
+            _cache[method.GetFunctionId()] = new InstrumentedMethod(
                 method,
                 formattableString,
                 supportedArgs,

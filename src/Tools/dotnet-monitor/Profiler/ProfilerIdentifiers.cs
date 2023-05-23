@@ -44,7 +44,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Profiler
             // default level of the stderr logger.
             public const string StdErrLogger_Level = ProfilerPrefix + nameof(StdErrLogger_Level);
 
-            public const string ReflectivePath = ProfilerPrefix + nameof(ReflectivePath);
+            // This environment variable is automatically applied to a target process by the tool
+            // with the physical path of the profiler's module.
+            public const string ModulePath = ProfilerPrefix + nameof(ModulePath);
         }
     }
 }

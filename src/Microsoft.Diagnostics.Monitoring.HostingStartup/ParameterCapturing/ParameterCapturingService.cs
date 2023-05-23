@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -22,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private static extern void RegisterFunctionProbe(ulong enterProbeId);
 
         [DllImport(ProfilerIdentifiers.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
-        private static extern void RequestFunctionUninstallation();
+        private static extern void RequestFunctionProbeUninstallation();
 
         [DllImport(ProfilerIdentifiers.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void RequestFunctionProbeInstallation(
@@ -35,6 +34,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private readonly InstrumentedMethodCache? _instrumentedMethodCache;
         private readonly ILogger? _logger;
         private readonly bool _isAvailable;
+        private static string? _profilerModulePath;
+
+        private readonly LocalDev localDev = new();
 
         public ParameterCapturingService(IServiceProvider services)
         {
@@ -46,11 +48,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             try
             {
-                // NativeLibrary.SetDllImportResolver(typeof(ParameterCapturingService).Assembly, ResolveDllImport);
+                _profilerModulePath = Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ModulePath);
+                if (string.IsNullOrWhiteSpace(_profilerModulePath))
+                {
+                    // TODO: Log
+                    return;
+                }
 
+                NativeLibrary.SetDllImportResolver(typeof(ParameterCapturingService).Assembly, ResolveDllImport);
+
+                RegisterFunctionProbe(FunctionProbesStub.GetProbeFunctionId());
                 _instrumentedMethodCache = new();
-                LogEmittingProbes.Init(_logger, _instrumentedMethodCache);
-                RegisterFunctionProbe(LogEmittingProbes.GetProbeFunctionId());
+                FunctionProbesStub.Instance = new LogEmittingProbes(_logger, _instrumentedMethodCache);
+
                 _isAvailable = true;
             }
             catch (Exception ex)
@@ -59,15 +69,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
         }
 
+
         private static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
             // DllImport for Windows automatically loads in-memory modules (such as the profiler). This is not the case for Linux/MacOS.
             // If we fail resolving the DllImport, we have to load the profiler ourselves.
+            if (_profilerModulePath == null ||
+                libraryName != ProfilerIdentifiers.LibraryRootFileName)
+            {
+                return IntPtr.Zero;
+            }
 
-            string? loadedProfilerPath = Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ReflectivePath);
-            // This environment variable should only ever be set by our profiler if it has been loaded, so we don't risk accidentally
-            // loading the profiler if it isn't already present.
-            if (!string.IsNullOrEmpty(loadedProfilerPath) && NativeLibrary.TryLoad(loadedProfilerPath, out IntPtr handle))
+            if (NativeLibrary.TryLoad(_profilerModulePath, out IntPtr handle))
             {
                 return handle;
             }
@@ -75,16 +88,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return IntPtr.Zero;
         }
 
-        private void RequestProbeInstallation(IEnumerable<MethodInfo> methods)
+        public void StopCapturing()
         {
-            List<ulong> functionIds = new(methods.Count());
-            List<uint> argumentCounts = new(methods.Count());
+            _instrumentedMethodCache?.Clear();
+            RequestFunctionProbeUninstallation();
+        }
+
+        public void StartCapturing(IList<MethodInfo> methods)
+        {
+            List<ulong> functionIds = new(methods.Count);
+            List<uint> argumentCounts = new(methods.Count);
             List<uint> boxingTokens = new();
 
             foreach (MethodInfo method in methods)
             {
-                ulong functionId = (ulong)method.MethodHandle.Value.ToInt64();
-
+                ulong functionId = method.GetFunctionId();
                 uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
                 bool[] supportedArgs = BoxingTokens.GetSupportedArgs(methodBoxingTokens);
 
@@ -95,20 +113,29 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 boxingTokens.AddRange(methodBoxingTokens);
             }
 
-            RequestFunctionProbeInstallation(functionIds.ToArray(), (uint)functionIds.Count, boxingTokens.ToArray(), argumentCounts.ToArray());
+            RequestFunctionProbeInstallation(
+                functionIds.ToArray(),
+                (uint)functionIds.Count,
+                boxingTokens.ToArray(),
+                argumentCounts.ToArray());
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!_isAvailable || _instrumentedMethodCache == null)
             {
-                return Task.Delay(Timeout.Infinite, stoppingToken);
+                return;
             }
 
+            try
+            {
+                await localDev.RunDemoScenario(this, stoppingToken).ConfigureAwait(false);
+                StopCapturing();
+            }
+            catch
+            {
 
-
-            _instrumentedMethodCache.Clear();
-            return Task.CompletedTask;
+            }
         }
     }
 }
