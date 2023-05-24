@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -31,11 +32,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokens,
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokenCounts);
 
+
         private readonly InstrumentedMethodCache _instrumentedMethodCache = new();
-        private readonly ILogger? _logger;
-        private static string? _profilerModulePath;
+        private readonly object _requestLocker = new();
         private long _disposedState;
         private readonly bool _isAvailable;
+
+        private readonly ILogger? _logger;
+        private readonly string? _profilerModulePath;
 
         public ParameterCapturingService(IServiceProvider services)
         {
@@ -48,9 +52,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             try
             {
                 _profilerModulePath = Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ModulePath);
-                if (string.IsNullOrWhiteSpace(_profilerModulePath))
+                if (!File.Exists(_profilerModulePath))
                 {
-                    // TODO: Log
                     return;
                 }
 
@@ -61,13 +64,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 _isAvailable = true;
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.Log(LogLevel.Debug, ex.ToString());
+                // TODO: Log
             }
         }
 
-        private static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        private IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
             // DllImport for Windows automatically loads in-memory modules (such as the profiler). This is not the case for Linux/MacOS.
             // If we fail resolving the DllImport, we have to load the profiler ourselves.
@@ -92,10 +95,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw new InvalidOperationException();
             }
 
-            _logger?.LogDebug(ParameterCapturingStrings.LogMessage_StopCapturing);
-
-            _instrumentedMethodCache.Clear();
-            RequestFunctionProbeUninstallation();
+            lock (_requestLocker)
+            {
+                _instrumentedMethodCache.Clear();
+                RequestFunctionProbeUninstallation();
+            }
         }
 
         public void StartCapturing(IList<MethodInfo> methods)
@@ -110,32 +114,38 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw new ArgumentException(nameof(methods));
             }
 
-            _logger?.LogDebug(ParameterCapturingStrings.LogMessage_StartCapturing, methods.Count);
-
-            List<ulong> functionIds = new(methods.Count);
-            List<uint> argumentCounts = new(methods.Count);
-            List<uint> boxingTokens = new();
-
-            foreach (MethodInfo method in methods)
+            lock (_requestLocker)
             {
-                uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+                _instrumentedMethodCache.Clear();
+                List<ulong> functionIds = new(methods.Count);
+                List<uint> argumentCounts = new(methods.Count);
+                List<uint> boxingTokens = new();
 
-                if (!_instrumentedMethodCache.TryAdd(method, methodBoxingTokens))
+                foreach (MethodInfo method in methods)
                 {
-                    _instrumentedMethodCache.Clear();
-                    return;
+                    ulong functionId = method.GetFunctionId();
+                    if (functionId == 0)
+                    {
+                        return;
+                    }
+
+                    uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+                    if (!_instrumentedMethodCache.TryAdd(method, methodBoxingTokens))
+                    {
+                        return;
+                    }
+
+                    functionIds.Add(functionId);
+                    argumentCounts.Add((uint)methodBoxingTokens.Length);
+                    boxingTokens.AddRange(methodBoxingTokens);
                 }
 
-                functionIds.Add(method.GetFunctionId());
-                argumentCounts.Add((uint)methodBoxingTokens.Length);
-                boxingTokens.AddRange(methodBoxingTokens);
+                RequestFunctionProbeInstallation(
+                    functionIds.ToArray(),
+                    (uint)functionIds.Count,
+                    boxingTokens.ToArray(),
+                    argumentCounts.ToArray());
             }
-
-            RequestFunctionProbeInstallation(
-                functionIds.ToArray(),
-                (uint)functionIds.Count,
-                boxingTokens.ToArray(),
-                argumentCounts.ToArray());
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -153,14 +163,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (!DisposableHelper.CanDispose(ref _disposedState))
                 return;
 
-            try
+            if (_isAvailable)
             {
-                FunctionProbesStub.Instance = null;
-                StopCapturing();
-            }
-            catch
-            {
+                try
+                {
+                    FunctionProbesStub.Instance = null;
+                    StopCapturing();
+                }
+                catch
+                {
 
+                }
             }
 
             base.Dispose();
