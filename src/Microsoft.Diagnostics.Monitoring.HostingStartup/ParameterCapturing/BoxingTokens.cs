@@ -11,11 +11,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal static class BoxingTokens
     {
-        private const uint SpecialCaseBoxingTypeFlag = 0xff000000;
-        private const uint UnsupportedParameterToken = SpecialCaseBoxingTypeFlag | (uint)SpecialCaseBoxingTypes.Unknown;
-        private const uint SkipBoxingToken = SpecialCaseBoxingTypeFlag | (uint)SpecialCaseBoxingTypes.Object;
+        private static readonly uint UnsupportedParameterToken = SpecialCaseBoxingTypes.Unknown.BoxingToken();
+        private static readonly uint SkipBoxingToken = SpecialCaseBoxingTypes.Object.BoxingToken();
 
-        private enum SpecialCaseBoxingTypes
+        public enum SpecialCaseBoxingTypes
         {
             Unknown = 0,
             Object,
@@ -32,6 +31,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             Single,
             Double,
         };
+
+        public static uint BoxingToken(this SpecialCaseBoxingTypes specialCase)
+        {
+            const uint SpecialCaseBoxingTypeFlag = 0xff000000;
+            return SpecialCaseBoxingTypeFlag | (uint)specialCase;
+        }
 
         public static bool IsParameterSupported(uint token)
         {
@@ -52,24 +57,32 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         public static uint[] GetBoxingTokens(MethodInfo method)
         {
             List<Type> methodParameterTypes = method.GetParameters().Select(p => p.ParameterType).ToList();
-            List<uint> boxingTokens = new List<uint>(methodParameterTypes.Count);
+            List<uint> boxingTokens = new List<uint>(methodParameterTypes.Count + (method.HasImplicitThis() ? 1 : 0));
 
             // Handle implicit this
-            if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
+            if (method.HasImplicitThis())
             {
                 Debug.Assert(!method.IsStatic);
 
                 Type? thisType = method.DeclaringType;
-                if (thisType != null)
+                if (thisType == null ||
+                    thisType.IsValueType)
                 {
-                    methodParameterTypes.Insert(0, thisType);
+                    //
+                    // Implicit this pointers for value types can **sometimes** be passed as an address to the value.
+                    // For now don't support this scenario.
+                    //
+                    // To enable it in the future add a new special case token and when rewriting IL
+                    // emit a ldobj instruction for it.
+                    //
+                    boxingTokens.Add(UnsupportedParameterToken);
                 }
                 else
                 {
-                    boxingTokens.Add(UnsupportedParameterToken);
+                    methodParameterTypes.Insert(0, thisType);
                 }
             }
-
+             
             foreach (Type paramType in methodParameterTypes)
             {
                 if (paramType.IsByRef ||
@@ -123,7 +136,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         private static uint GetSpecialCaseBoxingToken(TypeCode typeCode)
         {
-            return SpecialCaseBoxingTypeFlag | (uint)GetSpecialCaseBoxingType(typeCode);
+            return GetSpecialCaseBoxingType(typeCode).BoxingToken();
         }
 
         private static SpecialCaseBoxingTypes GetSpecialCaseBoxingType(TypeCode typeCode)

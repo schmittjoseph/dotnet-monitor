@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 
@@ -9,7 +10,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal static class PrettyPrinter
     {
-        public static string SerializeObject(object value)
+        public static string FormatObject(object value)
         {
             if (value == null)
             {
@@ -50,67 +51,62 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
         }
 
-        public static string? ConstructFormattableStringFromMethod(MethodInfo method, bool[] supportedParameters)
+        public static string? ConstructTemplateStringFromMethod(MethodInfo method, bool[] supportedParameters)
         {
             StringBuilder fmtStringBuilder = new();
 
             // Declaring type name
             // For a generic declaring type, trim the arity information and replace it with the known generic argument names.
             const char arityDelimiter = '`';
-            string className = method.DeclaringType?.FullName?.Split(arityDelimiter)?[0] ?? string.Empty;
-            fmtStringBuilder.Append(className);
+            string declaringTypeName = method.DeclaringType?.FullName?.Split(arityDelimiter)?[0] ?? string.Empty;
+            fmtStringBuilder.Append(declaringTypeName);
             EmitGenericArguments(fmtStringBuilder, method.DeclaringType?.GetGenericArguments());
 
             // Method name
-            fmtStringBuilder.Append('.');
+            if (fmtStringBuilder.Length != 0)
+            {
+                fmtStringBuilder.Append('.');
+            }
             fmtStringBuilder.Append(method.Name);
             EmitGenericArguments(fmtStringBuilder, method.GetGenericArguments());
 
             // Method parameters
             fmtStringBuilder.Append('(');
 
-            int fmtIndex = 0;
             int parameterIndex = 0;
             ParameterInfo[] explicitParameters = method.GetParameters();
 
-            int numberOfParameters = explicitParameters.Length + (method.CallingConvention.HasFlag(CallingConventions.HasThis) ? 1 : 0);
+            int numberOfParameters = explicitParameters.Length + (method.HasImplicitThis() ? 1 : 0);
             if (numberOfParameters != supportedParameters.Length)
             {
                 return null;
             }
 
             // Implicit this
-            if (method.CallingConvention.HasFlag(CallingConventions.HasThis))
+            if (method.HasImplicitThis())
             {
-                if (EmitParameter(
+                EmitParameter(
                     fmtStringBuilder,
                     method.DeclaringType,
                     ParameterCapturingStrings.ThisParameterName,
-                    supportedParameters[parameterIndex],
-                    fmtIndex))
-                {
-                    fmtIndex++;
-                }
+                    supportedParameters[parameterIndex]);
                 parameterIndex++;
             }
 
             foreach (ParameterInfo paramInfo in explicitParameters)
             {
-                if (parameterIndex != 0 || fmtIndex != 0)
+                if (parameterIndex != 0)
                 {
                     fmtStringBuilder.Append(", ");
                 }
 
-                if (EmitParameter(
+                string name = paramInfo.Name ?? string.Format(CultureInfo.InvariantCulture, ParameterCapturingStrings.UnknownParameterNameFormatString, parameterIndex);
+                EmitParameter(
                     fmtStringBuilder,
                     paramInfo.ParameterType,
-                    paramInfo.Name,
+                    name,
                     supportedParameters[parameterIndex],
-                    fmtIndex,
-                    paramInfo))
-                {
-                    fmtIndex++;
-                }
+                    paramInfo);
 
                 parameterIndex++;
             }
@@ -120,7 +116,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return fmtStringBuilder.ToString();
         }
 
-        private static bool EmitParameter(StringBuilder stringBuilder, Type? type, string? name, bool isSupported, int formatIndex, ParameterInfo? paramInfo = null)
+        private static void EmitParameter(StringBuilder stringBuilder, Type? type, string name, bool isSupported, ParameterInfo? paramInfo = null)
         {
             stringBuilder.AppendLine();
             stringBuilder.Append('\t');
@@ -144,29 +140,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
 
             // Name
-            if (string.IsNullOrEmpty(name))
-            {
-                EmitReservedPlaceholder(stringBuilder, ParameterCapturingStrings.UnknownParameterName);
-            }
-            else
-            {
-                stringBuilder.Append(name);
-            }
-
+            stringBuilder.Append(name);
             stringBuilder.Append(": ");
 
             // Value (format item or unsupported)
             if (isSupported)
             {
                 stringBuilder.Append('{');
-                stringBuilder.Append(formatIndex);
+                stringBuilder.Append(name);
                 stringBuilder.Append('}');
-                return true;
             }
             else
             {
                 EmitReservedPlaceholder(stringBuilder, ParameterCapturingStrings.UnsupportedParameter);
-                return false;
             }
         }
 
