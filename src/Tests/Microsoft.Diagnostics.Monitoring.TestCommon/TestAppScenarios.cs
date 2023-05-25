@@ -70,9 +70,14 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
             {
                 public const string ProbeInstallation = nameof(ProbeInstallation);
                 public const string ProbeUninstallation = nameof(ProbeUninstallation);
+
+                public const string UnsupportedParameters = nameof(UnsupportedParameters);
+
                 public const string CapturePrimitives = nameof(CapturePrimitives);
                 public const string CaptureValueTypes = nameof(CaptureValueTypes);
-                public const string UnsupportedParameters = nameof(UnsupportedParameters);
+                public const string CaptureNoArgs = nameof(CaptureNoArgs);
+                public const string CaptureImplicitThis = nameof(CaptureImplicitThis);
+                public const string CaptureExplicitThis = nameof(CaptureExplicitThis);
             }
         }
 

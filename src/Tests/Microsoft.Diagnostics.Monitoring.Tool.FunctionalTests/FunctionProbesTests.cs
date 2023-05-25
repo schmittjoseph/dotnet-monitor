@@ -31,9 +31,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.FunctionalTests
         [Theory]
         [InlineData(TestAppScenarios.FunctionProbes.Commands.ProbeInstallation)]
         [InlineData(TestAppScenarios.FunctionProbes.Commands.ProbeUninstallation)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.CapturePrimitives)]
+
         [InlineData(TestAppScenarios.FunctionProbes.Commands.UnsupportedParameters)]
+        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureNoArgs)]
+
+        [InlineData(TestAppScenarios.FunctionProbes.Commands.CapturePrimitives)]
         [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureValueTypes)]
+        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureImplicitThis)]
+        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureExplicitThis)]
         public async Task TestScenario(string command)
         {
             await ScenarioRunner.SingleTarget(
