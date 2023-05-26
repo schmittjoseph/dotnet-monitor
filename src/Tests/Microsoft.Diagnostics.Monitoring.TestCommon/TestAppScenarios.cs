@@ -78,6 +78,11 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
                 public const string CaptureNoArgs = nameof(CaptureNoArgs);
                 public const string CaptureImplicitThis = nameof(CaptureImplicitThis);
                 public const string CaptureExplicitThis = nameof(CaptureExplicitThis);
+
+                /* Fault injection */
+                public const string ExceptionThrowingProbe = nameof(ExceptionThrowingProbe);
+                public const string ExceptionThrowingArgument = nameof(ExceptionThrowingArgument);
+
             }
         }
 

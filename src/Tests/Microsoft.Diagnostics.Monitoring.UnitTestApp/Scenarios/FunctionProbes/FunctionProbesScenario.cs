@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
+using Microsoft.Diagnostics.Tracing.Parsers.Tpl;
 using SampleMethods;
 using System;
 using System.Collections.Generic;
@@ -43,6 +44,11 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 { TestAppScenarios.FunctionProbes.Commands.CaptureValueTypes, Test_CaptureValueTypesAsync},
                 { TestAppScenarios.FunctionProbes.Commands.CaptureImplicitThis, Test_CaptureImplicitThisAsync},
                 { TestAppScenarios.FunctionProbes.Commands.CaptureExplicitThis, Test_CaptureExplicitThisAsync},
+
+                /* Fault injection */
+                { TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingProbe, Test_FaultInjection_ExceptionThrowingProbeAsync},
+                { TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingArgument, Test_FaultInjection_ExceptionThrowingArgumentAsync},
+
             };
 
             return ScenarioHelpers.RunScenarioAsync(async logger =>
@@ -119,6 +125,31 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
         {
             MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.NoArgs));
             await RunTestCaseAsync(probeManager, probeRedirector, method, Array.Empty<object>());
+        }
+
+        private static async Task Test_FaultInjection_ExceptionThrowingProbeAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
+        {
+            MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.NoArgs));
+            Assert.NotNull(method);
+
+            probeRedirector.RegisterPerFunctionProbe(method, (object[] actualArgs) =>
+            {
+                throw new Exception("Exception thrown in faulty probe");
+            });
+
+            await WaitForProbeInstallationAsync(probeManager, probeRedirector, new[] { method }, CancellationToken.None);
+
+            // Should not throw.
+            method.Invoke(null, null);
+
+            Assert.Equal(1, probeRedirector.GetProbeInvokeCount(method));
+        }
+
+        private static async Task Test_FaultInjection_ExceptionThrowingArgumentAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
+        {
+
+            //MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.));
+            await Task.Delay(100);
         }
 
         private static async Task Test_UnsupportedParametersAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)

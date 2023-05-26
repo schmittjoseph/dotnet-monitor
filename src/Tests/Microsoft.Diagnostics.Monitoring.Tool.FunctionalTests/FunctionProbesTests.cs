@@ -39,6 +39,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.FunctionalTests
         [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureValueTypes)]
         [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureImplicitThis)]
         [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureExplicitThis)]
+
+        /* Fault injection */
+        [InlineData(TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingProbe)]
+        [InlineData(TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingArgument)]
+
+
         public async Task TestScenario(string command)
         {
             await ScenarioRunner.SingleTarget(
