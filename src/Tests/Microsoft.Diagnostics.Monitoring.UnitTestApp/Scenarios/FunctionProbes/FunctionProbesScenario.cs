@@ -1,18 +1,14 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.AspNetCore.Hosting.StaticWebAssets;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
-using Microsoft.Diagnostics.Tracing.Parsers.Tpl;
 using SampleMethods;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -34,20 +30,25 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
         {
             Dictionary<string, TestCase> testCases = new()
             {
+                /* Probe management */
                 { TestAppScenarios.FunctionProbes.Commands.ProbeInstallation, Test_ProbeInstallationAsync},
                 { TestAppScenarios.FunctionProbes.Commands.ProbeUninstallation, Test_ProbeUninstallationAsync},
+                { TestAppScenarios.FunctionProbes.Commands.ProbeReinstallation, Test_ProbeReinstallationAsync},
 
-                { TestAppScenarios.FunctionProbes.Commands.UnsupportedParameters, Test_UnsupportedParametersAsync},
-                { TestAppScenarios.FunctionProbes.Commands.CaptureNoArgs, Test_CaptureNoArgsAsync},
-
+                /* Parameter capturing */
                 { TestAppScenarios.FunctionProbes.Commands.CapturePrimitives, Test_CapturePrimitivesAsync},
                 { TestAppScenarios.FunctionProbes.Commands.CaptureValueTypes, Test_CaptureValueTypesAsync},
                 { TestAppScenarios.FunctionProbes.Commands.CaptureImplicitThis, Test_CaptureImplicitThisAsync},
                 { TestAppScenarios.FunctionProbes.Commands.CaptureExplicitThis, Test_CaptureExplicitThisAsync},
+                { TestAppScenarios.FunctionProbes.Commands.NoParameters, Test_NoParametersAsync},
+                { TestAppScenarios.FunctionProbes.Commands.UnsupportedParameters, Test_UnsupportedParametersAsync},
+
+                /* Interesting functions */
+                { TestAppScenarios.FunctionProbes.Commands.GenericFunctions, Test_GenericFunctionsAsync},
+                { TestAppScenarios.FunctionProbes.Commands.ExceptionRegionAtBeginningOfFunction, Test_ExceptionRegionAtBeginningOfFunctionAsync},
 
                 /* Fault injection */
-                { TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingProbe, Test_FaultInjection_ExceptionThrowingProbeAsync},
-                { TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingArgument, Test_FaultInjection_ExceptionThrowingArgumentAsync},
+                { TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingProbe, Test_FaultInjection_ExceptionThrowingProbeAsync}
 
             };
 
@@ -73,6 +74,13 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
         {
             await WaitForProbeInstallationAsync(probeManager, probeRedirector, Array.Empty<MethodInfo>(), CancellationToken.None);
             await WaitForProbeUninstallationAsync(probeManager, probeRedirector, CancellationToken.None);
+        }
+
+        private static async Task Test_ProbeReinstallationAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
+        {
+            await WaitForProbeInstallationAsync(probeManager, probeRedirector, Array.Empty<MethodInfo>(), CancellationToken.None);
+            await WaitForProbeUninstallationAsync(probeManager, probeRedirector, CancellationToken.None);
+            await WaitForProbeInstallationAsync(probeManager, probeRedirector, Array.Empty<MethodInfo>(), CancellationToken.None);
         }
 
         private static async Task Test_CapturePrimitivesAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
@@ -121,11 +129,37 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             });
         }
 
-        private static async Task Test_CaptureNoArgsAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
+        private static async Task Test_NoParametersAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
         {
             MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.NoArgs));
             await RunTestCaseAsync(probeManager, probeRedirector, method, Array.Empty<object>());
         }
+
+        private static async Task Test_ExceptionRegionAtBeginningOfFunctionAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
+        {
+            MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.ExceptionRegionAtBeginningOfFunction));
+            await RunTestCaseAsync(probeManager, probeRedirector, method, new object[]
+            {
+                null
+            });
+        }
+
+        private static async Task Test_GenericFunctionsAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
+        {
+            MethodInfo method = Type.GetType($"{nameof(SampleMethods)}.GenericTestMethodSignatures`2").GetMethod("GenericParameters");
+            Assert.NotNull(method);
+
+            probeRedirector.RegisterPerFunctionProbe(method, (object[] actualArgs) => { });
+
+            await WaitForProbeInstallationAsync(probeManager, probeRedirector, new[] { method }, CancellationToken.None);
+
+            new GenericTestMethodSignatures<bool, int>().GenericParameters(false, 10, "hello world");
+            new GenericTestMethodSignatures<string, object>().GenericParameters("", new object(), 10);
+            new GenericTestMethodSignatures<MyEnum, Uri>().GenericParameters(MyEnum.ValueA, new Uri("https://www.bing.com"), new object());
+
+            Assert.Equal(3, probeRedirector.GetProbeInvokeCount(method));
+        }
+
 
         private static async Task Test_FaultInjection_ExceptionThrowingProbeAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
         {
@@ -143,13 +177,6 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             method.Invoke(null, null);
 
             Assert.Equal(1, probeRedirector.GetProbeInvokeCount(method));
-        }
-
-        private static async Task Test_FaultInjection_ExceptionThrowingArgumentAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
-        {
-
-            //MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.));
-            await Task.Delay(100);
         }
 
         private static async Task Test_UnsupportedParametersAsync(FunctionProbesManager probeManager, FunctionProbeRedirector probeRedirector)
@@ -267,11 +294,9 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             await probeInstalled.Task.WaitAsync(token).ConfigureAwait(false);
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InstallationTestStub()
         {
         }
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void UninstallationTestStub()
         {
         }

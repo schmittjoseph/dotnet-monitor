@@ -12,6 +12,9 @@ using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Options;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.FunctionalTests
 {
@@ -22,6 +25,28 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.FunctionalTests
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ITestOutputHelper _outputHelper;
 
+        public static IEnumerable<object[]> GetTestScenarios()
+        {
+            List<object[]> arguments = new();
+
+            IEnumerable<object[]> testArchitectures = ProfilerHelper.GetArchitecture();
+            List<string> commands = typeof(TestAppScenarios.FunctionProbes.Commands).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Select(p => p.Name)
+                .ToList();
+
+            Assert.NotEmpty(commands);
+
+            foreach (object[] archArgs in testArchitectures)
+            {
+                foreach (string command in commands)
+                {
+                    arguments.Add(archArgs.Concat(new object[] { command }).ToArray());
+                }
+            }
+
+            return arguments;
+        }
+
         public FunctionProbesTests(ITestOutputHelper outputHelper, ServiceProviderFixture serviceProviderFixture)
         {
             _httpClientFactory = serviceProviderFixture.ServiceProvider.GetService<IHttpClientFactory>();
@@ -29,23 +54,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.FunctionalTests
         }
 
         [Theory]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.ProbeInstallation)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.ProbeUninstallation)]
-
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.UnsupportedParameters)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureNoArgs)]
-
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.CapturePrimitives)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureValueTypes)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureImplicitThis)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.CaptureExplicitThis)]
-
-        /* Fault injection */
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingProbe)]
-        [InlineData(TestAppScenarios.FunctionProbes.Commands.ExceptionThrowingArgument)]
-
-
-        public async Task TestScenario(string command)
+        [MemberData(nameof(FunctionProbesTests.GetTestScenarios), MemberType = typeof(FunctionProbesTests))]
+        public async Task TestScenario(Architecture targetArchitecture, string command)
         {
             await ScenarioRunner.SingleTarget(
                 _outputHelper,
@@ -58,7 +68,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.FunctionalTests
                 },
                 configureApp: runner =>
                 {
-                    runner.Architecture = System.Runtime.InteropServices.Architecture.X64;
+                    runner.Architecture = targetArchitecture;
                 },
                 configureTool: runner =>
                 {
