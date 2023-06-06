@@ -50,6 +50,8 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 { TestAppScenarios.FunctionProbes.Commands.GenericMethods, Test_GenericMethodsAsync},
                 { TestAppScenarios.FunctionProbes.Commands.ExceptionRegionAtBeginningOfMethod, Test_ExceptionRegionAtBeginningOfMethodAsync},
 
+                /* Fault injection */
+                { TestAppScenarios.FunctionProbes.Commands.ExceptionThrownByProbe, Test_ExceptionThrownByProbeAsync},
             };
 
             return ScenarioHelpers.RunScenarioAsync(async logger =>
@@ -195,6 +197,21 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 null
             },
             hasImplicitThis: false, capturedThisObj: null, token);
+        }
+
+        private static async Task Test_ExceptionThrownByProbeAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
+        {
+            MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod));
+            probeProxy.RegisterPerFunctionProbe(method, (object[] actualArgs) =>
+            {
+                throw new InvalidOperationException();
+            });
+
+            await WaitForProbeInstallationAsync(probeManager, probeProxy, new[] { method }, token);
+
+            StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
+
+            Assert.Equal(1, probeProxy.GetProbeInvokeCount(method));
         }
 
         private static Task RunAsyncTestCaseAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, MethodInfo method, object[] args, object thisObj, CancellationToken token)
