@@ -54,6 +54,7 @@ public:
     STDMETHOD(RegisterFunctionProbe)(FunctionID enterProbeId);
     STDMETHOD(RequestFunctionProbeInstallation)(ULONG64 functionIds[], ULONG32 count, ULONG32 argumentBoxingTypes[], ULONG32 argumentCounts[]);
     STDMETHOD(RequestFunctionProbeUninstallation)();
+    STDMETHOD(NotifyFunctionProbeException)(FunctionID faultedFunctionId);
 
 private:
     HRESULT InitializeCommon();

@@ -27,7 +27,8 @@ typedef struct _UNPROCESSED_INSTRUMENTATION_REQUEST
 enum class ProbeWorkerInstruction
 {
     INSTALL_PROBES,
-    UNINSTALL_PROBES
+    UNINSTALL_PROBES,
+    FAULTING_PROBES
 };
 
 typedef struct _PROBE_WORKER_PAYLOAD
@@ -70,6 +71,7 @@ class ProbeInstrumentation
 
         HRESULT RegisterFunctionProbe(FunctionID enterProbeId);
         HRESULT RequestFunctionProbeUninstallation();
+        HRESULT NotifyFunctionProbeException(FunctionID faultedFunctionId);
         HRESULT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG32 count, ULONG32 argumentBoxingTypes[], ULONG32 argumentCounts[]);
 
         void AddProfilerEventMask(DWORD& eventsLow);

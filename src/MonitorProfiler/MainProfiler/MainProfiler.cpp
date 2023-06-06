@@ -342,6 +342,11 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeUninstallation()
     return m_pProbeInstrumentation->RequestFunctionProbeUninstallation();
 }
 
+HRESULT STDMETHODCALLTYPE MainProfiler::NotifyFunctionProbeException(FunctionID faultedFunctionId)
+{
+    return m_pProbeInstrumentation->NotifyFunctionProbeException(faultedFunctionId);
+}
+
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbe(FunctionID enterProbeId)
 {
     return m_pProbeInstrumentation->RegisterFunctionProbe(enterProbeId);
@@ -358,7 +363,7 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeInstallation(ULONG64
 
 STDAPI DLLEXPORT RegisterFunctionProbe(ULONG64 enterProbeId)
 {
-    return MainProfiler::s_profiler->RegisterFunctionProbe((FunctionID)enterProbeId);
+    return MainProfiler::s_profiler->RegisterFunctionProbe(static_cast<FunctionID>(enterProbeId));
 }
 
 STDAPI DLLEXPORT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG32 count, ULONG32 argumentBoxingTypes[], ULONG32 argumentCounts[])
@@ -369,4 +374,9 @@ STDAPI DLLEXPORT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG32
 STDAPI DLLEXPORT RequestFunctionProbeUninstallation()
 {
     return MainProfiler::s_profiler->RequestFunctionProbeUninstallation();
+}
+
+STDAPI DLLEXPORT NotifyFunctionProbeException(ULONG64 faultedFunctionId)
+{
+    return MainProfiler::s_profiler->NotifyFunctionProbeException(static_cast<FunctionID>(faultedFunctionId));
 }

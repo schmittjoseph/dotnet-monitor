@@ -8,3 +8,4 @@ EXPORTS
     RegisterFunctionProbe              PRIVATE
     RequestFunctionProbeInstallation   PRIVATE
     RequestFunctionProbeUninstallation PRIVATE
+    NotifyFunctionProbeException       PRIVATE
