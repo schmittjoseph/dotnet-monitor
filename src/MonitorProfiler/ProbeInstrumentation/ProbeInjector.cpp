@@ -5,6 +5,7 @@
 #include "corprof.h"
 #include "ProbeInjector.h"
 #include "../Utilities/ILRewriter.h"
+#include "../MainProfiler/MainProfiler.h"
 
 #include <vector>
 
@@ -13,6 +14,14 @@
 // Instrumentation requests provide special boxing instructions by using SpecialCaseBoxingTypeFlag
 // as the "token type" and the SpecialCaseBoxingTypes enum as the RID.
 //
+
+static void STDMETHODCALLTYPE NotifyFunctionProbeException(ULONG64 uniquifier)
+{
+    MainProfiler::s_profiler->NotifyFunctionProbeException(static_cast<FunctionID>(uniquifier));
+}
+
+void(STDMETHODCALLTYPE *FaultyProbeAddress)(FunctionID) = &NotifyFunctionProbeException;
+
 constexpr ULONG32 SpecialCaseBoxingTypeFlag = 0x7f000000;
 enum class SpecialCaseBoxingTypes : ULONG32
 {
@@ -37,6 +46,8 @@ HRESULT ProbeInjector::InstallProbe(
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
     const INSTRUMENTATION_REQUEST& request)
 {
+    constexpr auto CEE_LDC_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : sizeof(size_t) == 4 ? CEE_LDC_I4 : throw std::logic_error("size_t must be defined as 8 or 4");
+
     IfNullRet(pICorProfilerInfo);
     IfNullRet(pICorProfilerFunctionControl);
 
@@ -58,6 +69,11 @@ HRESULT ProbeInjector::InstallProbe(
     ILInstr* pCatchBegin = nullptr;
     ILInstr* pCatchEnd = nullptr;
 
+    ILInstr* pNestedTryBegin = nullptr;
+    ILInstr* pNestedTryLeave = nullptr;
+    ILInstr* pNestedCatchBegin = nullptr;
+    ILInstr* pNestedCatchEnd = nullptr;
+
     UINT32 numArgs = static_cast<UINT32>(request.boxingTypes.size());
 
     //
@@ -65,6 +81,10 @@ HRESULT ProbeInjector::InstallProbe(
     // try {
     //   ProbeFunction(uniquifier, new object[] { arg1, arg2, ... })
     // } catch {
+    //   try {
+    //     PINVOKE NotifyFunctionProbeException(uniquifier);
+    //   } catch {
+    //   }
     // }
     //
     // When an argument isn't supported, pass null in its place.
@@ -151,12 +171,52 @@ HRESULT ProbeInjector::InstallProbe(
     pCatchBegin->m_opcode = CEE_POP;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchBegin);
 
+//    try {
+    pNestedTryBegin = rewriter.NewILInstr();
+    pNestedTryBegin->m_opcode = CEE_LDC_I8;
+    pNestedTryBegin->m_Arg64 = request.uniquifier;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedTryBegin);
+
+    pNewInstr = rewriter.NewILInstr();
+    pNewInstr->m_opcode = CEE_LDC_I;
+    pNewInstr->m_Arg64 = reinterpret_cast<ULONGLONG>(FaultyProbeAddress); // JSFIX
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    pNewInstr = rewriter.NewILInstr();
+    pNewInstr->m_opcode = CEE_CALLI;
+    pNewInstr->m_Arg32 = request.pAssemblyData->GetFaultingProbeCallbackSignature();
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    pNestedTryLeave = rewriter.NewILInstr();
+    pNestedTryLeave->m_opcode = CEE_LEAVE;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedTryLeave);
+
+//   catch {
+    pNestedCatchBegin = rewriter.NewILInstr();
+    pNestedCatchBegin->m_opcode = CEE_POP;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedCatchBegin);
+
+    pNestedCatchEnd = rewriter.NewILInstr();
+    pNestedCatchEnd->m_opcode = CEE_LEAVE;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedCatchEnd);
+//   }
+
     pCatchEnd = rewriter.NewILInstr();
     pCatchEnd->m_opcode = CEE_LEAVE;
     pCatchEnd->m_pTarget = pInsertProbeBeforeThisInstr;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchEnd);
 
 // }
+
+    pNestedTryLeave->m_pTarget = pNestedCatchEnd->m_pTarget = pCatchEnd;
+
+    rewriter.InsertEH(
+        pNestedTryBegin,
+        pNestedCatchBegin,
+        pNestedCatchBegin,
+        pNestedCatchEnd,
+        corLibTypeTokens.systemObjectType);
+
     rewriter.InsertEH(
         pTryBegin,
         pCatchBegin,

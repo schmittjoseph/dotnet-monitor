@@ -375,8 +375,3 @@ STDAPI DLLEXPORT RequestFunctionProbeUninstallation()
 {
     return MainProfiler::s_profiler->RequestFunctionProbeUninstallation();
 }
-
-STDAPI DLLEXPORT NotifyFunctionProbeException(ULONG64 faultedFunctionId)
-{
-    return MainProfiler::s_profiler->NotifyFunctionProbeException(static_cast<FunctionID>(faultedFunctionId));
-}

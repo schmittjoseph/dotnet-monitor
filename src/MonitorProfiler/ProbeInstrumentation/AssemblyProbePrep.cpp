@@ -48,9 +48,40 @@ HRESULT AssemblyProbePrep::PrepareAssemblyForProbes(ModuleID moduleId)
     mdMemberRef probeMemberRef;
     IfFailRet(EmitProbeReference(moduleId, probeMemberRef));
 
-    shared_ptr<AssemblyProbePrepData> data(new (nothrow) AssemblyProbePrepData(probeMemberRef, corLibTypeTokens));
+
+    mdSignature faultingProbeCallbackSignature;
+    IfFailRet(EmitFaultingProbeCallbackSignature(moduleId, faultingProbeCallbackSignature));
+
+    shared_ptr<AssemblyProbePrepData> data(new (nothrow) AssemblyProbePrepData(probeMemberRef, faultingProbeCallbackSignature, corLibTypeTokens));
     IfNullRet(data);
     m_assemblyProbeCache.insert({moduleId, data});
+
+    return S_OK;
+}
+
+HRESULT AssemblyProbePrep::EmitFaultingProbeCallbackSignature(
+    ModuleID moduleId,
+    mdSignature& faultingProbeCallbackSignature)
+{
+    COR_SIGNATURE faultingProbeMethodSignature [] = { IMAGE_CEE_CS_CALLCONV_STDCALL, 0x01, ELEMENT_TYPE_VOID, ELEMENT_TYPE_I };
+
+    HRESULT hr;
+    faultingProbeCallbackSignature = mdSignatureNil;
+
+    ComPtr<IMetaDataEmit> pMetadataEmit;
+    IfFailRet(m_pCorProfilerInfo->GetModuleMetaData(
+        moduleId,
+        ofRead | ofWrite,
+        IID_IMetaDataEmit,
+        reinterpret_cast<IUnknown **>(&pMetadataEmit)));
+
+    mdSignature signature;
+    IfFailRet(pMetadataEmit->GetTokenFromSig(
+        faultingProbeMethodSignature,
+        sizeof(faultingProbeMethodSignature),
+        &signature));
+
+    faultingProbeCallbackSignature = signature;
 
     return S_OK;
 }
