@@ -148,12 +148,8 @@ HRESULT ProbeInjector::InstallProbe(
 
 // } catch {
     pCatchBegin = rewriter.NewILInstr();
-    pCatchBegin->m_opcode = CEE_NOP;
+    pCatchBegin->m_opcode = CEE_POP;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchBegin);
-
-    pNewInstr = rewriter.NewILInstr();
-    pNewInstr->m_opcode = CEE_POP;
-    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     pCatchEnd = rewriter.NewILInstr();
     pCatchEnd->m_opcode = CEE_LEAVE;
