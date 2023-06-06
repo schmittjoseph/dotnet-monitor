@@ -51,27 +51,31 @@ HRESULT ProbeInjector::InstallProbe(
 
     const COR_LIB_TYPE_TOKENS& corLibTypeTokens = request.pAssemblyData->GetCorLibTypeTokens();
 
-    //
-    // JSFIX: Wrap the probe in a try/catch.
-    // Consider: In the catch, try/catch a PINVOKE into the profiler,
-    // notifying that a probe exception occurred and the probes need to be uninstalled.
-    //
-
     ILInstr* pInsertProbeBeforeThisInstr = rewriter.GetILList()->m_pNext;
     ILInstr* pNewInstr = nullptr;
+
+    ILInstr* pTryBegin = nullptr;
+    ILInstr* pCatchBegin = nullptr;
+    ILInstr* pCatchEnd = nullptr;
 
     UINT32 numArgs = static_cast<UINT32>(request.boxingTypes.size());
 
     //
-    // The below IL is equivalent to: ProbeFunction(uniquifier, new object[] { arg1, arg2, ... })
+    // The below IL is equivalent to:
+    // try {
+    //   ProbeFunction(uniquifier, new object[] { arg1, arg2, ... })
+    // } catch {
+    // }
+    //
     // When an argument isn't supported, pass null in its place.
     //
 
+// try {
     /* uniquifier */
-    pNewInstr = rewriter.NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I8;
-    pNewInstr->m_Arg64 = request.uniquifier;
-    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+    pTryBegin = rewriter.NewILInstr();
+    pTryBegin->m_opcode = CEE_LDC_I8;
+    pTryBegin->m_Arg64 = request.uniquifier;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pTryBegin);
 
     /* Args */
 
@@ -86,7 +90,6 @@ HRESULT ProbeInjector::InstallProbe(
     pNewInstr->m_opcode = CEE_NEWARR;
     pNewInstr->m_Arg32 = corLibTypeTokens.systemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
-
     for (UINT32 i = 0; i < numArgs; i++)
     {
         // New entry on the evaluation stack
@@ -137,6 +140,33 @@ HRESULT ProbeInjector::InstallProbe(
     pNewInstr->m_opcode = CEE_CALL;
     pNewInstr->m_Arg32 = request.pAssemblyData->GetProbeMemberRef();
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    pNewInstr = pNewInstr = rewriter.NewILInstr();
+    pNewInstr->m_opcode = CEE_LEAVE;
+    pNewInstr->m_pTarget = pInsertProbeBeforeThisInstr;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+// } catch {
+    pCatchBegin = rewriter.NewILInstr();
+    pCatchBegin->m_opcode = CEE_NOP;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchBegin);
+
+    pNewInstr = rewriter.NewILInstr();
+    pNewInstr->m_opcode = CEE_POP;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
+    pCatchEnd = rewriter.NewILInstr();
+    pCatchEnd->m_opcode = CEE_LEAVE;
+    pCatchEnd->m_pTarget = pInsertProbeBeforeThisInstr;
+    rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchEnd);
+
+// }
+    rewriter.InsertEH(
+        pTryBegin,
+        pCatchBegin,
+        pCatchBegin,
+        pCatchEnd,
+        corLibTypeTokens.systemObjectType);
 
     IfFailRet(rewriter.Export());
 

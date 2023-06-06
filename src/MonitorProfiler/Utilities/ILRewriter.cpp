@@ -21,7 +21,7 @@ void FASTCALL UnmanagedInspectObject(void* pv)
 ILRewriter::ILRewriter(ICorProfilerInfo * pICorProfilerInfo, ICorProfilerFunctionControl * pICorProfilerFunctionControl, ModuleID moduleID, mdToken tkMethod)
     : m_pICorProfilerInfo(pICorProfilerInfo), m_pICorProfilerFunctionControl(pICorProfilerFunctionControl),
     m_moduleId(moduleID), m_tkMethod(tkMethod), m_fGenerateTinyHeader(false),
-    m_pEH(NULL), m_pOffsetToInstr(NULL), m_pOutputBuffer(NULL), m_pIMethodMalloc(NULL),
+    m_pOffsetToInstr(NULL), m_pOutputBuffer(NULL), m_pIMethodMalloc(NULL),
     m_pMetaDataImport(NULL), m_pMetaDataEmit(NULL)
 {
     m_IL.m_pNext = &m_IL;
@@ -39,7 +39,7 @@ ILRewriter::~ILRewriter()
         delete p;
         p = t;
     }
-    delete[] m_pEH;
+
     delete[] m_pOffsetToInstr;
     delete[] m_pOutputBuffer;
 
@@ -243,7 +243,7 @@ HRESULT ILRewriter::ImportIL(LPCBYTE pIL)
         for (ILInstr * pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
         {
             if (s_OpCodeFlags[pInstr->m_opcode] & OPCODEFLAGS_BranchTarget)
-                pInstr->m_pTarget = GetInstrFromOffset(pInstr->m_Arg32);
+               pInstr->m_pTarget = GetInstrFromOffset(pInstr->m_Arg32);
         }
     }
 
@@ -252,15 +252,13 @@ HRESULT ILRewriter::ImportIL(LPCBYTE pIL)
 
 HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
 {
-    _ASSERTE(m_pEH == NULL);
-
-    m_nEH = nEH;
+    _ASSERTE(m_ehClauses.empty());
 
     if (nEH == 0)
         return S_OK;
 
-    IfNullRet(m_pEH = new EHClause[m_nEH]);
-    for (unsigned iEH = 0; iEH < m_nEH; iEH++)
+
+    for (unsigned iEH = 0; iEH < nEH; iEH++)
     {
         // If the EH clause is in tiny form, the call to pILEH->EHClause() below will
         // use this as a scratch buffer to expand the EH clause into its fat form.
@@ -269,17 +267,19 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
         const COR_ILMETHOD_SECT_EH_CLAUSE_FAT* ehInfo;
         ehInfo = (COR_ILMETHOD_SECT_EH_CLAUSE_FAT*)pILEH->EHClause(iEH, &scratch);
 
-        EHClause* clause = &(m_pEH[iEH]);
-        clause->m_Flags = ehInfo->GetFlags();
+        EHClause clause;
+        clause.m_Flags = ehInfo->GetFlags();
 
-        clause->m_pTryBegin = GetInstrFromOffset(ehInfo->GetTryOffset());
-        clause->m_pTryEnd = GetInstrFromOffset(ehInfo->GetTryOffset() + ehInfo->GetTryLength());
-        clause->m_pHandlerBegin = GetInstrFromOffset(ehInfo->GetHandlerOffset());
-        clause->m_pHandlerEnd = GetInstrFromOffset(ehInfo->GetHandlerOffset() + ehInfo->GetHandlerLength())->m_pPrev;
-        if ((clause->m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
-            clause->m_ClassToken = ehInfo->GetClassToken();
+        clause.m_pTryBegin = GetInstrFromOffset(ehInfo->GetTryOffset());
+        clause.m_pTryEnd = GetInstrFromOffset(ehInfo->GetTryOffset() + ehInfo->GetTryLength());
+        clause.m_pHandlerBegin = GetInstrFromOffset(ehInfo->GetHandlerOffset());
+        clause.m_pHandlerEnd = GetInstrFromOffset(ehInfo->GetHandlerOffset() + ehInfo->GetHandlerLength())->m_pPrev;
+        if ((clause.m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
+            clause.m_ClassToken = ehInfo->GetClassToken();
         else
-            clause->m_pFilter = GetInstrFromOffset(ehInfo->GetFilterOffset());
+            clause.m_pFilter = GetInstrFromOffset(ehInfo->GetFilterOffset());
+
+        m_ehClauses.push_back(clause);
     }
 
     return S_OK;
@@ -300,6 +300,20 @@ ILInstr* ILRewriter::GetInstrFromOffset(unsigned offset)
 
     _ASSERTE(pInstr != NULL);
     return pInstr;
+}
+
+void ILRewriter::InsertEH(ILInstr * pStart, ILInstr *pEnd, ILInstr * pHandlerStart, ILInstr * pHandlerEnd, mdToken filterClassToken)
+{
+    EHClause clause = {};
+    clause.m_Flags = CorExceptionFlag::COR_ILEXCEPTION_CLAUSE_NONE;
+    clause.m_ClassToken = filterClassToken;
+
+    clause.m_pTryBegin = pStart;
+    clause.m_pTryEnd = pEnd;
+    clause.m_pHandlerBegin = pHandlerStart;
+    clause.m_pHandlerEnd = pHandlerEnd;
+
+    m_ehClauses.push_back(clause);
 }
 
 void ILRewriter::InsertBefore(ILInstr * pWhere, ILInstr * pWhat)
@@ -364,6 +378,12 @@ HRESULT ILRewriter::Export()
 
     m_pOutputBuffer = new BYTE[maxSize];
     IfNullRet(m_pOutputBuffer);
+
+    if (m_ehClauses.size() > UINT32_MAX)
+    {
+        return E_UNEXPECTED;
+    }
+    unsigned nEH = static_cast<unsigned>(m_ehClauses.size());
 
 again:
     // TODO [DAVBR]: Why separate pointer pIL?  Doesn't look like either pIL or
@@ -524,7 +544,7 @@ again:
         unsigned alignedCodeSize = (offset + 3) & ~3;
 
         totalSize = sizeof(IMAGE_COR_ILMETHOD_FAT) + alignedCodeSize +
-            (m_nEH ? (sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH) : 0);
+            (nEH ? (sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * nEH) : 0);
 
         pBody = AllocateILMemory(totalSize);
         IfNullRet(pBody);
@@ -532,7 +552,7 @@ again:
         BYTE * pCurrent = pBody;
 
         IMAGE_COR_ILMETHOD_FAT *pHeader = (IMAGE_COR_ILMETHOD_FAT *)pCurrent;
-        pHeader->Flags = m_flags | (m_nEH ? CorILMethod_MoreSects : 0) | CorILMethod_FatFormat;
+        pHeader->Flags = m_flags | (nEH ? CorILMethod_MoreSects : 0) | CorILMethod_FatFormat;
         pHeader->Size = sizeof(IMAGE_COR_ILMETHOD_FAT) / sizeof(DWORD);
         pHeader->MaxStack = m_maxStack;
         pHeader->CodeSize = offset;
@@ -543,28 +563,27 @@ again:
         memcpy(pCurrent, m_pOutputBuffer, codeSize);
         pCurrent += alignedCodeSize;
 
-        if (m_nEH != 0)
+        if (nEH != 0)
         {
             IMAGE_COR_ILMETHOD_SECT_FAT *pEH = (IMAGE_COR_ILMETHOD_SECT_FAT *)pCurrent;
             pEH->Kind = CorILMethod_Sect_EHTable | CorILMethod_Sect_FatFormat;
-            pEH->DataSize = (unsigned)(sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH);
+            pEH->DataSize = (unsigned)(sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * nEH);
 
             pCurrent = (BYTE*)(pEH + 1);
 
-            for (unsigned iEH = 0; iEH < m_nEH; iEH++)
+            for (auto const& clause : m_ehClauses)
             {
-                EHClause *pSrc = &(m_pEH[iEH]);
                 IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT * pDst = (IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT *)pCurrent;
 
-                pDst->Flags = pSrc->m_Flags;
-                pDst->TryOffset = pSrc->m_pTryBegin->m_offset;
-                pDst->TryLength = pSrc->m_pTryEnd->m_offset - pSrc->m_pTryBegin->m_offset;
-                pDst->HandlerOffset = pSrc->m_pHandlerBegin->m_offset;
-                pDst->HandlerLength = pSrc->m_pHandlerEnd->m_pNext->m_offset - pSrc->m_pHandlerBegin->m_offset;
-                if ((pSrc->m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
-                    pDst->ClassToken = pSrc->m_ClassToken;
+                pDst->Flags = clause.m_Flags;
+                pDst->TryOffset = clause.m_pTryBegin->m_offset;
+                pDst->TryLength = clause.m_pTryEnd->m_offset - clause.m_pTryBegin->m_offset;
+                pDst->HandlerOffset = clause.m_pHandlerBegin->m_offset;
+                pDst->HandlerLength = clause.m_pHandlerEnd->m_pNext->m_offset - clause.m_pHandlerBegin->m_offset;
+                if ((clause.m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
+                    pDst->ClassToken = clause.m_ClassToken;
                 else
-                    pDst->FilterOffset = pSrc->m_pFilter->m_offset;
+                    pDst->FilterOffset = clause.m_pFilter->m_offset;
 
                 pCurrent = (BYTE*)(pDst + 1);
             }
