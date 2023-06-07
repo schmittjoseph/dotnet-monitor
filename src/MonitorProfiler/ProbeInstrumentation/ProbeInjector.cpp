@@ -77,7 +77,7 @@ HRESULT ProbeInjector::InstallProbe(
     //   ProbeFunction(uniquifier, new object[] { arg1, arg2, ... })
     // } catch {
     //   try {
-    //     PINVOKE NotifyFunctionProbeFault(uniquifier);
+    //     (*pFaultingProbeCallback)(uniquifier);
     //   } catch {
     //   }
     // }
