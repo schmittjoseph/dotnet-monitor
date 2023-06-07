@@ -28,7 +28,7 @@ class ProbeInjector
         static HRESULT InstallProbe(
             ICorProfilerInfo* pICorProfilerInfo,
             ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-            FaultingProbeCallback faultingProbeCallback,
+            FaultingProbeCallback pFaultingProbeCallback,
             const INSTRUMENTATION_REQUEST& request);
 
     private:

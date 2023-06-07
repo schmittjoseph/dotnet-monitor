@@ -37,13 +37,14 @@ enum class SpecialCaseBoxingTypes : ULONG32
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
-    FaultingProbeCallback faultingProbeCallback,
+    FaultingProbeCallback pFaultingProbeCallback,
     const INSTRUMENTATION_REQUEST& request)
 {
     constexpr OPCODE CEE_LDC_NATIVE_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : CEE_LDC_I4;
 
     IfNullRet(pICorProfilerInfo);
     IfNullRet(pICorProfilerFunctionControl);
+    IfNullRet(pFaultingProbeCallback);
 
     if (request.boxingTypes.size() > UINT32_MAX)
     {
@@ -178,7 +179,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_NATIVE_I;
-    pNewInstr->m_Arg64 = reinterpret_cast<INT64>(faultingProbeCallback);
+    pNewInstr->m_Arg64 = reinterpret_cast<INT64>(pFaultingProbeCallback);
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     pNewInstr = rewriter.NewILInstr();
