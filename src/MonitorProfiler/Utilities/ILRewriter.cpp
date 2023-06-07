@@ -257,7 +257,6 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
     if (nEH == 0)
         return S_OK;
 
-
     for (unsigned iEH = 0; iEH < nEH; iEH++)
     {
         // If the EH clause is in tiny form, the call to pILEH->EHClause() below will
@@ -280,7 +279,14 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
         else
             clause->m_pFilter = GetInstrFromOffset(ehInfo->GetFilterOffset());
 
-        m_ehClauses.push_back(backingClause);
+        try
+        {
+            m_ehClauses.push_back(backingClause);
+        }
+        catch (const std::bad_alloc&)
+        {
+            return E_OUTOFMEMORY;
+        }
     }
 
     return S_OK;
@@ -303,7 +309,7 @@ ILInstr* ILRewriter::GetInstrFromOffset(unsigned offset)
     return pInstr;
 }
 
-void ILRewriter::InsertEH(ILInstr * pStart, ILInstr *pEnd, ILInstr * pHandlerStart, ILInstr * pHandlerEnd, mdToken filterClassToken)
+HRESULT ILRewriter::InsertEH(ILInstr * pStart, ILInstr *pEnd, ILInstr * pHandlerStart, ILInstr * pHandlerEnd, mdToken filterClassToken)
 {
     EHClause clause = {};
     clause.m_Flags = CorExceptionFlag::COR_ILEXCEPTION_CLAUSE_NONE;
@@ -314,7 +320,16 @@ void ILRewriter::InsertEH(ILInstr * pStart, ILInstr *pEnd, ILInstr * pHandlerSta
     clause.m_pHandlerBegin = pHandlerStart;
     clause.m_pHandlerEnd = pHandlerEnd;
 
-    m_ehClauses.push_back(clause);
+    try
+    {
+        m_ehClauses.push_back(clause);
+    }
+    catch (const std::bad_alloc&)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    return S_OK;
 }
 
 void ILRewriter::InsertBefore(ILInstr * pWhere, ILInstr * pWhat)
@@ -575,7 +590,6 @@ again:
             for (unsigned iEH = 0; iEH < m_nEH; iEH++)
             {
                 EHClause *pSrc = &(m_ehClauses.at(iEH));
-
                 IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT * pDst = (IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT *)pCurrent;
 
                 pDst->Flags = pSrc->m_Flags;

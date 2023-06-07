@@ -211,19 +211,19 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNestedTryLeave->m_pTarget = pNestedCatchEnd->m_pTarget = pCatchEnd;
 
-    rewriter.InsertEH(
+    IfFailRet(rewriter.InsertEH(
         pNestedTryBegin,
         pNestedCatchBegin,
         pNestedCatchBegin,
         pNestedCatchEnd,
-        corLibTypeTokens.systemObjectType);
+        corLibTypeTokens.systemObjectType));
 
-    rewriter.InsertEH(
+    IfFailRet(rewriter.InsertEH(
         pTryBegin,
         pCatchBegin,
         pCatchBegin,
         pCatchEnd,
-        corLibTypeTokens.systemObjectType);
+        corLibTypeTokens.systemObjectType));
 
     IfFailRet(rewriter.Export());
 
