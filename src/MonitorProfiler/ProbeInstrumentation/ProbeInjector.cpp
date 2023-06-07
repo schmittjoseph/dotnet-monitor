@@ -171,7 +171,6 @@ HRESULT ProbeInjector::InstallProbe(
     // END: Try block
     // START: Catch block
 
-    // Discard the exception information
     pCatchBegin = rewriter.NewILInstr();
     pCatchBegin->m_opcode = CEE_POP;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchBegin);
