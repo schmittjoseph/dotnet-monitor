@@ -5,7 +5,6 @@
 #include "corprof.h"
 #include "ProbeInjector.h"
 #include "../Utilities/ILRewriter.h"
-#include "../MainProfiler/MainProfiler.h"
 
 #include <vector>
 
@@ -14,7 +13,6 @@
 // Instrumentation requests provide special boxing instructions by using SpecialCaseBoxingTypeFlag
 // as the "token type" and the SpecialCaseBoxingTypes enum as the RID.
 //
-
 constexpr ULONG32 SpecialCaseBoxingTypeFlag = 0x7f000000;
 enum class SpecialCaseBoxingTypes : ULONG32
 {

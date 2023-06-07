@@ -287,7 +287,7 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
 ILInstr* ILRewriter::NewILInstr()
 {
     m_nInstrs++;
-    return new (std::nothrow) ILInstr();
+    return new ILInstr();
 }
 
 ILInstr* ILRewriter::GetInstrFromOffset(unsigned offset)
