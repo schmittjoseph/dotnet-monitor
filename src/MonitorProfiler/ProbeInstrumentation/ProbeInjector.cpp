@@ -74,7 +74,7 @@ HRESULT ProbeInjector::InstallProbe(
     //
     // The below IL is equivalent to:
     // try {
-    //   ProbeFunction(uniquifier, new object[] { arg1, arg2, ... })
+    //   ProbeFunction(uniquifier, new object[] { arg1, arg2, ... });
     // } catch {
     //   try {
     //     (*pFaultingProbeCallback)(uniquifier);
