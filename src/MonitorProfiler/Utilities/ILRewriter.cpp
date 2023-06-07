@@ -39,7 +39,6 @@ ILRewriter::~ILRewriter()
         delete p;
         p = t;
     }
-
     delete[] m_pOffsetToInstr;
     delete[] m_pOutputBuffer;
 
@@ -279,14 +278,7 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
         else
             clause->m_pFilter = GetInstrFromOffset(ehInfo->GetFilterOffset());
 
-        try
-        {
-            m_ehClauses.push_back(backingClause);
-        }
-        catch (const std::bad_alloc&)
-        {
-            return E_OUTOFMEMORY;
-        }
+        m_ehClauses.push_back(backingClause);
     }
 
     return S_OK;
@@ -295,7 +287,7 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
 ILInstr* ILRewriter::NewILInstr()
 {
     m_nInstrs++;
-    return new ILInstr();
+    return new (std::nothrow) ILInstr();
 }
 
 ILInstr* ILRewriter::GetInstrFromOffset(unsigned offset)
@@ -309,27 +301,18 @@ ILInstr* ILRewriter::GetInstrFromOffset(unsigned offset)
     return pInstr;
 }
 
-HRESULT ILRewriter::InsertEH(ILInstr * pStart, ILInstr *pEnd, ILInstr * pHandlerStart, ILInstr * pHandlerEnd, mdToken filterClassToken)
+void ILRewriter::InsertTryCatch(ILInstr * pTryStart, ILInstr * pCatchStart, ILInstr * pCatchEnd, mdToken filterClassToken)
 {
     EHClause clause = {};
     clause.m_Flags = CorExceptionFlag::COR_ILEXCEPTION_CLAUSE_NONE;
     clause.m_ClassToken = filterClassToken;
 
-    clause.m_pTryBegin = pStart;
-    clause.m_pTryEnd = pEnd;
-    clause.m_pHandlerBegin = pHandlerStart;
-    clause.m_pHandlerEnd = pHandlerEnd;
+    clause.m_pTryBegin = pTryStart;
+    clause.m_pTryEnd = pCatchStart;
+    clause.m_pHandlerBegin = pCatchStart;
+    clause.m_pHandlerEnd = pCatchEnd;
 
-    try
-    {
-        m_ehClauses.push_back(clause);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return E_OUTOFMEMORY;
-    }
-
-    return S_OK;
+    m_ehClauses.push_back(clause);
 }
 
 void ILRewriter::InsertBefore(ILInstr * pWhere, ILInstr * pWhat)

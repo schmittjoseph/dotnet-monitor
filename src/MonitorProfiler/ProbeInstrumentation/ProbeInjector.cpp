@@ -46,7 +46,7 @@ HRESULT ProbeInjector::InstallProbe(
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
     const INSTRUMENTATION_REQUEST& request)
 {
-    constexpr auto CEE_LDC_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : sizeof(size_t) == 4 ? CEE_LDC_I4 : throw std::logic_error("size_t must be defined as 8 or 4");
+    const OPCODE CEE_LDC_NATIVE_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : CEE_LDC_I4;
 
     IfNullRet(pICorProfilerInfo);
     IfNullRet(pICorProfilerFunctionControl);
@@ -90,8 +90,9 @@ HRESULT ProbeInjector::InstallProbe(
     // When an argument isn't supported, pass null in its place.
     //
 
-// try {
-    /* uniquifier */
+    // START: Try block
+
+    // Pass uniquifier
     pTryBegin = rewriter.NewILInstr();
     pTryBegin->m_opcode = CEE_LDC_I8;
     pTryBegin->m_Arg64 = request.uniquifier;
@@ -167,19 +168,23 @@ HRESULT ProbeInjector::InstallProbe(
     pNewInstr->m_pTarget = pInsertProbeBeforeThisInstr;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
-// } catch {
+    // END: Try block
+    // START: Catch block
+
+    // Discard the exception information
     pCatchBegin = rewriter.NewILInstr();
     pCatchBegin->m_opcode = CEE_POP;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchBegin);
 
-//    try {
+    // START: Try block (nested)
+
     pNestedTryBegin = rewriter.NewILInstr();
     pNestedTryBegin->m_opcode = CEE_LDC_I8;
     pNestedTryBegin->m_Arg64 = request.uniquifier;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedTryBegin);
 
     pNewInstr = rewriter.NewILInstr();
-    pNewInstr->m_opcode = CEE_LDC_I;
+    pNewInstr->m_opcode = CEE_LDC_NATIVE_I;
     pNewInstr->m_Arg64 = reinterpret_cast<ULONGLONG>(FaultyProbeAddress); // JSFIX
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
@@ -192,7 +197,9 @@ HRESULT ProbeInjector::InstallProbe(
     pNestedTryLeave->m_opcode = CEE_LEAVE;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedTryLeave);
 
-//   catch {
+    // END: Try block (nested)
+    // START: Catch block (nested)
+
     pNestedCatchBegin = rewriter.NewILInstr();
     pNestedCatchBegin->m_opcode = CEE_POP;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedCatchBegin);
@@ -200,30 +207,26 @@ HRESULT ProbeInjector::InstallProbe(
     pNestedCatchEnd = rewriter.NewILInstr();
     pNestedCatchEnd->m_opcode = CEE_LEAVE;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNestedCatchEnd);
-//   }
 
     pCatchEnd = rewriter.NewILInstr();
     pCatchEnd->m_opcode = CEE_LEAVE;
     pCatchEnd->m_pTarget = pInsertProbeBeforeThisInstr;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pCatchEnd);
 
-// }
-
     pNestedTryLeave->m_pTarget = pNestedCatchEnd->m_pTarget = pCatchEnd;
 
-    IfFailRet(rewriter.InsertEH(
+    // The nested protected region **must** be registered in the exception handler table first (ref: I.12.4.2.5)
+    rewriter.InsertTryCatch(
         pNestedTryBegin,
         pNestedCatchBegin,
-        pNestedCatchBegin,
         pNestedCatchEnd,
-        corLibTypeTokens.systemObjectType));
+        corLibTypeTokens.systemObjectType);
 
-    IfFailRet(rewriter.InsertEH(
+    rewriter.InsertTryCatch(
         pTryBegin,
         pCatchBegin,
-        pCatchBegin,
         pCatchEnd,
-        corLibTypeTokens.systemObjectType));
+        corLibTypeTokens.systemObjectType);
 
     IfFailRet(rewriter.Export());
 

@@ -215,7 +215,7 @@ public:
     ILInstr* GetInstrFromOffset(unsigned offset);
     void InsertBefore(ILInstr * pWhere, ILInstr * pWhat);
     void InsertAfter(ILInstr * pWhere, ILInstr * pWhat);
-    HRESULT InsertEH(ILInstr * pStart, ILInstr *pEnd, ILInstr * pHandlerStart, ILInstr * pHandlerEnd, mdToken filterClassToken);
+    void InsertTryCatch(ILInstr * pTryStart, ILInstr * pCatchStart, ILInstr * pCatchEnd, mdToken filterClassToken);
     void AdjustState(ILInstr * pNewInstr);
     ILInstr * GetILList();
 
