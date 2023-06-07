@@ -110,7 +110,7 @@ void ProbeInstrumentation::ShutdownBackgroundService()
     m_probeManagementThread.join();
 }
 
-static void STDMETHODCALLTYPE NotifyFunctionProbeFault(ULONG64 uniquifier)
+static void STDMETHODCALLTYPE OnFunctionProbeFault(ULONG64 uniquifier)
 {
     PROBE_WORKER_PAYLOAD payload = {};
     payload.instruction = ProbeWorkerInstruction::FAULTING_PROBE;
@@ -336,7 +336,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
     hr = ProbeInjector::InstallProbe(
         m_pCorProfilerInfo,
         pFunctionControl,
-        &NotifyFunctionProbeFault,
+        &OnFunctionProbeFault,
         request);
 
     if (FAILED(hr))
