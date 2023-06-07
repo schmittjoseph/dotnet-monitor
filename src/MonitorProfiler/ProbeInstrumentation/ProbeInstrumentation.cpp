@@ -71,7 +71,6 @@ void ProbeInstrumentation::WorkerThread()
             }
             break;
 
-
         case ProbeWorkerInstruction::FAULTING_PROBES:
             __fallthrough;
         case ProbeWorkerInstruction::UNINSTALL_PROBES:

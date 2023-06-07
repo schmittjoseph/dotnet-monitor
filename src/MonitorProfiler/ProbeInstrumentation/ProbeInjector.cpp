@@ -110,6 +110,7 @@ HRESULT ProbeInjector::InstallProbe(
     pNewInstr->m_opcode = CEE_NEWARR;
     pNewInstr->m_Arg32 = corLibTypeTokens.systemObjectType;
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
+
     for (UINT32 i = 0; i < numArgs; i++)
     {
         // New entry on the evaluation stack

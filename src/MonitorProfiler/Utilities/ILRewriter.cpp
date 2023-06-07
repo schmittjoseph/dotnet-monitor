@@ -267,19 +267,20 @@ HRESULT ILRewriter::ImportEH(const COR_ILMETHOD_SECT_EH* pILEH, unsigned nEH)
         const COR_ILMETHOD_SECT_EH_CLAUSE_FAT* ehInfo;
         ehInfo = (COR_ILMETHOD_SECT_EH_CLAUSE_FAT*)pILEH->EHClause(iEH, &scratch);
 
-        EHClause clause;
-        clause.m_Flags = ehInfo->GetFlags();
+        EHClause backingClause;
+        EHClause* clause = &backingClause;
+        clause->m_Flags = ehInfo->GetFlags();
 
-        clause.m_pTryBegin = GetInstrFromOffset(ehInfo->GetTryOffset());
-        clause.m_pTryEnd = GetInstrFromOffset(ehInfo->GetTryOffset() + ehInfo->GetTryLength());
-        clause.m_pHandlerBegin = GetInstrFromOffset(ehInfo->GetHandlerOffset());
-        clause.m_pHandlerEnd = GetInstrFromOffset(ehInfo->GetHandlerOffset() + ehInfo->GetHandlerLength())->m_pPrev;
-        if ((clause.m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
-            clause.m_ClassToken = ehInfo->GetClassToken();
+        clause->m_pTryBegin = GetInstrFromOffset(ehInfo->GetTryOffset());
+        clause->m_pTryEnd = GetInstrFromOffset(ehInfo->GetTryOffset() + ehInfo->GetTryLength());
+        clause->m_pHandlerBegin = GetInstrFromOffset(ehInfo->GetHandlerOffset());
+        clause->m_pHandlerEnd = GetInstrFromOffset(ehInfo->GetHandlerOffset() + ehInfo->GetHandlerLength())->m_pPrev;
+        if ((clause->m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
+            clause->m_ClassToken = ehInfo->GetClassToken();
         else
-            clause.m_pFilter = GetInstrFromOffset(ehInfo->GetFilterOffset());
+            clause->m_pFilter = GetInstrFromOffset(ehInfo->GetFilterOffset());
 
-        m_ehClauses.push_back(clause);
+        m_ehClauses.push_back(backingClause);
     }
 
     return S_OK;
@@ -571,19 +572,21 @@ again:
 
             pCurrent = (BYTE*)(pEH + 1);
 
-            for (auto const& clause : m_ehClauses)
+            for (unsigned iEH = 0; iEH < nEH; iEH++)
             {
+                EHClause *pSrc = &(m_ehClauses.at(iEH));
+
                 IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT * pDst = (IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT *)pCurrent;
 
-                pDst->Flags = clause.m_Flags;
-                pDst->TryOffset = clause.m_pTryBegin->m_offset;
-                pDst->TryLength = clause.m_pTryEnd->m_offset - clause.m_pTryBegin->m_offset;
-                pDst->HandlerOffset = clause.m_pHandlerBegin->m_offset;
-                pDst->HandlerLength = clause.m_pHandlerEnd->m_pNext->m_offset - clause.m_pHandlerBegin->m_offset;
-                if ((clause.m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
-                    pDst->ClassToken = clause.m_ClassToken;
+                pDst->Flags = pSrc->m_Flags;
+                pDst->TryOffset = pSrc->m_pTryBegin->m_offset;
+                pDst->TryLength = pSrc->m_pTryEnd->m_offset - pSrc->m_pTryBegin->m_offset;
+                pDst->HandlerOffset = pSrc->m_pHandlerBegin->m_offset;
+                pDst->HandlerLength = pSrc->m_pHandlerEnd->m_pNext->m_offset - pSrc->m_pHandlerBegin->m_offset;
+                if ((pSrc->m_Flags & COR_ILEXCEPTION_CLAUSE_FILTER) == 0)
+                    pDst->ClassToken = pSrc->m_ClassToken;
                 else
-                    pDst->FilterOffset = clause.m_pFilter->m_offset;
+                    pDst->FilterOffset = pSrc->m_pFilter->m_offset;
 
                 pCurrent = (BYTE*)(pDst + 1);
             }
