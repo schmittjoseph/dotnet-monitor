@@ -342,9 +342,9 @@ HRESULT STDMETHODCALLTYPE MainProfiler::RequestFunctionProbeUninstallation()
     return m_pProbeInstrumentation->RequestFunctionProbeUninstallation();
 }
 
-HRESULT STDMETHODCALLTYPE MainProfiler::NotifyFunctionProbeException(FunctionID faultedFunctionId)
+HRESULT STDMETHODCALLTYPE MainProfiler::NotifyFunctionProbeFault(FunctionID faultedFunctionId)
 {
-    return m_pProbeInstrumentation->NotifyFunctionProbeException(faultedFunctionId);
+    return m_pProbeInstrumentation->NotifyFunctionProbeFault(faultedFunctionId);
 }
 
 HRESULT STDMETHODCALLTYPE MainProfiler::RegisterFunctionProbe(FunctionID enterProbeId)

@@ -15,12 +15,12 @@
 // as the "token type" and the SpecialCaseBoxingTypes enum as the RID.
 //
 
-static void STDMETHODCALLTYPE NotifyFunctionProbeException(ULONG64 uniquifier)
+static void STDMETHODCALLTYPE NotifyFunctionProbeFault(ULONG64 uniquifier)
 {
-    MainProfiler::s_profiler->NotifyFunctionProbeException(static_cast<FunctionID>(uniquifier));
+    MainProfiler::s_profiler->NotifyFunctionProbeFault(static_cast<FunctionID>(uniquifier));
 }
 
-void(STDMETHODCALLTYPE *FaultyProbeAddress)(FunctionID) = &NotifyFunctionProbeException;
+void(STDMETHODCALLTYPE *FaultyProbeAddress)(FunctionID) = &NotifyFunctionProbeFault;
 
 constexpr ULONG32 SpecialCaseBoxingTypeFlag = 0x7f000000;
 enum class SpecialCaseBoxingTypes : ULONG32
@@ -82,7 +82,7 @@ HRESULT ProbeInjector::InstallProbe(
     //   ProbeFunction(uniquifier, new object[] { arg1, arg2, ... })
     // } catch {
     //   try {
-    //     PINVOKE NotifyFunctionProbeException(uniquifier);
+    //     PINVOKE NotifyFunctionProbeFault(uniquifier);
     //   } catch {
     //   }
     // }
@@ -92,7 +92,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     // START: Try block
 
-    // Pass uniquifier
+     /* uniquifier */
     pTryBegin = rewriter.NewILInstr();
     pTryBegin->m_opcode = CEE_LDC_I8;
     pTryBegin->m_Arg64 = request.uniquifier;

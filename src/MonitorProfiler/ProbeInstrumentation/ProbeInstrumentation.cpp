@@ -71,7 +71,7 @@ void ProbeInstrumentation::WorkerThread()
             }
             break;
 
-        case ProbeWorkerInstruction::FAULTING_PROBES:
+        case ProbeWorkerInstruction::FAULTING_PROBE:
             __fallthrough;
         case ProbeWorkerInstruction::UNINSTALL_PROBES:
             hr = UninstallProbes();
@@ -169,12 +169,12 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeUninstallation()
     return S_OK;
 }
 
-HRESULT ProbeInstrumentation::NotifyFunctionProbeException(FunctionID faultedFunctionId)
+HRESULT ProbeInstrumentation::NotifyFunctionProbeFault(FunctionID faultedFunctionId)
 {
     m_pLogger->Log(LogLevel::Error, _LS("Function probe faulted in function: 0x%08x"), faultedFunctionId);
 
     PROBE_WORKER_PAYLOAD payload = {};
-    payload.instruction = ProbeWorkerInstruction::FAULTING_PROBES;
+    payload.instruction = ProbeWorkerInstruction::FAULTING_PROBE;
     m_probeManagementQueue.Enqueue(payload);
 
     return S_OK;
