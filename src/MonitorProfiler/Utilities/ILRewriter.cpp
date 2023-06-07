@@ -243,7 +243,7 @@ HRESULT ILRewriter::ImportIL(LPCBYTE pIL)
         for (ILInstr * pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
         {
             if (s_OpCodeFlags[pInstr->m_opcode] & OPCODEFLAGS_BranchTarget)
-               pInstr->m_pTarget = GetInstrFromOffset(pInstr->m_Arg32);
+                pInstr->m_pTarget = GetInstrFromOffset(pInstr->m_Arg32);
         }
     }
 
@@ -384,7 +384,7 @@ HRESULT ILRewriter::Export()
     {
         return E_UNEXPECTED;
     }
-    unsigned nEH = static_cast<unsigned>(m_ehClauses.size());
+    unsigned m_nEH = static_cast<unsigned>(m_ehClauses.size());
 
 again:
     // TODO [DAVBR]: Why separate pointer pIL?  Doesn't look like either pIL or
@@ -545,7 +545,7 @@ again:
         unsigned alignedCodeSize = (offset + 3) & ~3;
 
         totalSize = sizeof(IMAGE_COR_ILMETHOD_FAT) + alignedCodeSize +
-            (nEH ? (sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * nEH) : 0);
+            (m_nEH ? (sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH) : 0);
 
         pBody = AllocateILMemory(totalSize);
         IfNullRet(pBody);
@@ -553,7 +553,7 @@ again:
         BYTE * pCurrent = pBody;
 
         IMAGE_COR_ILMETHOD_FAT *pHeader = (IMAGE_COR_ILMETHOD_FAT *)pCurrent;
-        pHeader->Flags = m_flags | (nEH ? CorILMethod_MoreSects : 0) | CorILMethod_FatFormat;
+        pHeader->Flags = m_flags | (m_nEH ? CorILMethod_MoreSects : 0) | CorILMethod_FatFormat;
         pHeader->Size = sizeof(IMAGE_COR_ILMETHOD_FAT) / sizeof(DWORD);
         pHeader->MaxStack = m_maxStack;
         pHeader->CodeSize = offset;
@@ -564,15 +564,15 @@ again:
         memcpy(pCurrent, m_pOutputBuffer, codeSize);
         pCurrent += alignedCodeSize;
 
-        if (nEH != 0)
+        if (m_nEH != 0)
         {
             IMAGE_COR_ILMETHOD_SECT_FAT *pEH = (IMAGE_COR_ILMETHOD_SECT_FAT *)pCurrent;
             pEH->Kind = CorILMethod_Sect_EHTable | CorILMethod_Sect_FatFormat;
-            pEH->DataSize = (unsigned)(sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * nEH);
+            pEH->DataSize = (unsigned)(sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH);
 
             pCurrent = (BYTE*)(pEH + 1);
 
-            for (unsigned iEH = 0; iEH < nEH; iEH++)
+            for (unsigned iEH = 0; iEH < m_nEH; iEH++)
             {
                 EHClause *pSrc = &(m_ehClauses.at(iEH));
 
