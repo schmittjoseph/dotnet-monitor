@@ -94,6 +94,10 @@ void ProbeInstrumentation::ShutdownBackgroundService()
     m_probeManagementThread.join();
 }
 
+static void STDMETHODCALLTYPE NotifyFunctionProbeFault(ULONG64 uniquifier)
+{
+}
+
 HRESULT ProbeInstrumentation::RequestFunctionProbeInstallation(
     ULONG64 functionIds[],
     ULONG32 count,
@@ -164,17 +168,6 @@ HRESULT ProbeInstrumentation::RequestFunctionProbeUninstallation()
 
     PROBE_WORKER_PAYLOAD payload = {};
     payload.instruction = ProbeWorkerInstruction::UNINSTALL_PROBES;
-    m_probeManagementQueue.Enqueue(payload);
-
-    return S_OK;
-}
-
-HRESULT ProbeInstrumentation::NotifyFunctionProbeFault(FunctionID faultedFunctionId)
-{
-    m_pLogger->Log(LogLevel::Error, _LS("Function probe faulted in function: 0x%08x"), faultedFunctionId);
-
-    PROBE_WORKER_PAYLOAD payload = {};
-    payload.instruction = ProbeWorkerInstruction::FAULTING_PROBE;
     m_probeManagementQueue.Enqueue(payload);
 
     return S_OK;
@@ -313,6 +306,7 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
     hr = ProbeInjector::InstallProbe(
         m_pCorProfilerInfo,
         pFunctionControl,
+        &NotifyFunctionProbeFault,
         request);
 
     if (FAILED(hr))

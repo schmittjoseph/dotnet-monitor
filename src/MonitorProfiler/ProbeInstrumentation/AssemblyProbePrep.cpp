@@ -3,6 +3,7 @@
 
 #include "corhlpr.h"
 #include "AssemblyProbePrep.h"
+#include "CallbackDefinitions.h"
 #include "../Utilities/TypeNameUtilities.h"
 #include "../Utilities/MetadataEnumCloser.h"
 #include "../Utilities/StringUtilities.h"
@@ -63,8 +64,6 @@ HRESULT AssemblyProbePrep::EmitFaultingProbeCallbackSignature(
     ModuleID moduleId,
     mdSignature& faultingProbeCallbackSignature)
 {
-    COR_SIGNATURE faultingProbeMethodSignature [] = { IMAGE_CEE_CS_CALLCONV_STDCALL, 0x01, ELEMENT_TYPE_VOID, ELEMENT_TYPE_I };
-
     HRESULT hr;
     faultingProbeCallbackSignature = mdSignatureNil;
 
@@ -77,8 +76,8 @@ HRESULT AssemblyProbePrep::EmitFaultingProbeCallbackSignature(
 
     mdSignature signature;
     IfFailRet(pMetadataEmit->GetTokenFromSig(
-        faultingProbeMethodSignature,
-        sizeof(faultingProbeMethodSignature),
+        FaultingProbeCallbackSignature,
+        sizeof(FaultingProbeCallbackSignature),
         &signature));
 
     faultingProbeCallbackSignature = signature;

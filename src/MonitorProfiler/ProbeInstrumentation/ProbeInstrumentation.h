@@ -8,6 +8,7 @@
 #include "com.h"
 #include "AssemblyProbePrep.h"
 #include "ProbeInjector.h"
+#include "CallbackDefinitions.h"
 #include "../Logging/Logger.h"
 #include "../Utilities/PairHash.h"
 #include "../Utilities/BlockingQueue.h"
@@ -71,7 +72,6 @@ class ProbeInstrumentation
 
         HRESULT RegisterFunctionProbe(FunctionID enterProbeId);
         HRESULT RequestFunctionProbeUninstallation();
-        HRESULT NotifyFunctionProbeFault(FunctionID faultedFunctionId);
         HRESULT RequestFunctionProbeInstallation(ULONG64 functionIds[], ULONG32 count, ULONG32 argumentBoxingTypes[], ULONG32 argumentCounts[]);
 
         void AddProfilerEventMask(DWORD& eventsLow);

@@ -15,13 +15,6 @@
 // as the "token type" and the SpecialCaseBoxingTypes enum as the RID.
 //
 
-static void STDMETHODCALLTYPE NotifyFunctionProbeFault(ULONG64 uniquifier)
-{
-    MainProfiler::s_profiler->NotifyFunctionProbeFault(static_cast<FunctionID>(uniquifier));
-}
-
-void(STDMETHODCALLTYPE *FaultyProbeAddress)(FunctionID) = &NotifyFunctionProbeFault;
-
 constexpr ULONG32 SpecialCaseBoxingTypeFlag = 0x7f000000;
 enum class SpecialCaseBoxingTypes : ULONG32
 {
@@ -44,9 +37,10 @@ enum class SpecialCaseBoxingTypes : ULONG32
 HRESULT ProbeInjector::InstallProbe(
     ICorProfilerInfo* pICorProfilerInfo,
     ICorProfilerFunctionControl* pICorProfilerFunctionControl,
+    FaultingProbeCallback faultingProbeCallback,
     const INSTRUMENTATION_REQUEST& request)
 {
-    const OPCODE CEE_LDC_NATIVE_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : CEE_LDC_I4;
+    constexpr OPCODE CEE_LDC_NATIVE_I = sizeof(size_t) == 8 ? CEE_LDC_I8 : CEE_LDC_I4;
 
     IfNullRet(pICorProfilerInfo);
     IfNullRet(pICorProfilerFunctionControl);
@@ -184,7 +178,7 @@ HRESULT ProbeInjector::InstallProbe(
 
     pNewInstr = rewriter.NewILInstr();
     pNewInstr->m_opcode = CEE_LDC_NATIVE_I;
-    pNewInstr->m_Arg64 = reinterpret_cast<ULONGLONG>(FaultyProbeAddress); // JSFIX
+    pNewInstr->m_Arg64 = reinterpret_cast<INT64>(faultingProbeCallback);
     rewriter.InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
     pNewInstr = rewriter.NewILInstr();
