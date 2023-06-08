@@ -273,9 +273,12 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             Assert.Equal(1, probeProxy.GetProbeInvokeCount(method));
         }
 
-        private static async Task WaitForProbeUninstallationAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
+        private static async Task WaitForProbeUninstallationAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token, bool explicitStopCaptureCall = true)
         {
-            probeManager.StopCapturing();
+            if (explicitStopCaptureCall)
+            {
+                probeManager.StopCapturing();
+            }
 
             MethodInfo uninstallationTestMethod = typeof(FunctionProbesScenario).GetMethod(nameof(FunctionProbesScenario.UninstallationTestStub));
             Assert.NotNull(uninstallationTestMethod);
