@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -33,6 +34,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
     internal sealed class PerFunctionProbeProxy : IFunctionProbes
     {
         private ConcurrentDictionary<ulong, PerFunctionProbeWrapper> _perFunctionProbes = new();
+
+        public ILogger Logger { get; private set; }
+
+        public PerFunctionProbeProxy(ILogger logger)
+        {
+            Logger = logger;
+        }
 
         public void RegisterPerFunctionProbe(MethodInfo method, Action<object[]> probe)
         {

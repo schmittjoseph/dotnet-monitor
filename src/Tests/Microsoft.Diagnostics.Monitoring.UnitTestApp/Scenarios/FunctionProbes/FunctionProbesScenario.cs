@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 {
                     return ScenarioHelpers.RunScenarioAsync(async logger =>
                     {
-                        PerFunctionProbeProxy probeProxy = new PerFunctionProbeProxy();
+                        PerFunctionProbeProxy probeProxy = new PerFunctionProbeProxy(logger);
                         using FunctionProbesManager probeManager = new(probeProxy);
 
                         await testCase(probeManager, probeProxy, token);
@@ -234,6 +234,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
 
             probeProxy.RegisterPerFunctionProbe(method, (object[] actualArgs) =>
             {
+                Console.WriteLine("TEST INVOKED");
                 if (thisObj != null)
                 {
                     Assert.NotEmpty(actualArgs);
@@ -255,6 +256,8 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
 
         private static async Task WaitForProbeUninstallationAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
         {
+            Console.WriteLine("START - UNINSTALLATION");
+
             probeManager.StopCapturing();
 
             MethodInfo uninstallationTestMethod = typeof(FunctionProbesScenario).GetMethod(nameof(FunctionProbesScenario.UninstallationTestStub));
@@ -274,11 +277,14 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 await Task.Delay(100, token);
             }
 
+            Console.WriteLine("STOP - UNINSTALLATION");
+
             token.ThrowIfCancellationRequested();
         }
 
         private static async Task WaitForProbeInstallationAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, IList<MethodInfo> methods, CancellationToken token)
         {
+            Console.WriteLine("START - INSTALLATION");
             // Register the uninstallation test method as well so WaitForProbeUninstallationAsync can function
             MethodInfo uninstallationTestMethod = typeof(FunctionProbesScenario).GetMethod(nameof(FunctionProbesScenario.UninstallationTestStub));
             Assert.NotNull(uninstallationTestMethod);
@@ -298,6 +304,8 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
 
             while (!token.IsCancellationRequested)
             {
+                Console.WriteLine("POKING");
+
                 installationTestMethod.Invoke(null, null);
                 if (probeProxy.GetProbeInvokeCount(installationTestMethod) != 0)
                 {
@@ -306,6 +314,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
 
                 await Task.Delay(100, token);
             }
+            Console.WriteLine("STOP - INSTALLATION");
 
             token.ThrowIfCancellationRequested();
         }
