@@ -203,6 +203,24 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             thisObj: null, thisParameterSupported: false, token);
         }
 
+        private static async Task Test_ExceptionThrownByProbeAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
+        {
+            MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod));
+            probeProxy.RegisterPerFunctionProbe(method, (object[] actualArgs) =>
+            {
+                throw new InvalidOperationException();
+            });
+
+            await WaitForProbeInstallationAsync(probeManager, probeProxy, new[] { method }, token);
+
+            StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
+
+            Assert.Equal(1, probeProxy.GetProbeInvokeCount(method));
+
+            // Probes should be uninstalled now.
+            await WaitForProbeUninstallationAsync(probeManager, probeProxy, token, explicitStopCaptureCall: false);
+        }
+
         private static Task RunInstanceMethodTestCaseAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, MethodInfo method, object[] args, object thisObj, bool thisParameterSupported, CancellationToken token)
         {
             Assert.False(method.IsStatic);

@@ -121,7 +121,7 @@ static void STDMETHODCALLTYPE OnFunctionProbeFault(ULONG64 uniquifier)
     // If this changes in the future, add a new payload field.
     //
     payload.functionId = static_cast<FunctionID>(uniquifier);
-    ProbeInstrumentation::s_probeManagementQueue.Enqueue(payload);
+    g_probeManagementQueue.Enqueue(payload);
 }
 
 STDAPI DLLEXPORT RequestFunctionProbeInstallation(
