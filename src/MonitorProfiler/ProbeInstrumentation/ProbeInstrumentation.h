@@ -11,7 +11,6 @@
 #include "CallbackDefinitions.h"
 #include "../Logging/Logger.h"
 #include "../Utilities/PairHash.h"
-#include "../Utilities/BlockingQueue.h"
 
 #include <unordered_map>
 #include <vector>

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
             List<object[]> arguments = new();
 
             IEnumerable<object[]> testArchitectures = ProfilerHelper.GetArchitecture();
-            List<string> commands = typeof(TestAppScenarios.FunctionProbes.Commands).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            List<string> commands = typeof(TestAppScenarios.FunctionProbes.SubScenarios).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
                 .Select(p => p.Name)
                 .ToList();
 
@@ -59,17 +59,14 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 
         [Theory]
         [MemberData(nameof(FunctionProbesTests.GetAllTestScenarios), MemberType = typeof(FunctionProbesTests))]
-        public async Task RunTestScenario(Architecture targetArchitecture, string command)
+        public async Task RunTestScenario(Architecture targetArchitecture, string subScenario)
         {
             await ScenarioRunner.SingleTarget(
                 _outputHelper,
                 _httpClientFactory,
                 DiagnosticPortConnectionMode.Listen,
                 TestAppScenarios.FunctionProbes.Name,
-                appValidate: async (runner, client) =>
-                {
-                    await AppRunnerExtensions.SendCommandAsync(runner, command);
-                },
+                appValidate: (runner, client) => { return Task.CompletedTask; },
                 configureApp: runner =>
                 {
                     runner.Architecture = targetArchitecture;
@@ -78,7 +75,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 {
                     runner.ConfigurationFromEnvironment.EnableInProcessFeatures();
                     runner.EnableCallStacksFeature = true;
-                });
+                },
+                subScenarioName: subScenario);
         }
     }
 }

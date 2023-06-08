@@ -3,6 +3,7 @@
 
 #include "corhlpr.h"
 #include "ProbeInstrumentation.h"
+#include "../Utilities/BlockingQueue.h"
 
 using namespace std;
 
@@ -12,7 +13,7 @@ using namespace std;
 #define DLLEXPORT
 #endif
 
-BlockingQueue<PROBE_WORKER_PAYLOAD> ProbeInstrumentation::s_probeManagementQueue;
+BlockingQueue<PROBE_WORKER_PAYLOAD> g_probeManagementQueue;
 
 ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo) :
     m_pCorProfilerInfo(profilerInfo),
@@ -61,7 +62,7 @@ void ProbeInstrumentation::WorkerThread()
     while (true)
     {
         PROBE_WORKER_PAYLOAD payload;
-        hr = s_probeManagementQueue.BlockingDequeue(payload);
+        hr = g_probeManagementQueue.BlockingDequeue(payload);
         if (hr != S_OK)
         {
             break;
@@ -88,7 +89,7 @@ void ProbeInstrumentation::WorkerThread()
         case ProbeWorkerInstruction::FAULTING_PROBE:
             m_pLogger->Log(LogLevel::Error, _LS("Function probe faulting in function: 0x%08x"), payload.functionId);
             __fallthrough;
- 
+
         case ProbeWorkerInstruction::UNINSTALL_PROBES:
             hr = UninstallProbes();
             if (hr != S_OK)
@@ -106,7 +107,7 @@ void ProbeInstrumentation::WorkerThread()
 
 void ProbeInstrumentation::ShutdownBackgroundService()
 {
-    s_probeManagementQueue.Complete();
+    g_probeManagementQueue.Complete();
     m_probeManagementThread.join();
 }
 
@@ -175,7 +176,7 @@ STDAPI DLLEXPORT RequestFunctionProbeInstallation(
     PROBE_WORKER_PAYLOAD payload = {};
     payload.instruction = ProbeWorkerInstruction::INSTALL_PROBES;
     payload.requests = requests;
-    IfFailRet(ProbeInstrumentation::s_probeManagementQueue.Enqueue(payload));
+    IfFailRet(g_probeManagementQueue.Enqueue(payload));
 
     return S_OK;
 }
@@ -186,7 +187,7 @@ STDAPI DLLEXPORT RequestFunctionProbeUninstallation()
 
     PROBE_WORKER_PAYLOAD payload = {};
     payload.instruction = ProbeWorkerInstruction::UNINSTALL_PROBES;
-    IfFailRet(ProbeInstrumentation::s_probeManagementQueue.Enqueue(payload));
+    IfFailRet(g_probeManagementQueue.Enqueue(payload));
 
     return S_OK;
 }
@@ -198,7 +199,7 @@ STDAPI DLLEXPORT RequestFunctionProbeRegistration(ULONG64 enterProbeId)
     PROBE_WORKER_PAYLOAD payload = {};
     payload.instruction = ProbeWorkerInstruction::REGISTER_PROBE;
     payload.functionId = static_cast<FunctionID>(enterProbeId);
-    IfFailRet(ProbeInstrumentation::s_probeManagementQueue.Enqueue(payload));
+    IfFailRet(g_probeManagementQueue.Enqueue(payload));
 
     return S_OK;
 }
