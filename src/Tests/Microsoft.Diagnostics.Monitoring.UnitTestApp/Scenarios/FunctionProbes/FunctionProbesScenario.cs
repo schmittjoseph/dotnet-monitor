@@ -311,12 +311,10 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             token.ThrowIfCancellationRequested();
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InstallationTestStub()
         {
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void UninstallationTestStub()
         {
         }
