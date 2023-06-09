@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -310,9 +311,12 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             token.ThrowIfCancellationRequested();
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InstallationTestStub()
         {
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void UninstallationTestStub()
         {
         }
