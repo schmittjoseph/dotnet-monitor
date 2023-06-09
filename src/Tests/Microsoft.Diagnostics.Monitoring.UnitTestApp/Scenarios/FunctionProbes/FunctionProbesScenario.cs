@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                     return;
                 }
 
-                await Task.Delay(100, token);
+                await Task.Delay(TimeSpan.FromSeconds(1), token);
             }
 
             Console.WriteLine("STOP - UNINSTALLATION");
@@ -316,7 +316,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                     return;
                 }
 
-                await Task.Delay(100, token);
+                await Task.Delay(TimeSpan.FromSeconds(1), token);
             }
             Console.WriteLine("STOP - INSTALLATION");
 
