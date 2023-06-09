@@ -170,7 +170,6 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             new GenericTestMethodSignatures<MyEnum, Uri>().GenericParameters(MyEnum.ValueA, new Uri("https://www.bing.com"), new object());
 
             Assert.Equal(3, probeProxy.GetProbeInvokeCount(method));
-            Assert.False(true);
         }
 
         public static async Task Test_CaptureValueTypeImplicitThisAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
