@@ -332,3 +332,22 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
 {
     return m_pProbeInstrumentation->GetReJITParameters(moduleId, methodId, pFunctionControl);
 }
+
+
+HRESULT STDMETHODCALLTYPE MainProfiler::ReJITCompilationStarted(FunctionID functionId, ReJITID rejitId, BOOL fIsSafeToBlock)
+{
+    m_pLogger->Log(LogLevel::Trace, _LS("ReJITCompilationStarted - functionId: 0x%08x"), functionId);
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::ReJITCompilationFinished(FunctionID functionId, ReJITID rejitId, HRESULT hrStatus, BOOL fIsSafeToBlock)
+{
+    m_pLogger->Log(LogLevel::Trace, _LS("ReJITCompilationFinished - functionId: 0x%08x"), functionId);
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE MainProfiler::ReJITError(ModuleID moduleId, mdMethodDef methodId, FunctionID functionId, HRESULT hrStatus)
+{
+    m_pLogger->Log(LogLevel::Error, _LS("ReJITError - moduleId: 0x%08x, methodDef: 0x%04x, functionId: 0x%08x, hr: 0x%08x"), moduleId, methodId, functionId, hrStatus);
+    return S_OK;
+}
