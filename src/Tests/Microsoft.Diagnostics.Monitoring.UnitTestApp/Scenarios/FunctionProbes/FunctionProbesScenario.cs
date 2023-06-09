@@ -263,7 +263,9 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             MethodInfo uninstallationTestMethod = typeof(FunctionProbesScenario).GetMethod(nameof(FunctionProbesScenario.UninstallationTestStub));
             Assert.NotNull(uninstallationTestMethod);
 
-            probeProxy.RegisterPerFunctionProbe(uninstallationTestMethod, (object[] args) => { });
+            probeProxy.RegisterPerFunctionProbe(uninstallationTestMethod, (object[] args) => {
+                Console.WriteLine("UNINSTALL STUB HIT");
+            });
 
             while (!token.IsCancellationRequested)
             {
@@ -292,7 +294,9 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             MethodInfo installationTestMethod = typeof(FunctionProbesScenario).GetMethod(nameof(FunctionProbesScenario.InstallationTestStub));
             Assert.NotNull(installationTestMethod);
 
-            probeProxy.RegisterPerFunctionProbe(installationTestMethod, (object[] args) => { });
+            probeProxy.RegisterPerFunctionProbe(installationTestMethod, (object[] args) => {
+                Console.WriteLine("INSTALL STUB HIT");
+            });
 
             List<MethodInfo> methodsToCapture = new(methods.Count + 2)
             {

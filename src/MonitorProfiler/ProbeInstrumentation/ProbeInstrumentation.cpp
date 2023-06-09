@@ -61,6 +61,7 @@ void ProbeInstrumentation::WorkerThread()
 
     while (true)
     {
+        m_pLogger->Log(LogLevel::Debug, _LS("COMMAND: WAITING"));
         PROBE_WORKER_PAYLOAD payload;
         hr = g_probeManagementQueue.BlockingDequeue(payload);
         if (hr != S_OK)
@@ -71,6 +72,7 @@ void ProbeInstrumentation::WorkerThread()
         switch (payload.instruction)
         {
         case ProbeWorkerInstruction::REGISTER_PROBE:
+            m_pLogger->Log(LogLevel::Debug, _LS("COMMAND: REGISTER_PROBE"));
             hr = RegisterFunctionProbe(payload.functionId);
             if (hr != S_OK)
             {
@@ -79,6 +81,7 @@ void ProbeInstrumentation::WorkerThread()
             break;
 
         case ProbeWorkerInstruction::INSTALL_PROBES:
+            m_pLogger->Log(LogLevel::Debug, _LS("COMMAND: INSTALL_PROBES"));
             hr = InstallProbes(payload.requests);
             if (hr != S_OK)
             {
@@ -87,6 +90,7 @@ void ProbeInstrumentation::WorkerThread()
             break;
 
         case ProbeWorkerInstruction::UNINSTALL_PROBES:
+            m_pLogger->Log(LogLevel::Debug, _LS("COMMAND: UNINSTALL_PROBES"));
             hr = UninstallProbes();
             if (hr != S_OK)
             {
@@ -306,12 +310,15 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 {
     HRESULT hr;
 
+    m_pLogger->Log(LogLevel::Debug, _LS("REJITTING"));
+
     INSTRUMENTATION_REQUEST request;
     {
         lock_guard<mutex> lock(m_instrumentationProcessingMutex);
         auto const& it = m_activeInstrumentationRequests.find({moduleId, methodDef});
         if (it == m_activeInstrumentationRequests.end())
         {
+            m_pLogger->Log(LogLevel::Debug, _LS("REJITTING - CACHE MISS"));
             return E_FAIL;
         }
         request = it->second;
