@@ -39,13 +39,13 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             byte[] headersBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int)];
             var memoryStream = new MemoryStream(headersBuffer);
             using BinaryWriter writer = new BinaryWriter(memoryStream);
-            writer.Write((short)message.PayloadType);
             writer.Write((short)message.MessageType);
+            writer.Write((short)message.PayloadType);
             writer.Write(payloadBuffer.Length);
             writer.Dispose();
             await socket.SendAsync(new ReadOnlyMemory<byte>(headersBuffer), SocketFlags.None, token);
 
-            if (payloadBuffer.Length > 0)
+            if (message.PayloadType != ProfilerPayloadType.None && payloadBuffer.Length > 0)
             {
                 await socket.SendAsync(new ReadOnlyMemory<byte>(payloadBuffer), SocketFlags.None, token);
             }
@@ -64,15 +64,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             }
 
             int readIndex = 0;
-            ProfilerPayloadType payloadType = (ProfilerPayloadType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
-            if (payloadType != ProfilerPayloadType.Int32Parameter)
+            ProfilerMessageType messageType = (ProfilerMessageType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
+            if (messageType != ProfilerMessageType.Status)
             {
                 throw new InvalidOperationException("Received unexpected status message from server.");
             }
             readIndex += sizeof(short);
 
-            ProfilerMessageType messageType = (ProfilerMessageType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
-            if (messageType != ProfilerMessageType.Status)
+            ProfilerPayloadType payloadType = (ProfilerPayloadType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
+            if (payloadType != ProfilerPayloadType.Int32Parameter)
             {
                 throw new InvalidOperationException("Received unexpected status message from server.");
             }
