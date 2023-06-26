@@ -33,12 +33,20 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
     message.MessageType = *reinterpret_cast<MessageType*>(&headersBuffer[sizeof(PayloadType)]);
     int payloadSize = *reinterpret_cast<int*>(&headersBuffer[sizeof(PayloadType) + sizeof(MessageType)]);
 
-    IfOomRetMem(message.Payload.resize(payloadSize));
+    if (message.PayloadType == PayloadType::None)
+    {
+        assert(payloadSize == 0);
+        message.Payload.clear();
+    }
+    else
+    {
+        IfOomRetMem(message.Payload.resize(payloadSize));
 
-    IfFailRet(ReadFixedBuffer(
-        payloadSize,
-        (char*)message.Payload.data()
-    ));
+        IfFailRet(ReadFixedBuffer(
+            payloadSize,
+            (char*)message.Payload.data()
+        ));
+    }
 
     return S_OK;
 }
@@ -47,6 +55,11 @@ HRESULT IpcCommClient::ReadFixedBuffer(int bufferSize, char* pBuffer)
 {
     int read = 0;
     int offset = 0;
+
+    if (bufferSize == 0)
+    {
+        return S_OK;
+    }
 
     do
     {
@@ -74,7 +87,7 @@ HRESULT IpcCommClient::ReadFixedBuffer(int bufferSize, char* pBuffer)
 }
 
 
-HRESULT IpcCommClient::Send(const SimpleIpcMessage& message)
+HRESULT IpcCommClient::Send(const Int32ParameterIpcMessage& message)
 {
     if (_shutdown.load())
     {

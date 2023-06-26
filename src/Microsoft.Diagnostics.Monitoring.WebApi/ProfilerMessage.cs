@@ -9,11 +9,10 @@ namespace Microsoft.Diagnostics.Monitoring
 {
     internal enum ProfilerPayloadType : short
     {
-        Unknown,
-        Int32, // Payload only contains an INT32
+        None,
+        Int32Parameter, // Payload only contains an INT32
         Utf8Json // Payload contains a UTF8-encoded JSON string
     };
-
 
     internal enum ProfilerMessageType : short
     {
@@ -50,22 +49,20 @@ namespace Microsoft.Diagnostics.Monitoring
         }
     }
 
-    internal struct SimpleProfilerMessage : IProfilerMessage
+    internal struct HeaderOnlyProfilerMessage : IProfilerMessage
     {
-        public SimpleProfilerMessage(ProfilerMessageType messageType, int parameter = 0)
+        public HeaderOnlyProfilerMessage(ProfilerMessageType messageType)
         {
             MessageType = messageType;
-            Parameter = parameter;
         }
 
-        public ProfilerPayloadType PayloadType { get; set; } = ProfilerPayloadType.Int32;
+        public ProfilerPayloadType PayloadType { get; set; } = ProfilerPayloadType.None;
         public ProfilerMessageType MessageType { get; set; } = ProfilerMessageType.Unknown;
-
-        public int Parameter { get; set; }
 
         public byte[] SerializePayload()
         {
-            return BitConverter.GetBytes(Parameter);
+            return Array.Empty<byte>();
         }
     }
+
 }

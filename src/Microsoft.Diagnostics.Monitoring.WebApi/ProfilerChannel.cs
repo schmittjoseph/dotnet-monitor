@@ -44,7 +44,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             writer.Write(payloadBuffer.Length);
             writer.Dispose();
             await socket.SendAsync(new ReadOnlyMemory<byte>(headersBuffer), SocketFlags.None, token);
-            await socket.SendAsync(new ReadOnlyMemory<byte>(payloadBuffer), SocketFlags.None, token);
+
+            if (payloadBuffer.Length > 0)
+            {
+                await socket.SendAsync(new ReadOnlyMemory<byte>(payloadBuffer), SocketFlags.None, token);
+            }
 
             await ReceiveStatusAsync(socket, token);
         }
@@ -56,28 +60,28 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             if (received < recvBuffer.Length)
             {
                 //TODO Figure out if fragmentation is possible over UDS.
-                throw new InvalidOperationException($"Could not receive message from server.");
+                throw new InvalidOperationException("Could not receive message from server.");
             }
 
             int readIndex = 0;
             ProfilerPayloadType payloadType = (ProfilerPayloadType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
-            if (payloadType != ProfilerPayloadType.Int32)
+            if (payloadType != ProfilerPayloadType.Int32Parameter)
             {
-                throw new InvalidOperationException($"Received unexpected status message from server.");
+                throw new InvalidOperationException("Received unexpected status message from server.");
             }
             readIndex += sizeof(short);
 
             ProfilerMessageType messageType = (ProfilerMessageType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
             if (messageType != ProfilerMessageType.Status)
             {
-                throw new InvalidOperationException($"Received unexpected status message from server.");
+                throw new InvalidOperationException("Received unexpected status message from server.");
             }
             readIndex += sizeof(short);
 
             int payloadLength = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
             if (payloadLength != sizeof(int))
             {
-                throw new InvalidOperationException($"Received unexpected status message payload size from server.");
+                throw new InvalidOperationException("Received unexpected status message payload size from server.");
             }
             readIndex += sizeof(int);
 

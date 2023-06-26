@@ -7,8 +7,8 @@
 
 enum class PayloadType : short
 {
-    Unknown,
-    Int32,
+    None,
+    Int32Parameter,
     Utf8Json
 };
 
@@ -22,14 +22,14 @@ enum class MessageType : short
 
 struct IpcMessage
 {
-    PayloadType PayloadType = PayloadType::Unknown;
+    PayloadType PayloadType = PayloadType::None;
     MessageType MessageType = MessageType::Unknown;
     std::vector<BYTE> Payload;
 };
 
-struct SimpleIpcMessage
+struct Int32ParameterIpcMessage
 {
-    PayloadType PayloadType = PayloadType::Int32;
+    PayloadType PayloadType = PayloadType::Int32Parameter;
     MessageType MessageType = MessageType::Unknown;
     int Parameters;
 };

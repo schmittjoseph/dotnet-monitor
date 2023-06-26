@@ -298,7 +298,7 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     HRESULT hr;
     m_pLogger->Log(LogLevel::Information, _LS("Message received from client: %d %d"), message.PayloadType, message.MessageType);
 
-    if (message.PayloadType == PayloadType::Int32)
+    if (message.PayloadType == PayloadType::None)
     {
         if (message.MessageType == MessageType::Callstack)
         {

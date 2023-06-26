@@ -72,8 +72,7 @@ void CommandServer::ListeningThread()
             continue;
         }
 
-        SimpleIpcMessage response;
-        response.PayloadType = PayloadType::Int32;
+        Int32ParameterIpcMessage response;
         response.MessageType = MessageType::Status;
         response.Parameters = hr;
 
