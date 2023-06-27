@@ -50,10 +50,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 await socket.SendAsync(new ReadOnlyMemory<byte>(payloadBuffer), SocketFlags.None, token);
             }
 
-            await ReceiveStatusAsync(socket, token);
+            Int32ProfilerMessage response = await ReceiveInt32MessageAsync(socket, token);
+            if (response.MessageType != ProfilerMessageType.Status)
+            {
+                throw new InvalidOperationException("Received unexpected status message from server.");
+            }
+            Marshal.ThrowExceptionForHR(response.Parameter);
         }
 
-        private static async Task ReceiveStatusAsync(Socket socket, CancellationToken token)
+        private static async Task<Int32ProfilerMessage> ReceiveInt32MessageAsync(Socket socket, CancellationToken token)
         {
             byte[] recvBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int) + sizeof(int)];
             int received = await socket.ReceiveAsync(new Memory<byte>(recvBuffer), SocketFlags.None, token);
@@ -65,31 +70,27 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
             int readIndex = 0;
             ProfilerMessageType messageType = (ProfilerMessageType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
-            if (messageType != ProfilerMessageType.Status)
-            {
-                throw new InvalidOperationException("Received unexpected status message from server.");
-            }
             readIndex += sizeof(short);
 
             ProfilerPayloadType payloadType = (ProfilerPayloadType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
             if (payloadType != ProfilerPayloadType.Int32Parameter)
             {
-                throw new InvalidOperationException("Received unexpected status message from server.");
+                throw new InvalidOperationException("Received unexpected payload type from server.");
             }
             readIndex += sizeof(short);
 
             int payloadLength = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
             if (payloadLength != sizeof(int))
             {
-                throw new InvalidOperationException("Received unexpected status message payload size from server.");
+                throw new InvalidOperationException("Received unexpected message payload size from server.");
             }
             readIndex += sizeof(int);
 
-            int hresult = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
+            int parameter = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
             readIndex += sizeof(int);
             Debug.Assert(readIndex == recvBuffer.Length);
 
-            Marshal.ThrowExceptionForHR(hresult);
+            return new Int32ProfilerMessage(messageType, parameter);
         }
 
         private string ComputeChannelPath(IEndpointInfo endpointInfo)

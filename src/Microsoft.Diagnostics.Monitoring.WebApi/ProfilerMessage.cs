@@ -36,10 +36,10 @@ namespace Microsoft.Diagnostics.Monitoring
 
         public object Payload { get; set; }
 
-        public JsonProfilerMessage(ProfilerMessageType messageType, object t)
+        public JsonProfilerMessage(ProfilerMessageType messageType, object payload)
         {
             MessageType = messageType;
-            Payload = t;
+            Payload = payload;
         }
 
         public byte[] SerializePayload()
@@ -49,9 +49,27 @@ namespace Microsoft.Diagnostics.Monitoring
         }
     }
 
-    internal struct HeaderOnlyProfilerMessage : IProfilerMessage
+    internal struct Int32ProfilerMessage : IProfilerMessage
     {
-        public HeaderOnlyProfilerMessage(ProfilerMessageType messageType)
+        public ProfilerPayloadType PayloadType { get; set; } = ProfilerPayloadType.Int32Parameter;
+        public ProfilerMessageType MessageType { get; set; } = ProfilerMessageType.Unknown;
+
+        public int Parameter { get; set; }
+
+        public Int32ProfilerMessage(ProfilerMessageType messageType, int parameter)
+        {
+            Parameter = parameter;
+        }
+
+        public byte[] SerializePayload()
+        {
+            return BitConverter.GetBytes(Parameter);
+        }
+    }
+
+    internal struct BasicProfilerMessage : IProfilerMessage
+    {
+        public BasicProfilerMessage(ProfilerMessageType messageType)
         {
             MessageType = messageType;
         }

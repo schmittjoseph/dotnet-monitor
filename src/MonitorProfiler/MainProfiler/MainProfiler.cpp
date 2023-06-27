@@ -389,13 +389,13 @@ STDAPI DLLEXPORT RegisterProfilerMessageCallback(
 {
     if (g_pManagedMessageCallback != nullptr)
     {
-        return E_UNEXPECTED;
+        return E_FAIL;
     }
 
     lock_guard<mutex> lock(g_messageCallbackMutex);
     if (g_pManagedMessageCallback != nullptr)
     {
-        return E_UNEXPECTED;
+        return E_FAIL;
     }
 
     g_pManagedMessageCallback = pCallback;

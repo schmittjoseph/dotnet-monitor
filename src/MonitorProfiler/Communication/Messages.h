@@ -16,8 +16,7 @@ enum class MessageType : short
 {
     Unknown,
     Status,
-    Callstack,
-    CaptureParameters
+    Callstack
 };
 
 struct IpcMessage
