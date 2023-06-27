@@ -383,7 +383,7 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
     return S_OK;
 }
 
-STDAPI DLLEXPORT RegisterProfilerMessageCallback(
+STDAPI DLLEXPORT RegisterMonitorMessageCallback(
     ManagedMessageCallback pCallback
     )
 {
