@@ -44,14 +44,13 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
     if (message.PayloadType == PayloadType::None)
     {
         assert(payloadSize == 0);
-        message.Payload.clear();
     }
     else
     {
         IfOomRetMem(message.Payload.resize(payloadSize));
 
         IfFailRet(ReadFixedBuffer(
-            (char*)message.Payload.data(),
+            reinterpret_cast<char*>(message.Payload.data()),
             payloadSize
         ));
     }
@@ -61,13 +60,20 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
 
 HRESULT IpcCommClient::ReadFixedBuffer(char* pBuffer, int bufferSize)
 {
-    int read = 0;
-    int offset = 0;
+    ExpectedPtr(pBuffer);
 
     if (bufferSize == 0)
     {
         return S_OK;
     }
+
+    if (bufferSize < 0)
+    {
+        return E_FAIL;
+    }
+
+    int read = 0;
+    int offset = 0;
 
     do
     {

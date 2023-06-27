@@ -17,7 +17,7 @@ public:
     IpcCommClient(SOCKET socket);
 
 private:
-    HRESULT ReadFixedBuffer(int bufferSize, char* pBuffer);
+    HRESULT ReadFixedBuffer(char* pBuffer, int bufferSize);
 
 private:
     SocketWrapper _socket;
