@@ -302,13 +302,12 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
     {
         if (message.MessageType == MessageType::Callstack)
         {
-            //Currently we do not have any options for this message
             return ProcessCallstackMessage();
         }
     }
     else if (message.PayloadType == PayloadType::Utf8Json)
     {
-        // Pass the message to managed land
+        // Utf8 json payloads are handled exclusively by managed code.
         lock_guard<mutex> lock(g_messageCallbackMutex);
         if (g_pManagedMessageCallback == nullptr)
         {
