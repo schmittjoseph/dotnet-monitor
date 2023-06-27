@@ -43,10 +43,18 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
 
     if (message.PayloadType == PayloadType::None)
     {
-        assert(payloadSize == 0);
+        if (payloadSize != 0)
+        {
+            return E_UNEXPECTED;
+        }
     }
     else
     {
+        if (payloadSize == 0)
+        {
+            return E_UNEXPECTED;
+        }
+
         IfOomRetMem(message.Payload.resize(payloadSize));
 
         IfFailRet(ReadFixedBuffer(
