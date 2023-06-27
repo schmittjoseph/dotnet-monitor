@@ -3,30 +3,15 @@
 
 using Microsoft.Extensions.Options;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
-    internal enum ProfilerMessageType : short
-    {
-        OK,
-        Error,
-        Callstack
-    };
-
-    internal struct ProfilerMessage
-    {
-        public ProfilerMessageType MessageType { get; set; }
-
-        // This is currently unsupported, but some possible future additions:
-        // Parameter Metadata. (I.e. IMetadataImport.GetMethodProps + signature resolution)
-        // Resolve frame offsets (Resolving absolute native address to relative offset then convert to IL using IL-to-native maps.
-        public int Parameter { get; set; }
-    }
-
     /// <summary>
     /// Communicates with the profiler, using a Unix Domain Socket.
     /// </summary>
@@ -39,7 +24,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _storageOptions = storageOptions;
         }
 
-        public async Task<ProfilerMessage> SendMessage(IEndpointInfo endpointInfo, ProfilerMessage message, CancellationToken token)
+        public async Task SendMessage(IEndpointInfo endpointInfo, IProfilerMessage message, CancellationToken token)
         {
             string channelPath = ComputeChannelPath(endpointInfo);
             var endpoint = new UnixDomainSocketEndPoint(channelPath);
@@ -49,26 +34,63 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
             await socket.ConnectAsync(endpoint);
 
-            byte[] buffer = new byte[sizeof(short) + sizeof(int)];
-            var memoryStream = new MemoryStream(buffer);
+            byte[] payloadBuffer = message.SerializePayload();
+
+            byte[] headersBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int)];
+            var memoryStream = new MemoryStream(headersBuffer);
             using BinaryWriter writer = new BinaryWriter(memoryStream);
             writer.Write((short)message.MessageType);
-            writer.Write(message.Parameter);
+            writer.Write((short)message.PayloadType);
+            writer.Write(payloadBuffer.Length);
             writer.Dispose();
+            await socket.SendAsync(new ReadOnlyMemory<byte>(headersBuffer), SocketFlags.None, token);
 
-            await socket.SendAsync(new ReadOnlyMemory<byte>(buffer), SocketFlags.None, token);
-            int received = await socket.ReceiveAsync(new Memory<byte>(buffer), SocketFlags.None, token);
-            if (received < buffer.Length)
+            if (message.PayloadType != ProfilerPayloadType.None && payloadBuffer.Length > 0)
+            {
+                await socket.SendAsync(new ReadOnlyMemory<byte>(payloadBuffer), SocketFlags.None, token);
+            }
+
+            Int32ProfilerMessage response = await ReceiveInt32MessageAsync(socket, token);
+            if (response.MessageType != ProfilerMessageType.Status)
+            {
+                throw new InvalidOperationException("Received unexpected status message from server.");
+            }
+            Marshal.ThrowExceptionForHR(response.Parameter);
+        }
+
+        private static async Task<Int32ProfilerMessage> ReceiveInt32MessageAsync(Socket socket, CancellationToken token)
+        {
+            byte[] recvBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int) + sizeof(int)];
+            int received = await socket.ReceiveAsync(new Memory<byte>(recvBuffer), SocketFlags.None, token);
+            if (received < recvBuffer.Length)
             {
                 //TODO Figure out if fragmentation is possible over UDS.
                 throw new InvalidOperationException("Could not receive message from server.");
             }
 
-            return new ProfilerMessage
+            int readIndex = 0;
+            ProfilerMessageType messageType = (ProfilerMessageType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
+            readIndex += sizeof(short);
+
+            ProfilerPayloadType payloadType = (ProfilerPayloadType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
+            if (payloadType != ProfilerPayloadType.Int32Parameter)
             {
-                MessageType = (ProfilerMessageType)BitConverter.ToInt16(buffer, startIndex: 0),
-                Parameter = BitConverter.ToInt32(buffer, startIndex: 2)
-            };
+                throw new InvalidOperationException("Received unexpected payload type from server.");
+            }
+            readIndex += sizeof(short);
+
+            int payloadLength = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
+            if (payloadLength != sizeof(int))
+            {
+                throw new InvalidOperationException("Received unexpected message payload size from server.");
+            }
+            readIndex += sizeof(int);
+
+            int parameter = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
+            readIndex += sizeof(int);
+            Debug.Assert(readIndex == recvBuffer.Length);
+
+            return new Int32ProfilerMessage(messageType, parameter);
         }
 
         private string ComputeChannelPath(IEndpointInfo endpointInfo)

@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions;
+using Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher;
 using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using System;
 using System.IO;
@@ -11,6 +12,8 @@ internal sealed class StartupHook
 {
     private static CurrentAppDomainExceptionProcessor s_exceptionProcessor = new();
     private static AspNetHostingStartupLoader? s_hostingStartupLoader;
+
+    public static MonitorMessageDispatcher? MessageDispatcher { get; private set; }
 
     public static void Initialize()
     {
@@ -24,6 +27,14 @@ internal sealed class StartupHook
             }
 
             s_exceptionProcessor.Start();
+
+            try
+            {
+                MessageDispatcher = new MonitorMessageDispatcher(new ProfilerMessageSource());
+            }
+            catch
+            {
+            }
         }
         catch
         {
