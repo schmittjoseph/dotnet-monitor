@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
         [DllImport(ProfilerIdentifiers.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void RegisterMonitorMessageCallback(ProfilerMessageCallback callback);
 
-        private static ProfilerMessageSource? _instance;
+        private static ProfilerMessageSource? s_instance;
 
         public ProfilerMessageSource()
         {
@@ -32,7 +32,16 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
             }
 
             NativeLibrary.SetDllImportResolver(typeof(MonitorMessageDispatcher).Assembly, ResolveDllImport);
-            RegisterMonitorMessageCallback(OnProfilerMessage);
+
+            s_instance = this;
+            try
+            {
+                RegisterMonitorMessageCallback(OnProfilerMessage);
+            }
+            catch
+            {
+
+            }
         }
 
         private void RaiseMonitorMessage(MonitorMessageArgs e)
@@ -72,7 +81,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
                     throw new ArgumentException(nameof(nativeBuffer));
                 }
 
-                ProfilerMessageSource instance = _instance ?? throw new NotSupportedException();
+                ProfilerMessageSource instance = s_instance ?? throw new NotSupportedException();
                 instance.RaiseMonitorMessage(new MonitorMessageArgs(payloadType, messageType, nativeBuffer, bufferSize));
             }
             catch (Exception ex)
@@ -85,7 +94,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 
         public void Dispose()
         {
-            _instance = null;
+            s_instance = null;
         }
     }
 }
