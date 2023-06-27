@@ -25,8 +25,8 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
     //CONSIDER It is generally more performant to read and buffer larger chunks, in this case we are not expecting very frequent communication.
     char headersBuffer[sizeof(MessageType) + sizeof(PayloadType) + sizeof(int)];
     IfFailRet(ReadFixedBuffer(
-        sizeof(headersBuffer),
-        headersBuffer
+        headersBuffer,
+        sizeof(headersBuffer)
     ));
 
     int bufferOffset = 0; 
@@ -51,15 +51,15 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
         IfOomRetMem(message.Payload.resize(payloadSize));
 
         IfFailRet(ReadFixedBuffer(
-            payloadSize,
-            (char*)message.Payload.data()
+            (char*)message.Payload.data(),
+            payloadSize
         ));
     }
 
     return S_OK;
 }
 
-HRESULT IpcCommClient::ReadFixedBuffer(int bufferSize, char* pBuffer)
+HRESULT IpcCommClient::ReadFixedBuffer(char* pBuffer, int bufferSize)
 {
     int read = 0;
     int offset = 0;
