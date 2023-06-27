@@ -12,11 +12,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
     [TargetFrameworkMonikerTrait(TargetFrameworkMoniker.Current)]
     public sealed class MonitorMessageDispatcherTests
     {
-        private struct SecondSamplePayload
-        {
-            public int SampleInt { get; set; }
-        }
-
         private struct SamplePayload : IEquatable<SamplePayload>
         {
             public string SampleString { get; set; }
@@ -41,7 +36,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
         }
 
         [Fact]
-        public void Dispatcher_DeserializesCorrectly()
+        public void InvokesRegisteredCallback()
         {
             // Arrange
             using MockMessageSource messageSource = new();
@@ -68,28 +63,14 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
         }
 
         [Fact]
-        public void Dispatcher_RejectsMismatchingPayloadTypes()
+        public void Throws_OnUnhandledMessageType()
         {
             // Arrange
             using MockMessageSource messageSource = new();
             using MonitorMessageDispatcher dispatcher = new(messageSource);
 
-            SecondSamplePayload expectedPayload = new SecondSamplePayload
-            {
-                SampleInt = 10
-            };
-
-            bool didGetCallback = false;
-            dispatcher.RegisterCallback<SamplePayload>(ProfilerMessageType.Callstack, (payload) =>
-            {
-                didGetCallback = true;
-            });
-
-            // Act
-            messageSource.RaiseMessage(ProfilerMessageType.Callstack, expectedPayload);
-
-            // Assert
-            Assert.True(didGetCallback);
+            // Act and Assert
+            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(ProfilerMessageType.Callstack, new object()));
         }
     }
 }
