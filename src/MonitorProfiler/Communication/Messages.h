@@ -30,5 +30,5 @@ struct Int32ParameterIpcMessage
 {
     PayloadType PayloadType = PayloadType::Int32Parameter;
     MessageType MessageType = MessageType::Unknown;
-    int Parameters;
+    int Parameter;
 };

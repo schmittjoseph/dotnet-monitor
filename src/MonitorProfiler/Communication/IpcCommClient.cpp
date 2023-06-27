@@ -124,7 +124,7 @@ HRESULT IpcCommClient::Send(const Int32ParameterIpcMessage& message)
     *reinterpret_cast<int*>(&buffer[bufferOffset]) = sizeof(int);
     bufferOffset += sizeof(int);
 
-    *reinterpret_cast<int*>(&buffer[bufferOffset]) = message.Parameters;
+    *reinterpret_cast<int*>(&buffer[bufferOffset]) = message.Parameter;
     bufferOffset += sizeof(int);
 
     assert(bufferOffset == sizeof(buffer));
