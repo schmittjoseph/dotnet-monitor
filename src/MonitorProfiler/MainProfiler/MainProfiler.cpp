@@ -296,19 +296,18 @@ HRESULT MainProfiler::InitializeCommandServer()
 HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
 {
     HRESULT hr;
-    m_pLogger->Log(LogLevel::Information, _LS("Message received from client: %d %d"), message.PayloadType, message.MessageType);
+    m_pLogger->Log(LogLevel::Debug, _LS("Message received from client (MessageType: %d, PayloadType: %d)"), message.MessageType, message.PayloadType);
 
-    if (message.PayloadType == PayloadType::Int32)
+    if (message.PayloadType == PayloadType::None)
     {
         if (message.MessageType == MessageType::Callstack)
         {
-            //Currently we do not have any options for this message
             return ProcessCallstackMessage();
         }
     }
     else if (message.PayloadType == PayloadType::Utf8Json)
     {
-        // Pass the message to managed land
+        // Utf8 json payloads are handled exclusively by managed code.
         lock_guard<mutex> lock(g_messageCallbackMutex);
         if (g_pManagedMessageCallback == nullptr)
         {
@@ -383,19 +382,19 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
     return S_OK;
 }
 
-STDAPI DLLEXPORT RegisterProfilerMessageCallback(
+STDAPI DLLEXPORT RegisterMonitorMessageCallback(
     ManagedMessageCallback pCallback
     )
 {
     if (g_pManagedMessageCallback != nullptr)
     {
-        return E_UNEXPECTED;
+        return E_FAIL;
     }
 
     lock_guard<mutex> lock(g_messageCallbackMutex);
     if (g_pManagedMessageCallback != nullptr)
     {
-        return E_UNEXPECTED;
+        return E_FAIL;
     }
 
     g_pManagedMessageCallback = pCallback;

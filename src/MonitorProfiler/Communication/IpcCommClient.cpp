@@ -23,28 +23,57 @@ HRESULT IpcCommClient::Receive(IpcMessage& message)
     }
 
     //CONSIDER It is generally more performant to read and buffer larger chunks, in this case we are not expecting very frequent communication.
-    char headersBuffer[sizeof(PayloadType) + sizeof(MessageType) + sizeof(int)];
-    IfFailRet(ReadFixedBuffer(
-        sizeof(headersBuffer),
-        headersBuffer
+    char headersBuffer[sizeof(MessageType) + sizeof(PayloadType) + sizeof(int)];
+    IfFailRet(ReceiveFixedBuffer(
+        headersBuffer,
+        sizeof(headersBuffer)
     ));
 
-    message.PayloadType = *reinterpret_cast<PayloadType*>(headersBuffer);
-    message.MessageType = *reinterpret_cast<MessageType*>(&headersBuffer[sizeof(PayloadType)]);
-    int payloadSize = *reinterpret_cast<int*>(&headersBuffer[sizeof(PayloadType) + sizeof(MessageType)]);
+    int bufferOffset = 0; 
+    message.MessageType = *reinterpret_cast<MessageType*>(&headersBuffer[bufferOffset]);
+    bufferOffset += sizeof(MessageType);
 
-    IfOomRetMem(message.Payload.resize(payloadSize));
+    message.PayloadType = *reinterpret_cast<PayloadType*>(&headersBuffer[bufferOffset]);
+    bufferOffset += sizeof(PayloadType);
 
-    IfFailRet(ReadFixedBuffer(
-        payloadSize,
-        (char*)message.Payload.data()
-    ));
+    message.Parameter = *reinterpret_cast<int*>(&headersBuffer[bufferOffset]);
+    bufferOffset += sizeof(int);
+
+    assert(bufferOffset == sizeof(headersBuffer));
+
+    if (message.PayloadType != PayloadType::None)
+    {
+        const int payloadSize = message.Parameter;
+        if (payloadSize == 0)
+        {
+            return E_UNEXPECTED;
+        }
+
+        IfOomRetMem(message.Payload.resize(payloadSize));
+
+        IfFailRet(ReceiveFixedBuffer(
+            reinterpret_cast<char*>(message.Payload.data()),
+            payloadSize
+        ));
+    }
 
     return S_OK;
 }
 
-HRESULT IpcCommClient::ReadFixedBuffer(int bufferSize, char* pBuffer)
+HRESULT IpcCommClient::ReceiveFixedBuffer(char* pBuffer, int bufferSize)
 {
+    ExpectedPtr(pBuffer);
+
+    if (bufferSize == 0)
+    {
+        return S_OK;
+    }
+
+    if (bufferSize < 0)
+    {
+        return E_FAIL;
+    }
+
     int read = 0;
     int offset = 0;
 
@@ -74,8 +103,10 @@ HRESULT IpcCommClient::ReadFixedBuffer(int bufferSize, char* pBuffer)
 }
 
 
-HRESULT IpcCommClient::Send(const SimpleIpcMessage& message)
+HRESULT IpcCommClient::Send(const IpcMessage& message)
 {
+    HRESULT hr;
+
     if (_shutdown.load())
     {
         return E_UNEXPECTED;
@@ -85,28 +116,59 @@ HRESULT IpcCommClient::Send(const SimpleIpcMessage& message)
         return E_UNEXPECTED;
     }
 
-    char buffer[sizeof(PayloadType) + sizeof(MessageType) + sizeof(int) + sizeof(int)];
+    if (message.PayloadType != PayloadType::None &&
+        message.Parameter != message.Payload.size())
+    {
+        return E_UNEXPECTED;
+    }
+
+    char headersBuffer[sizeof(MessageType) + sizeof(PayloadType) + sizeof(int)];
 
     int bufferOffset = 0; 
-    *reinterpret_cast<PayloadType*>(&buffer[bufferOffset]) = message.PayloadType;
+    *reinterpret_cast<PayloadType*>(&headersBuffer[bufferOffset]) = message.PayloadType;
     bufferOffset += sizeof(PayloadType);
 
-    *reinterpret_cast<MessageType*>(&buffer[bufferOffset]) = message.MessageType;
+    *reinterpret_cast<MessageType*>(&headersBuffer[bufferOffset]) = message.MessageType;
     bufferOffset += sizeof(MessageType);
 
-    *reinterpret_cast<int*>(&buffer[bufferOffset]) = sizeof(int);
+    *reinterpret_cast<int*>(&headersBuffer[bufferOffset]) = message.Parameter;
     bufferOffset += sizeof(int);
 
-    *reinterpret_cast<int*>(&buffer[bufferOffset]) = message.Parameters;
-    bufferOffset += sizeof(int);
+    assert(bufferOffset == sizeof(headersBuffer));
 
-    assert(bufferOffset == sizeof(buffer));
+    IfFailRet(SendFixedBuffer(
+        headersBuffer,
+        sizeof(headersBuffer)));
+
+    if (message.PayloadType != PayloadType::None)
+    {
+        IfFailRet(SendFixedBuffer(
+            reinterpret_cast<const char*>(message.Payload.data()),
+            message.Parameter));
+    }
+
+    return S_OK;
+}
+
+HRESULT IpcCommClient::SendFixedBuffer(const char* pBuffer, int bufferSize)
+{
+    ExpectedPtr(pBuffer);
+
+    if (bufferSize == 0)
+    {
+        return S_OK;
+    }
+
+    if (bufferSize < 0)
+    {
+        return E_FAIL;
+    }
 
     int sent = 0;
     int offset = 0;
     do
     {
-        sent = send(_socket, &buffer[offset], sizeof(buffer) - offset, 0);
+        sent = send(_socket, &pBuffer[offset], bufferSize - offset, 0);
 
         if (sent == 0)
         {
@@ -124,7 +186,7 @@ HRESULT IpcCommClient::Send(const SimpleIpcMessage& message)
             return SocketWrapper::GetSocketError();
         }
         offset += sent;
-    } while (offset < sizeof(buffer));
+    } while (offset < bufferSize);
 
     return S_OK;
 }

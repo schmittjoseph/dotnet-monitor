@@ -16,18 +16,15 @@ namespace Microsoft.Diagnostics.Monitoring
 
     internal enum ProfilerPayloadType : short
     {
-        Unknown,
-        Int32, // Payload only contains an INT32
-        Utf8Json // Payload contains a UTF8-encoded JSON string
+        None,
+        Utf8Json
     };
-
 
     internal enum ProfilerMessageType : short
     {
         Unknown,
         Status,
-        Callstack,
-        CaptureParameters,
+        Callstack
     };
 
     internal interface IProfilerMessage
@@ -35,7 +32,9 @@ namespace Microsoft.Diagnostics.Monitoring
         public ProfilerPayloadType PayloadType { get; set; }
         public ProfilerMessageType MessageType { get; set; }
 
-        public byte[] SerializePayload();
+        public int Parameter { get; set; }
+
+        public byte[] Payload { get; set; }
     }
 
     internal struct JsonProfilerMessage : IProfilerMessage
@@ -43,35 +42,39 @@ namespace Microsoft.Diagnostics.Monitoring
         public ProfilerPayloadType PayloadType { get; set; } = ProfilerPayloadType.Utf8Json;
         public ProfilerMessageType MessageType { get; set; } = ProfilerMessageType.Unknown;
 
-        public object Payload { get; set; }
+        public int Parameter { get; set; }
 
-        public JsonProfilerMessage(ProfilerMessageType messageType, object t)
+        public byte[] Payload { get; set; }
+
+
+        public JsonProfilerMessage(ProfilerMessageType messageType, object payloadObject)
         {
             MessageType = messageType;
-            Payload = t;
+            Payload = SerializePayload(payloadObject);
+            Parameter = Payload.Length;
         }
 
-        public byte[] SerializePayload()
+        private static byte[] SerializePayload(object payloadObject)
         {
-            string jsonPayload = JsonSerializer.Serialize(Payload);
+            string jsonPayload = JsonSerializer.Serialize(payloadObject);
             return Encoding.UTF8.GetBytes(jsonPayload);
         }
     }
 
-    internal struct SimpleProfilerMessage : IProfilerMessage
+    internal struct BasicProfilerMessage : IProfilerMessage
     {
-        public SimpleProfilerMessage()
-        {
-        }
-
-        public ProfilerPayloadType PayloadType { get; set; } = ProfilerPayloadType.Int32;
+        public ProfilerPayloadType PayloadType { get; set; } = ProfilerPayloadType.None;
         public ProfilerMessageType MessageType { get; set; } = ProfilerMessageType.Unknown;
 
-        public int Parameter { get; set; }
+        public int Parameter { get; set; } = 0;
 
-        public byte[] SerializePayload()
+        public byte[] Payload { get; set; } = Array.Empty<byte>();
+
+        public BasicProfilerMessage(ProfilerMessageType messageType, int parameter = 0)
         {
-            return BitConverter.GetBytes(Parameter);
+            MessageType = messageType;
+            Parameter = parameter;
         }
     }
+
 }

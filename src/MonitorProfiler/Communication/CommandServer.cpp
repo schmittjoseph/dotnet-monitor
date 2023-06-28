@@ -72,10 +72,10 @@ void CommandServer::ListeningThread()
             continue;
         }
 
-        SimpleIpcMessage response;
-        response.PayloadType = PayloadType::Int32;
+        IpcMessage response;
         response.MessageType = MessageType::Status;
-        response.Parameters = hr;
+        response.PayloadType = PayloadType::None;
+        response.Parameter = hr;
 
         hr = client->Send(response);
         if (FAILED(hr))
