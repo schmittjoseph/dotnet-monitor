@@ -3,8 +3,6 @@
 
 
 using System.Runtime.InteropServices;
-using System.IO;
-using System.Reflection;
 using System;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 
@@ -12,8 +10,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 {
     internal sealed class ProfilerMessageSource : IMonitorMessageSource
     {
-        private string? _profilerModulePath;
-
         public event IMonitorMessageSource.MonitorMessageHandler? MonitorMessageEvent;
 
         public delegate int ProfilerMessageCallback(ProfilerPayloadType payloadType, ProfilerMessageType messageType, IntPtr nativeBuffer, long bufferSize);
@@ -25,13 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 
         public ProfilerMessageSource()
         {
-            _profilerModulePath = Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ModulePath);
-            if (!File.Exists(_profilerModulePath))
-            {
-                throw new FileNotFoundException(_profilerModulePath);
-            }
-
-            NativeLibrary.SetDllImportResolver(typeof(MonitorMessageDispatcher).Assembly, ResolveDllImport);
+            ProfilerUtilities.RegisterDllImportResolver<ProfilerMessageSource>();
 
             s_instance = this;
             try
@@ -47,24 +37,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
         private void RaiseMonitorMessage(MonitorMessageArgs e)
         {
             MonitorMessageEvent?.Invoke(this, e);
-        }
-
-        private IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-        {
-            // DllImport for Windows automatically loads in-memory modules (such as the profiler). This is not the case for Linux/MacOS.
-            // If we fail resolving the DllImport, we have to load the profiler ourselves.
-            if (_profilerModulePath == null ||
-                libraryName != ProfilerIdentifiers.LibraryRootFileName)
-            {
-                return IntPtr.Zero;
-            }
-
-            if (NativeLibrary.TryLoad(_profilerModulePath, out IntPtr handle))
-            {
-                return handle;
-            }
-
-            return IntPtr.Zero;
         }
 
         private static int OnProfilerMessage(ProfilerPayloadType payloadType, ProfilerMessageType messageType, IntPtr nativeBuffer, long bufferSize)
