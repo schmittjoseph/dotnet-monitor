@@ -9,26 +9,22 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
     {
         public event IMonitorMessageSource.MonitorMessageHandler? MonitorMessageEvent;
 
-        public void RaiseMessage(MonitorMessageArgs e)
+        private void RaiseMessage(MonitorMessageArgs e)
         {
             MonitorMessageEvent?.Invoke(this, e);
         }
 
-        public void RaiseMessage(ProfilerMessageType messageType, object payload)
+        public void RaiseMessage(IProfilerMessage message)
         {
-            JsonProfilerMessage jsonProfilerMessage = new(messageType, payload);
-
-            byte[] serializedPayload = jsonProfilerMessage.SerializePayload();
-
             unsafe
             {
-                fixed (byte* ptr = serializedPayload)
+                fixed (byte* ptr = message.Payload)
                 {
                     RaiseMessage(new MonitorMessageArgs(
-                        jsonProfilerMessage.PayloadType,
-                        messageType,
+                        message.PayloadType,
+                        message.MessageType,
                         new IntPtr(ptr),
-                        serializedPayload.Length));
+                        message.Parameter));
                 }
             }
 

@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
             });
 
             // Act
-            messageSource.RaiseMessage(ProfilerMessageType.Callstack, expectedPayload);
+            messageSource.RaiseMessage(new JsonProfilerMessage(ProfilerMessageType.Callstack, expectedPayload));
 
             // Assert
             Assert.True(didGetCallback);
@@ -70,7 +70,19 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
             using MonitorMessageDispatcher dispatcher = new(messageSource);
 
             // Act and Assert
-            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(ProfilerMessageType.Callstack, new object()));
+            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(new JsonProfilerMessage(ProfilerMessageType.Callstack, new object())));
+        }
+
+        [Fact]
+        public void Throws_OnUnhandledPayloadType()
+        {
+            // Arrange
+            using MockMessageSource messageSource = new();
+            using MonitorMessageDispatcher dispatcher = new(messageSource);
+            dispatcher.RegisterCallback<object>(ProfilerMessageType.Callstack, (payload) => { });
+
+            // Act and Assert
+            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(new BasicProfilerMessage(ProfilerMessageType.Callstack)));
         }
     }
 }

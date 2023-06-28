@@ -26,6 +26,12 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         public async Task SendMessage(IEndpointInfo endpointInfo, IProfilerMessage message, CancellationToken token)
         {
+            if (message.PayloadType != ProfilerPayloadType.None &&
+                message.Parameter != message.Payload.Length)
+            {
+                throw new ArgumentException(nameof(message));
+            }
+
             string channelPath = ComputeChannelPath(endpointInfo);
             var endpoint = new UnixDomainSocketEndPoint(channelPath);
             using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
@@ -34,23 +40,21 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
             await socket.ConnectAsync(endpoint);
 
-            byte[] payloadBuffer = message.SerializePayload();
-
             byte[] headersBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int)];
             var memoryStream = new MemoryStream(headersBuffer);
             using BinaryWriter writer = new BinaryWriter(memoryStream);
             writer.Write((short)message.MessageType);
             writer.Write((short)message.PayloadType);
-            writer.Write(payloadBuffer.Length);
+            writer.Write(message.Parameter);
             writer.Dispose();
             await socket.SendAsync(new ReadOnlyMemory<byte>(headersBuffer), SocketFlags.None, token);
 
-            if (message.PayloadType != ProfilerPayloadType.None && payloadBuffer.Length > 0)
+            if (message.PayloadType != ProfilerPayloadType.None)
             {
-                await socket.SendAsync(new ReadOnlyMemory<byte>(payloadBuffer), SocketFlags.None, token);
+                await socket.SendAsync(new ReadOnlyMemory<byte>(message.Payload), SocketFlags.None, token);
             }
 
-            Int32ProfilerMessage response = await ReceiveInt32MessageAsync(socket, token);
+            BasicProfilerMessage response = await ReceiveBasicMessageAsync(socket, token);
             if (response.MessageType != ProfilerMessageType.Status)
             {
                 throw new InvalidOperationException("Received unexpected status message from server.");
@@ -58,9 +62,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             Marshal.ThrowExceptionForHR(response.Parameter);
         }
 
-        private static async Task<Int32ProfilerMessage> ReceiveInt32MessageAsync(Socket socket, CancellationToken token)
+        private static async Task<BasicProfilerMessage> ReceiveBasicMessageAsync(Socket socket, CancellationToken token)
         {
-            byte[] recvBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int) + sizeof(int)];
+            byte[] recvBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int)];
             int received = await socket.ReceiveAsync(new Memory<byte>(recvBuffer), SocketFlags.None, token);
             if (received < recvBuffer.Length)
             {
@@ -73,24 +77,17 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             readIndex += sizeof(short);
 
             ProfilerPayloadType payloadType = (ProfilerPayloadType)BitConverter.ToInt16(recvBuffer, startIndex: readIndex);
-            if (payloadType != ProfilerPayloadType.Int32Parameter)
+            if (payloadType != ProfilerPayloadType.None)
             {
                 throw new InvalidOperationException("Received unexpected payload type from server.");
             }
             readIndex += sizeof(short);
 
-            int payloadLength = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
-            if (payloadLength != sizeof(int))
-            {
-                throw new InvalidOperationException("Received unexpected message payload size from server.");
-            }
-            readIndex += sizeof(int);
-
             int parameter = BitConverter.ToInt32(recvBuffer, startIndex: readIndex);
             readIndex += sizeof(int);
             Debug.Assert(readIndex == recvBuffer.Length);
 
-            return new Int32ProfilerMessage(messageType, parameter);
+            return new BasicProfilerMessage(messageType, parameter);
         }
 
         private string ComputeChannelPath(IEndpointInfo endpointInfo)
