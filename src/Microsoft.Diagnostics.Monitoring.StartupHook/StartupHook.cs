@@ -13,8 +13,6 @@ internal sealed class StartupHook
     private static CurrentAppDomainExceptionProcessor s_exceptionProcessor = new();
     private static AspNetHostingStartupLoader? s_hostingStartupLoader;
 
-    public static MonitorMessageDispatcher? MessageDispatcher { get; private set; }
-
     public static void Initialize()
     {
         try
@@ -30,7 +28,7 @@ internal sealed class StartupHook
 
             try
             {
-                MessageDispatcher = new MonitorMessageDispatcher(new ProfilerMessageSource());
+                SharedInternals.MessageDispatcher = new MonitorMessageDispatcher(new ProfilerMessageSource());
             }
             catch
             {

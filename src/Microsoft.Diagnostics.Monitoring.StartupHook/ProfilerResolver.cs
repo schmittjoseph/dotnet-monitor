@@ -9,24 +9,24 @@ using System;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System.Collections.Generic;
 
-namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
+namespace Microsoft.Diagnostics.Monitoring.StartupHook
 {
-    internal static class ProfilerUtilities
+    internal static class ProfilerResolver
     {
-        private static readonly Lazy<string?> s_profilerModulePath = new Lazy<string?>(() => Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ModulePath));
+        private static readonly Lazy<string> s_profilerModulePath = new Lazy<string>(() => Environment.GetEnvironmentVariable(ProfilerIdentifiers.EnvironmentVariables.ModulePath) ?? string.Empty);
         private static readonly Lazy<bool> s_profilerModuleExists = new Lazy<bool>(() => File.Exists(s_profilerModulePath.Value));
 
         private static readonly HashSet<Assembly> s_registeredAssemblies = new HashSet<Assembly>();
         private static readonly object s_registeredAssembliesLocker = new();
 
-        public static void RegisterDllImportResolver<T>()
+        public static void InitializeResolver(Type type)
         {
             if (!s_profilerModuleExists.Value)
             {
                 throw new FileNotFoundException(s_profilerModulePath.Value);
             }
 
-            Assembly assembly = typeof(T).Assembly;
+            Assembly assembly = type.Assembly;
             lock (s_registeredAssembliesLocker)
             {
                 if (s_registeredAssemblies.Contains(assembly))
@@ -35,8 +35,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
                 }
 
                 s_registeredAssemblies.Add(assembly);
-                NativeLibrary.SetDllImportResolver(typeof(T).Assembly, ResolveProfilerDllImport);
+                NativeLibrary.SetDllImportResolver(assembly, ResolveProfilerDllImport);
             }
+        }
+
+        public static void InitializeResolver<T>()
+        {
+            InitializeResolver(typeof(T));
         }
 
         private static IntPtr ResolveProfilerDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)

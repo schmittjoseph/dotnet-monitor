@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
+using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             try
             {
-                SharedInternals.MonitorMessageDispatcher.RegisterCallback<ParameterCapturingPayload>(ProfilerMessageType.CaptureParameters, OnCommand);
+                if (SharedInternals.MessageDispatcher == null)
+                {
+                    throw new NotSupportedException();
+                }
+                SharedInternals.MessageDispatcher?.RegisterCallback<ParameterCapturingPayload>(ProfilerMessageType.CaptureParameters, OnCommand);
                 _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger, FunctionProbesStub.InstrumentedMethodCache));
                 _isAvailable = true;
             }
@@ -167,7 +172,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             try
             {
-                SharedInternals.MonitorMessageDispatcher.UnregisterCallback(ProfilerMessageType.CaptureParameters);
+                SharedInternals.MessageDispatcher?.UnregisterCallback(ProfilerMessageType.CaptureParameters);
                 _probeManager?.Dispose();
             }
             catch

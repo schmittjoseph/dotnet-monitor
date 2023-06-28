@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         public FunctionProbesManager(IFunctionProbes probes)
         {
-            ProfilerUtilities.RegisterDllImportResolver<FunctionProbesManager>();
+            ProfilerResolver.InitializeResolver<FunctionProbesManager>();
 
             RequestFunctionProbeRegistration(FunctionProbesStub.GetProbeFunctionId());
             FunctionProbesStub.Instance = probes;

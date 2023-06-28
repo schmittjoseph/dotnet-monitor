@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 
         public ProfilerMessageSource()
         {
-            ProfilerUtilities.RegisterDllImportResolver<ProfilerMessageSource>();
+            ProfilerResolver.InitializeResolver<ProfilerMessageSource>();
 
             s_instance = this;
             try
