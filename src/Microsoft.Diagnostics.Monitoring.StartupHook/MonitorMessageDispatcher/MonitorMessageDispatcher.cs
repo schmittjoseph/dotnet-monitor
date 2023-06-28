@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 
             if (!_dispatchTable.TryAdd(messageType, dispatchEntry))
             {
-                throw new InvalidOperationException($"Callback for message {messageType} already registered");
+                throw new InvalidOperationException("Callback already registered for the requested message type.");
             }
         }
 
@@ -55,13 +55,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
         {
             if (args.PayloadType != ProfilerPayloadType.Utf8Json)
             {
-                throw new NotSupportedException("Unsupported payload type");
+                throw new NotSupportedException("Unsupported payload type.");
             }
 
             object? payload = null;
             if (!_dispatchTable.TryGetValue(args.MessageType, out MessageDispatchEntry dispatchEntry))
             {
-                throw new NotSupportedException("Unsupported message type");
+                throw new NotSupportedException("Unsupported message type.");
             }
 
             unsafe
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 
             if (payload == null)
             {
-                throw new ArgumentException("Could not deserialize");
+                throw new ArgumentException("Could not deserialize.");
             }
 
             dispatchEntry.Callback(payload);
