@@ -130,7 +130,7 @@
     <value>ref</value>
   </data>
   <data name="StartParameterCapturing" xml:space="preserve">
-    <value>Starting Parameter Capturing for {duration} on the following methods: {methodNames}</value>
+    <value>Starting Parameter Capturing for the following methods: {methodNames}</value>
   </data>
   <data name="StopParameterCapturing" xml:space="preserve">
     <value>Stopping Parameter Capturing.</value>

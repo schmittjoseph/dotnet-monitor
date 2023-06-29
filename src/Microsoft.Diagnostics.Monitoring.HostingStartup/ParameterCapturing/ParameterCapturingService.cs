@@ -7,7 +7,6 @@ using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ObjectPool;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,9 +23,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         private readonly FunctionProbesManager? _probeManager;
         private readonly ILogger? _logger;
-
-        private CancellationTokenSource? _stopCapturingSource;
-        private readonly SemaphoreSlim _semaphore = new(1);
 
         public ParameterCapturingService(IServiceProvider services)
         {
@@ -49,7 +45,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 SharedInternals.MessageDispatcher.RegisterCallback<EmptyPayload>(
                     ProfilerMessageType.StopCapturingParameters,
-                    (_) => _stopCapturingSource?.Cancel());
+                    OnStopMessage);
 
                 _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger, FunctionProbesStub.InstrumentedMethodCache));
                 _isAvailable = true;
@@ -67,7 +63,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
-            if (payload.MethodNames.Length == 0 || payload.Duration == TimeSpan.Zero)
+            if (payload.Methods.Length == 0)
             {
                 return;
             }
@@ -90,26 +86,24 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
             }
 
-            List<MethodInfo> methods = new(payload.MethodNames.Length);
-            foreach (string methodName in payload.MethodNames)
+            List<MethodInfo> methods = new(payload.Methods.Length);
+            foreach (MethodDescription methodDescription in payload.Methods)
             {
-                List<MethodInfo> resolvedMethods = ResolveMethod(dllNameToModules, methodName);
+                List<MethodInfo> resolvedMethods = ResolveMethod(dllNameToModules, methodDescription);
                 if (resolvedMethods.Count == 0)
                 {
-                    _logger?.LogWarning(ParameterCapturingStrings.UnableToResolveMethod, methodName);
-                    throw new ArgumentException($"Failed to resolve method: {methodName}");
+                    _logger?.LogWarning(ParameterCapturingStrings.UnableToResolveMethod, methodDescription);
+                    throw new ArgumentException($"Failed to resolve method: {methodDescription}");
                 }
 
                 methods.AddRange(resolvedMethods);
             }
 
-            _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, payload.Duration, string.Join(' ', payload.MethodNames));
+            _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', payload.Methods));
             _probeManager.StartCapturing(methods);
-
-            _stopCapturingSource = new(payload.Duration);
         }
 
-        private void StopCapturing()
+        private void OnStopMessage(EmptyPayload _)
         {
             if (!_isAvailable || _probeManager == null)
             {
@@ -120,17 +114,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _probeManager.StopCapturing();
         }
 
-        private struct ResolveMethodInfo
-        {
-            public string ModuleName { get; set; }
-            public string ClassName { get; set; }
-            public string MethodName { get; set; }
-            public string[]? ParameterTypes { get; set; }
-
-            public ulong? FunctionId { get; set; }
-        }
-
-        private static ResolveMethodInfo? ExtractMethodInfo(string fqMethodName)
+        private static MethodDescription? ExtractMethodInfo(string fqMethodName)
         {
             // JSFIX: proof-of-concept code
             int dllSplitIndex = fqMethodName.IndexOf('!');
@@ -168,28 +152,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
             }
 
-            return new ResolveMethodInfo
+            return new MethodDescription
             {
                 ModuleName = dll,
                 ClassName = className,
                 MethodName = methodName,
-                ParameterTypes = parameterTypes?.ToArray()
+                FilterByParameters = parameterTypes != null,
+                ParameterTypes = parameterTypes?.ToArray() ?? Array.Empty<string>()
             };
         }
 
-        private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, string fqMethodName)
+        private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, MethodDescription methodDescription)
         {
             List<MethodInfo> methods = new();
 
-            ResolveMethodInfo? resolvedInfoN = ExtractMethodInfo(fqMethodName);
-            if (resolvedInfoN == null)
-            {
-                return methods;
-            }
-
-            ResolveMethodInfo resolvedInfo = resolvedInfoN.Value;
-
-            if (!dllNameToModules.TryGetValue(resolvedInfo.ModuleName, out List<Module>? possibleModules))
+            if (!dllNameToModules.TryGetValue(methodDescription.ModuleName, out List<Module>? possibleModules))
             {
                 return methods;
             }
@@ -198,7 +175,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 try
                 {
-                    MethodInfo[]? allMethods = module.Assembly.GetType(resolvedInfo.ClassName)?.GetMethods(BindingFlags.Public |
+                    MethodInfo[]? allMethods = module.Assembly.GetType(methodDescription.ClassName)?.GetMethods(BindingFlags.Public |
                         BindingFlags.NonPublic |
                         BindingFlags.Instance |
                         BindingFlags.Static |
@@ -211,19 +188,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                     foreach (MethodInfo method in allMethods)
                     {
-                        if (method.Name != resolvedInfo.MethodName)
+                        if (method.Name != methodDescription.MethodName)
                         {
                             continue;
                         }
 
-                        if (resolvedInfo.ParameterTypes == null)
+                        if (methodDescription.ParameterTypes == null)
                         {
                             methods.Add(method);
                             continue;
                         }
 
                         ParameterInfo[] paramInfo = method.GetParameters();
-                        if (paramInfo.Length != resolvedInfo.ParameterTypes?.Length)
+                        if (paramInfo.Length != methodDescription.ParameterTypes?.Length)
                         {
                             continue;
                         }
@@ -231,7 +208,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                         bool mismatch = false;
                         for (int i = 0; i < paramInfo.Length; i++)
                         {
-                            if (paramInfo[i].ParameterType.Name != resolvedInfo.ParameterTypes[i])
+                            if (paramInfo[i].ParameterType.Name != methodDescription.ParameterTypes[i])
                             {
                                 mismatch = true;
                                 break;
@@ -243,54 +220,30 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                             methods.Add(method);
                         }
                     }
-
-                    /*
-                    if (!resolvedInfo.FunctionId.HasValue ||
-                         resolvedInfo.FunctionId.Value == method.GetFunctionId())
-                    {
-                        methods.Add(method);
-                    }
-                    */
-
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogWarning($"Unable resolve method {fqMethodName}, exception: {ex}");
+                    _logger?.LogWarning($"Unable resolve method {methodDescription}, exception: {ex}");
                 }
             }
 
             return methods;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!_isAvailable)
             {
-                return;
+                return Task.CompletedTask;
             }
 
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                await _semaphore.WaitAsync(stoppingToken).ConfigureAwait(false);
-                CancellationToken stopCapToken = _stopCapturingSource?.Token ?? throw new Exception();
-                using CancellationTokenSource combinedCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, stopCapToken);
-                await Task.Delay(Timeout.Infinite, combinedCancellation).ConfigureAwait(false);
-
-                if (stopCapToken.IsCancellationRequested)
-                {
-
-                }
-                StopCapturing();
-            }
+            return Task.Delay(Timeout.Infinite, stoppingToken);
         }
 
         public override void Dispose()
         {
             if (!DisposableHelper.CanDispose(ref _disposedState))
                 return;
-
-            _semaphore.Dispose();
-            _stopCapturingSource?.Dispose();
 
             try
             {

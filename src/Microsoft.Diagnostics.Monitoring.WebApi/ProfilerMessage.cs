@@ -9,10 +9,32 @@ namespace Microsoft.Diagnostics.Monitoring
 {
     internal sealed class EmptyPayload { }
 
+    internal struct MethodDescription
+    {
+        public string ModuleName { get; set; }
+        public string ClassName { get; set; }
+        public string MethodName { get; set; }
+
+        public bool FilterByParameters { get; set; }
+
+        public string[] ParameterTypes { get; set; }
+
+        public override string ToString()
+        {
+            if (FilterByParameters)
+            {
+                return FormattableString.Invariant($"{ModuleName}!{ClassName}.{MethodName}");
+            }
+            else
+            {
+                return FormattableString.Invariant($"{ModuleName}!{ClassName}.{MethodName}({string.Join(", ", ParameterTypes)})");
+            }
+        }
+    }
+
     internal sealed class StartCapturingParametersPayload
     {
-        public string[] MethodNames { get; set; } = Array.Empty<string>();
-        public TimeSpan Duration { get; set; } = TimeSpan.Zero;
+        public MethodDescription[] Methods { get; set; } = Array.Empty<MethodDescription>();
     }
 
     internal enum ProfilerPayloadType : short
