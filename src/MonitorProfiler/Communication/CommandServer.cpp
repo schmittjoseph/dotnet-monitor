@@ -55,7 +55,8 @@ void CommandServer::ListeningThread()
 {
     IpcMessage response;
     response.Command = IpcCommand::Status;
-    response.Payload.resize(sizeof(int));
+    response.Payload.resize(sizeof(HRESULT));
+
     while (true)
     {
         std::shared_ptr<IpcCommClient> client;
@@ -75,8 +76,7 @@ void CommandServer::ListeningThread()
             continue;
         }
 
-        // JSFIX
-        for (size_t i = 0; i < sizeof(int); i++)
+        for (size_t i = 0; i < sizeof(HRESULT); i++)
         {
             response.Payload[i] = static_cast<BYTE>(hr >> (i * 8));
         }
@@ -87,6 +87,7 @@ void CommandServer::ListeningThread()
             _logger->Log(LogLevel::Error, _LS("Unexpected error when sending data: 0x%08x"), hr);
             continue;
         }
+
         hr = client->Shutdown();
         if (FAILED(hr))
         {
