@@ -7,6 +7,14 @@ using System.Text.Json;
 
 namespace Microsoft.Diagnostics.Monitoring
 {
+    internal sealed class EmptyPayload { }
+
+    internal sealed class StartCapturingParametersPayload
+    {
+        public string[] MethodNames { get; set; } = Array.Empty<string>();
+        public TimeSpan Duration { get; set; } = TimeSpan.Zero;
+    }
+
     internal enum ProfilerPayloadType : short
     {
         None,
@@ -17,7 +25,9 @@ namespace Microsoft.Diagnostics.Monitoring
     {
         Unknown,
         Status,
-        Callstack
+        Callstack,
+        StartCapturingParameters,
+        StopCapturingParameters
     };
 
     internal interface IProfilerMessage

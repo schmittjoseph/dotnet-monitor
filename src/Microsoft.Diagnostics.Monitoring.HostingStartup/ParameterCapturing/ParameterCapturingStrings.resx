@@ -129,8 +129,17 @@
   <data name="ParameterModifier_RefOrRefLike" xml:space="preserve">
     <value>ref</value>
   </data>
+  <data name="StartParameterCapturing" xml:space="preserve">
+    <value>Starting Parameter Capturing for {duration} on the following methods: {methodNames}</value>
+  </data>
+  <data name="StopParameterCapturing" xml:space="preserve">
+    <value>Stopping Parameter Capturing.</value>
+  </data>
   <data name="ThisParameterName" xml:space="preserve">
     <value>this</value>
+  </data>
+  <data name="UnableToResolveMethod" xml:space="preserve">
+    <value>Could not resolve method {methodName}</value>
   </data>
   <data name="UnknownArgumentValue" xml:space="preserve">
     <value>unknown</value>

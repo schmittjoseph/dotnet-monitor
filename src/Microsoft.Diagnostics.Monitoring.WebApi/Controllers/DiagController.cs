@@ -584,6 +584,47 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             Utilities.GetProcessKey(pid, uid, name));
         }
 
+        [HttpGet("parameters", Name = nameof(CaptureStacks))]
+        [ProducesWithProblemDetails(ContentTypes.ApplicationJson, ContentTypes.TextPlain, ContentTypes.ApplicationSpeedscopeJson)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(void), StatusCodes.Status202Accepted)]
+        [EgressValidation]
+        public async Task<ActionResult> CaptureParameters(
+            [FromQuery]
+            int? pid = null,
+            [FromQuery]
+            Guid? uid = null,
+            [FromQuery]
+            string name = null,
+            [FromQuery]
+            string egressProvider = null,
+            [FromQuery]
+            string tags = null)
+        {
+            if (!_inProcessFeatures.IsCallStacksEnabled)
+            {
+                return NotFound();
+            }
+
+            ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
+
+            return await InvokeForProcess(async processInfo =>
+            {
+                //Stack format based on Content-Type
+
+                StackFormat stackFormat = ContentTypeUtilities.ComputeStackFormat(Request.GetTypedHeaders().Accept) ?? StackFormat.PlainText;
+                bool plainText = ContentTypeUtilities.IsPlainText(stackFormat);
+
+                return await Result(Utilities.ArtifactType_Parameters, egressProvider, async (stream, token) =>
+                {
+                    await StackUtilities.CollectStacksAsync(null, processInfo.EndpointInfo, _profilerChannel, stackFormat, stream, token);
+
+                }, StackUtilities.GenerateStacksFilename(processInfo.EndpointInfo, plainText), ContentTypeUtilities.MapFormatToContentType(stackFormat), processInfo, tags, asAttachment: false);
+
+            }, processKey, Utilities.ArtifactType_Parameters);
+        }
+
         [HttpGet("stacks", Name = nameof(CaptureStacks))]
         [ProducesWithProblemDetails(ContentTypes.ApplicationJson, ContentTypes.TextPlain, ContentTypes.ApplicationSpeedscopeJson)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
