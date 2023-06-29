@@ -7,6 +7,7 @@ using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,7 +120,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _probeManager.StopCapturing();
         }
 
-        private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, string fqMethodName)
+        private struct ResolveMethodInfo
+        {
+            public string ModuleName { get; set; }
+            public string ClassName { get; set; }
+            public string MethodName { get; set; }
+            public string[]? ParameterTypes { get; set; }
+
+            public ulong? FunctionId { get; set; }
+        }
+
+        private static ResolveMethodInfo? ExtractMethodInfo(string fqMethodName)
         {
             // JSFIX: proof-of-concept code
             int dllSplitIndex = fqMethodName.IndexOf('!');
@@ -129,11 +140,56 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             int lastIndex = classAndMethod.LastIndexOf('.');
 
             string className = classAndMethod[..lastIndex];
-            string methodName = classAndMethod[(lastIndex + 1)..];
+            string methodNameWithParameters = classAndMethod[(lastIndex + 1)..];
+            if (methodNameWithParameters == null)
+            {
+                return null;
+            }
 
+            int paramStartIndex = methodNameWithParameters.IndexOf('(');
+            string methodName;
+            List<string>? parameterTypes = null;
+            if (paramStartIndex == -1)
+            {
+                methodName = methodNameWithParameters;
+            }
+            else
+            {
+                methodName = methodNameWithParameters[..paramStartIndex];
+                int paramEndIndex = methodNameWithParameters.IndexOf(')');
+                string typeInfo = methodNameWithParameters[(paramStartIndex + 1)..paramEndIndex];
+                if (typeInfo.Length == 0)
+                {
+                    parameterTypes = new List<string>(0);
+                }
+                else
+                {
+                    parameterTypes = typeInfo.Split(',').ToList();
+                }
+            }
+
+            return new ResolveMethodInfo
+            {
+                ModuleName = dll,
+                ClassName = className,
+                MethodName = methodName,
+                ParameterTypes = parameterTypes?.ToArray()
+            };
+        }
+
+        private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, string fqMethodName)
+        {
             List<MethodInfo> methods = new();
 
-            if (!dllNameToModules.TryGetValue(dll, out List<Module>? possibleModules))
+            ResolveMethodInfo? resolvedInfoN = ExtractMethodInfo(fqMethodName);
+            if (resolvedInfoN == null)
+            {
+                return methods;
+            }
+
+            ResolveMethodInfo resolvedInfo = resolvedInfoN.Value;
+
+            if (!dllNameToModules.TryGetValue(resolvedInfo.ModuleName, out List<Module>? possibleModules))
             {
                 return methods;
             }
@@ -142,18 +198,60 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 try
                 {
-                    MethodInfo? method = module.Assembly.GetType(className)?.GetMethod(methodName,
-                        BindingFlags.Public |
+                    MethodInfo[]? allMethods = module.Assembly.GetType(resolvedInfo.ClassName)?.GetMethods(BindingFlags.Public |
                         BindingFlags.NonPublic |
                         BindingFlags.Instance |
                         BindingFlags.Static |
                         BindingFlags.FlattenHierarchy);
 
-                    if (method != null)
+                    if (allMethods == null)
                     {
-                        methods.Add(method);
                         continue;
                     }
+
+                    foreach (MethodInfo method in allMethods)
+                    {
+                        if (method.Name != resolvedInfo.MethodName)
+                        {
+                            continue;
+                        }
+
+                        if (resolvedInfo.ParameterTypes == null)
+                        {
+                            methods.Add(method);
+                            continue;
+                        }
+
+                        ParameterInfo[] paramInfo = method.GetParameters();
+                        if (paramInfo.Length != resolvedInfo.ParameterTypes?.Length)
+                        {
+                            continue;
+                        }
+
+                        bool mismatch = false;
+                        for (int i = 0; i < paramInfo.Length; i++)
+                        {
+                            if (paramInfo[i].ParameterType.Name != resolvedInfo.ParameterTypes[i])
+                            {
+                                mismatch = true;
+                                break;
+                            }
+                        }
+
+                        if (!mismatch)
+                        {
+                            methods.Add(method);
+                        }
+                    }
+
+                    /*
+                    if (!resolvedInfo.FunctionId.HasValue ||
+                         resolvedInfo.FunctionId.Value == method.GetFunctionId())
+                    {
+                        methods.Add(method);
+                    }
+                    */
+
                 }
                 catch (Exception ex)
                 {
