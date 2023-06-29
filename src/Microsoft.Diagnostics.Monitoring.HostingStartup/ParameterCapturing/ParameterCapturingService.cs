@@ -32,6 +32,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
+            _logger.LogWarning("INIT");
+
             try
             {
                 if (SharedInternals.MessageDispatcher == null)
@@ -114,54 +116,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _probeManager.StopCapturing();
         }
 
-        private static MethodDescription? ExtractMethodInfo(string fqMethodName)
-        {
-            // JSFIX: proof-of-concept code
-            int dllSplitIndex = fqMethodName.IndexOf('!');
-            string dll = fqMethodName[..dllSplitIndex];
-            string classAndMethod = fqMethodName[(dllSplitIndex + 1)..];
-
-            int lastIndex = classAndMethod.LastIndexOf('.');
-
-            string className = classAndMethod[..lastIndex];
-            string methodNameWithParameters = classAndMethod[(lastIndex + 1)..];
-            if (methodNameWithParameters == null)
-            {
-                return null;
-            }
-
-            int paramStartIndex = methodNameWithParameters.IndexOf('(');
-            string methodName;
-            List<string>? parameterTypes = null;
-            if (paramStartIndex == -1)
-            {
-                methodName = methodNameWithParameters;
-            }
-            else
-            {
-                methodName = methodNameWithParameters[..paramStartIndex];
-                int paramEndIndex = methodNameWithParameters.IndexOf(')');
-                string typeInfo = methodNameWithParameters[(paramStartIndex + 1)..paramEndIndex];
-                if (typeInfo.Length == 0)
-                {
-                    parameterTypes = new List<string>(0);
-                }
-                else
-                {
-                    parameterTypes = typeInfo.Split(',').ToList();
-                }
-            }
-
-            return new MethodDescription
-            {
-                ModuleName = dll,
-                ClassName = className,
-                MethodName = methodName,
-                FilterByParameters = parameterTypes != null,
-                ParameterTypes = parameterTypes?.ToArray() ?? Array.Empty<string>()
-            };
-        }
-
         private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, MethodDescription methodDescription)
         {
             List<MethodInfo> methods = new();
@@ -193,7 +147,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                             continue;
                         }
 
-                        if (methodDescription.ParameterTypes == null)
+                        if (!methodDescription.FilterByParameters)
                         {
                             methods.Add(method);
                             continue;

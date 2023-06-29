@@ -584,13 +584,14 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             Utilities.GetProcessKey(pid, uid, name));
         }
 
-        [HttpGet("parameters", Name = nameof(CaptureStacks))]
+        [HttpGet("parameters", Name = nameof(CaptureParameters))]
         [ProducesWithProblemDetails(ContentTypes.ApplicationJson, ContentTypes.TextPlain, ContentTypes.ApplicationSpeedscopeJson)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(void), StatusCodes.Status202Accepted)]
         [EgressValidation]
         public async Task<ActionResult> CaptureParameters(
+            [FromQuery]
+            string methodNames,
             [FromQuery]
             int? pid = null,
             [FromQuery]
@@ -598,30 +599,45 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             [FromQuery]
             string name = null,
             [FromQuery]
-            string egressProvider = null,
-            [FromQuery]
             string tags = null)
         {
-            if (!_inProcessFeatures.IsCallStacksEnabled)
+            if (!_inProcessFeatures.IsParameterCapturingEnabled)
             {
                 return NotFound();
             }
 
             ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
 
+            // Split
+            string[] allMethodNames = methodNames.Split(' ');
+            MethodDescription[] descriptions = new MethodDescription[allMethodNames.Length];
+            for (int i = 0; i < allMethodNames.Length; i++)
+            {
+                descriptions[i] = new MethodDescription(allMethodNames[i]);
+            }
+            /*
+            {
+                ModuleName = "BuggyDemoWeb.dll",
+                ClassName = "BuggyDemoWeb.Controllers.HomeController",
+                MethodName = "SelectDiagnsticType",
+                FilterByParameters = false
+            }
+            */
+
             return await InvokeForProcess(async processInfo =>
             {
-                //Stack format based on Content-Type
+                await _profilerChannel.SendMessage(
+                    processInfo.EndpointInfo,
+                    new JsonProfilerMessage(IpcCommand.StartCapturingParameters, new StartCapturingParametersPayload
+                    {
+                        Methods = descriptions
+                    }),
+                    CancellationToken.None);
 
-                StackFormat stackFormat = ContentTypeUtilities.ComputeStackFormat(Request.GetTypedHeaders().Accept) ?? StackFormat.PlainText;
-                bool plainText = ContentTypeUtilities.IsPlainText(stackFormat);
 
-                return await Result(Utilities.ArtifactType_Parameters, egressProvider, async (stream, token) =>
-                {
-                    await StackUtilities.CollectStacksAsync(null, processInfo.EndpointInfo, _profilerChannel, stackFormat, stream, token);
-
-                }, StackUtilities.GenerateStacksFilename(processInfo.EndpointInfo, plainText), ContentTypeUtilities.MapFormatToContentType(stackFormat), processInfo, tags, asAttachment: false);
-
+                // Register a psuedo operation, provider name: $null OR $psuedo:logs
+                //string operationUrl = await RegisterOperation(egressOperation, Utilities.ArtifactType_Parameters);
+                return Accepted("");
             }, processKey, Utilities.ArtifactType_Parameters);
         }
 

@@ -2,15 +2,71 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 
 namespace Microsoft.Diagnostics.Monitoring
 {
-        internal sealed class EmptyPayload { }
+    internal sealed class EmptyPayload { }
 
     internal struct MethodDescription
     {
+        public MethodDescription()
+        {
+            ModuleName = string.Empty;
+            ClassName = string.Empty;
+            MethodName = string.Empty;
+            FilterByParameters = false;
+            ParameterTypes = Array.Empty<string>();
+        }
+
+        public MethodDescription(string fqMethodName)
+        {
+            // JSFIX: proof-of-concept code
+            int dllSplitIndex = fqMethodName.IndexOf('!');
+            string dll = fqMethodName[..dllSplitIndex];
+            string classAndMethod = fqMethodName[(dllSplitIndex + 1)..];
+
+            int lastIndex = classAndMethod.LastIndexOf('.');
+
+            string className = classAndMethod[..lastIndex];
+            string methodNameWithParameters = classAndMethod[(lastIndex + 1)..];
+            if (methodNameWithParameters == null)
+            {
+                throw new ArgumentException();
+            }
+
+            int paramStartIndex = methodNameWithParameters.IndexOf('(');
+            string methodName;
+            List<string> parameterTypes = new();
+            if (paramStartIndex == -1)
+            {
+                methodName = methodNameWithParameters;
+            }
+            else
+            {
+                methodName = methodNameWithParameters[..paramStartIndex];
+                int paramEndIndex = methodNameWithParameters.IndexOf(')');
+                string typeInfo = methodNameWithParameters[(paramStartIndex + 1)..paramEndIndex];
+                if (typeInfo.Length == 0)
+                {
+                    parameterTypes = new List<string>(0);
+                }
+                else
+                {
+                    parameterTypes = typeInfo.Split(',').ToList();
+                }
+            }
+
+            ModuleName = dll;
+            ClassName = className;
+            MethodName = methodName;
+            FilterByParameters = parameterTypes.Count != 0;
+            ParameterTypes = parameterTypes?.ToArray() ?? Array.Empty<string>();
+        }
+
         public string ModuleName { get; set; }
         public string ClassName { get; set; }
         public string MethodName { get; set; }
@@ -21,7 +77,7 @@ namespace Microsoft.Diagnostics.Monitoring
 
         public override string ToString()
         {
-            if (FilterByParameters)
+            if (!FilterByParameters || ParameterTypes == null)
             {
                 return FormattableString.Invariant($"{ModuleName}!{ClassName}.{MethodName}");
             }
