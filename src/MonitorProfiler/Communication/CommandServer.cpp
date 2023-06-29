@@ -78,7 +78,7 @@ void CommandServer::ListeningThread()
         // JSFIX
         for (size_t i = 0; i < sizeof(int); i++)
         {
-            message.Payload[i] = static_cast<BYTE>(hr >> (i * 8));
+            response.Payload[i] = static_cast<BYTE>(hr >> (i * 8));
         }
 
         hr = client->Send(response);

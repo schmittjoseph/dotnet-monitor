@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
             await socket.ConnectAsync(endpoint);
 
-            byte[] headersBuffer = new byte[sizeof(short) + sizeof(short) + sizeof(int)];
+            byte[] headersBuffer = new byte[sizeof(short) + sizeof(int)];
             var memoryStream = new MemoryStream(headersBuffer);
             using BinaryWriter writer = new BinaryWriter(memoryStream);
             writer.Write((short)message.Command);
