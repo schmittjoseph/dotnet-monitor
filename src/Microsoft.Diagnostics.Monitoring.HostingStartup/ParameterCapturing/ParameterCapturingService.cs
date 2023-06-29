@@ -40,11 +40,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
 
                 SharedInternals.MessageDispatcher.RegisterCallback<StartCapturingParametersPayload>(
-                    ProfilerMessageType.StartCapturingParameters,
+                    IpcCommand.StartCapturingParameters,
                     OnStartMessage);
 
                 SharedInternals.MessageDispatcher.RegisterCallback<EmptyPayload>(
-                    ProfilerMessageType.StopCapturingParameters,
+                    IpcCommand.StopCapturingParameters,
                     OnStopMessage);
 
                 _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger, FunctionProbesStub.InstrumentedMethodCache));
