@@ -49,40 +49,28 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
             };
 
             bool didGetCallback = false;
-            dispatcher.RegisterCallback<SamplePayload>(ProfilerMessageType.Callstack, (payload) =>
+            dispatcher.RegisterCallback<SamplePayload>(IpcCommand.Callstack, (payload) =>
             {
                 didGetCallback = true;
                 Assert.Equal(expectedPayload, payload);
             });
 
             // Act
-            messageSource.RaiseMessage(new JsonProfilerMessage(ProfilerMessageType.Callstack, expectedPayload));
+            messageSource.RaiseMessage(new JsonProfilerMessage(IpcCommand.Callstack, expectedPayload));
 
             // Assert
             Assert.True(didGetCallback);
         }
 
         [Fact]
-        public void Throws_OnUnhandledMessageType()
+        public void Throws_OnUnhandledCommand()
         {
             // Arrange
             using MockMessageSource messageSource = new();
             using MonitorMessageDispatcher dispatcher = new(messageSource);
 
             // Act and Assert
-            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(new JsonProfilerMessage(ProfilerMessageType.Callstack, new object())));
-        }
-
-        [Fact]
-        public void Throws_OnUnhandledPayloadType()
-        {
-            // Arrange
-            using MockMessageSource messageSource = new();
-            using MonitorMessageDispatcher dispatcher = new(messageSource);
-            dispatcher.RegisterCallback<object>(ProfilerMessageType.Callstack, (payload) => { });
-
-            // Act and Assert
-            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(new BasicProfilerMessage(ProfilerMessageType.Callstack)));
+            Assert.Throws<NotSupportedException>(() => messageSource.RaiseMessage(new JsonProfilerMessage(IpcCommand.Callstack, new object())));
         }
     }
 }
