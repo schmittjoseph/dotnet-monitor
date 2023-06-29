@@ -48,17 +48,4 @@ namespace Microsoft.Diagnostics.Monitoring
             Command = command;
         }
     }
-
-    internal struct StatusProfilerMessage : IProfilerMessage
-    {
-        public IpcCommand Command { get; set; } = IpcCommand.Status;
-        public byte[] Payload { get; set; }
-
-        public readonly int HResult { get => BitConverter.ToInt32(Payload); }
-
-        public StatusProfilerMessage(int hresult)
-        {
-            Payload = BitConverter.GetBytes(hresult);
-        }
-    }
 }
