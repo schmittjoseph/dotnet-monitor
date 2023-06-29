@@ -53,6 +53,9 @@ void CommandServer::Shutdown()
 
 void CommandServer::ListeningThread()
 {
+    IpcMessage response;
+    response.Command = IpcCommand::Status;
+    response.Payload.resize(sizeof(int));
     while (true)
     {
         std::shared_ptr<IpcCommClient> client;
@@ -72,10 +75,10 @@ void CommandServer::ListeningThread()
             continue;
         }
 
-        IpcMessage response;
-        response.MessageType = MessageType::Status;
-        response.PayloadType = PayloadType::None;
-        response.Parameter = hr;
+        for (size_t i = 0; i < sizeof(int); i++)
+        {
+            message.Payload[i] = static_cast<BYTE>(hr >> (i * 8));
+        }
 
         hr = client->Send(response);
         if (FAILED(hr))
