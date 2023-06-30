@@ -32,8 +32,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
-            _logger.LogWarning("INIT");
-
             try
             {
                 if (SharedInternals.MessageDispatcher == null)
