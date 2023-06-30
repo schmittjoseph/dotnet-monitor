@@ -622,7 +622,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
                 MethodName = "SelectDiagnsticType",
                 FilterByParameters = false
             }
-            // BuggyDemoWeb.dll!BuggyDemoWeb.Controllers.HomeController.SelectDiagnsticType
+            // BuggyDemoWeb.dll!BuggyDemoWeb.Controllers.HomeController.SelectDiagnsticType System.Private.CoreLib.dll!System.String.Concat
             */
 
             return await InvokeForProcess(async processInfo =>
