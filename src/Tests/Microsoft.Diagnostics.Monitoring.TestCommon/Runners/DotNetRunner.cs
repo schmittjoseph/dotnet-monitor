@@ -1,9 +1,11 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.Tool.ProcessReaper;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -49,7 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
         /// <summary>
         /// Retrieves the starting environment block of the process.
         /// </summary>
-        public IDictionary<string, string> Environment => _process.StartInfo.Environment;
+        public IDictionary<string, string> Environment => new Dictionary<string, string>();
 
         /// <summary>
         /// Gets a <see cref="bool"/> indicating if <see cref="StartAsync(CancellationToken)"/> has been called and the process has been started.
@@ -74,7 +76,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
         /// <summary>
         /// Gets the process ID of the running process.
         /// </summary>
-        public int ProcessId => _process.Id;
+        public int ProcessId { get; private set; } = -1;
 
         /// <summary>
         /// Gets a <see cref="StreamReader"/> that reads stderr.
@@ -154,7 +156,6 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
             argsBuilder.Append('\"');
             argsBuilder.Append(EntrypointAssemblyPath);
             argsBuilder.Append("\" ");
-            argsBuilder.Append(Arguments);
 
             if (KillProcessOnExit)
             {
@@ -167,19 +168,22 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
                     pid = process.Id;
                 }
 #endif
-                Environment.Add(ProcessReaperIdentifiers.EnvironmentVariables.ParentPid, pid.ToString());
+                argsBuilder.Append(Convert.ToString(pid, CultureInfo.InvariantCulture));
 
-                if (Environment.TryGetValue(ToolIdentifiers.EnvironmentVariables.StartupHooks, out string startupHooks))
+                foreach ((string key, string value) in Environment)
                 {
-                    startupHooks += Path.PathSeparator + ProcessReaperStartupHookPath;
+                    _process.StartInfo.Environment.Add(string.Concat(ProcessReaperIdentifiers.EnvironmentVariables.Passthrough, key), value);
                 }
-                else
-                {
-                    startupHooks = ProcessReaperStartupHookPath;
-                }
-
-                Environment.Add(ToolIdentifiers.EnvironmentVariables.StartupHooks, startupHooks);
             }
+            else
+            {
+                foreach ((string key, string value) in Environment)
+                {
+                    _process.StartInfo.Environment.Add(key, value);
+                }
+            }
+
+            argsBuilder.Append(Arguments);
 
             _process.StartInfo.FileName = TestDotNetHost.GetPath(Architecture);
             _process.StartInfo.Arguments = argsBuilder.ToString();
@@ -189,6 +193,9 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
                 throw new InvalidOperationException($"Unable to start: {_process.StartInfo.FileName} {_process.StartInfo.Arguments}");
             }
             HasStarted = true;
+
+            // Wait for the child pid to come back
+
 
             if (WaitForDiagnosticPipe)
             {
