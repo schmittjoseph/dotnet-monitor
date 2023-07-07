@@ -4,12 +4,12 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
