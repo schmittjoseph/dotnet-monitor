@@ -104,14 +104,14 @@ namespace Microsoft.Diagnostics.Monitoring
 
     internal interface IProfilerMessage
     {
-        public IpcCommand Command { get; set; }
-        public byte[] Payload { get; set; }
+        public IpcCommand Command { get; }
+        public byte[] Payload { get; }
     }
 
     internal struct JsonProfilerMessage : IProfilerMessage
     {
-        public IpcCommand Command { get; set; } = IpcCommand.Unknown;
-        public byte[] Payload { get; set; }
+        public IpcCommand Command { get; }
+        public byte[] Payload { get; }
 
         public JsonProfilerMessage(IpcCommand command, object payloadObject)
         {
@@ -128,8 +128,8 @@ namespace Microsoft.Diagnostics.Monitoring
 
     internal struct CommandOnlyProfilerMessage : IProfilerMessage
     {
-        public IpcCommand Command { get; set; } = IpcCommand.Unknown;
-        public byte[] Payload { get; set; } = Array.Empty<byte>();
+        public IpcCommand Command { get; }
+        public byte[] Payload { get; } = Array.Empty<byte>();
 
         public CommandOnlyProfilerMessage(IpcCommand command)
         {

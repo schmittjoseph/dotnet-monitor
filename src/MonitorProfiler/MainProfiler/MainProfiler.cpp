@@ -13,8 +13,8 @@
 #include "../Utilities/ThreadUtilities.h"
 #include "corhlpr.h"
 #include "macros.h"
-#include <atomic>
 #include <memory>
+#include <mutex>
 
 using namespace std;
 
@@ -25,7 +25,8 @@ using namespace std;
 #endif
 
 typedef INT32 (STDMETHODCALLTYPE *ManagedMessageCallback)(INT16, const BYTE*, UINT64);
-std::atomic<ManagedMessageCallback> g_pManagedMessageCallback = nullptr;
+mutex g_managedMessageCallbackMutex;
+ManagedMessageCallback g_pManagedMessageCallback = nullptr;
 
 GUID MainProfiler::GetClsid()
 {
@@ -191,7 +192,7 @@ HRESULT MainProfiler::InitializeCommon()
     _exceptionTracker->AddProfilerEventMask(eventsLow);
 #endif // DOTNETMONITOR_FEATURE_EXCEPTIONS
     StackSampler::AddProfilerEventMask(eventsLow);
-    
+
     _threadNameCache = make_shared<ThreadNameCache>();
 
     bool enableParameterCapturing;
@@ -297,21 +298,21 @@ HRESULT MainProfiler::MessageCallback(const IpcMessage& message)
 
     switch (message.Command)
     {
-        case IpcCommand::Unknown:
+    case IpcCommand::Unknown:
+        return E_FAIL;
+    case IpcCommand::Callstack:
+        return ProcessCallstackMessage();
+    default:
+        lock_guard<mutex> lock(g_managedMessageCallbackMutex);
+        if (g_pManagedMessageCallback == nullptr)
+        {
             return E_FAIL;
-        case IpcCommand::Callstack:
-            return ProcessCallstackMessage();
-        default:
-            ManagedMessageCallback pCallback = g_pManagedMessageCallback.load();
-            if (pCallback == nullptr)
-            {
-                return E_FAIL;
-            }
+        }
 
-            return pCallback(
-                static_cast<INT16>(message.Command),
-                message.Payload.data(),
-                message.Payload.size());
+        return g_pManagedMessageCallback(
+            static_cast<INT16>(message.Command),
+            message.Payload.data(),
+            message.Payload.size());
     }
 
     return E_FAIL;
@@ -369,18 +370,27 @@ HRESULT STDMETHODCALLTYPE MainProfiler::GetReJITParameters(ModuleID moduleId, md
     {
         return m_pProbeInstrumentation->GetReJITParameters(moduleId, methodId, pFunctionControl);
     }
-    
+
     return S_OK;
 }
 
 STDAPI DLLEXPORT RegisterMonitorMessageCallback(
     ManagedMessageCallback pCallback)
 {
-    ManagedMessageCallback pPreviousCallback = nullptr;
-    if (!g_pManagedMessageCallback.compare_exchange_strong(pPreviousCallback, pCallback))
+    lock_guard<mutex> lock(g_managedMessageCallbackMutex);
+    if (g_pManagedMessageCallback != nullptr)
     {
         return E_FAIL;
     }
-    
+    g_pManagedMessageCallback = pCallback;
+
+    return S_OK;
+}
+
+STDAPI DLLEXPORT UnregisterMonitorMessageCallback()
+{
+    lock_guard<mutex> lock(g_managedMessageCallbackMutex);
+    g_pManagedMessageCallback = nullptr;
+
     return S_OK;
 }
