@@ -50,6 +50,8 @@ jobs:
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           script: |
+            console.log(context.payload);
+            console.log(context.workflow_run);
             const prNumber = context.payload.workflow_run.pull_requests[0].number;
             const actionUtils = require('./.github/actions/action-utils.js');
 
