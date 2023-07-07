@@ -52,6 +52,9 @@ jobs:
           name: pr-linter
           path: pr/
 
+      - name: 'Setup reviewdog'
+        uses: reviewdog/action-setup@8e48baae926e97848f0863ae248f3b08e089c81f
+
       - name: Submit formatting suggestions
         run: |
           reviewdog \
