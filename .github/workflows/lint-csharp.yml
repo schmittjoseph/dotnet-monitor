@@ -8,21 +8,6 @@ permissions:
   pull-requests: read
 
 jobs:
-  check-collaborator:
-    name: 'Check Collaborator'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
-        id: check-user
-        with:
-          script: |
-            await github.rest.repos.checkCollaborator({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: context.payload.workflow_run.triggering_actor.login
-            });
-
   lint-csharp:
     name: 'C# Linting'
     runs-on: ubuntu-latest
