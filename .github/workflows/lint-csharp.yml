@@ -13,16 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
-        id: check-user
-        with:
-          script: |
-            await github.rest.repos.checkCollaborator({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: context.payload.workflow_run.triggering_actor.login
-            });
-
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
         with:
@@ -61,3 +51,17 @@ jobs:
         with:
           name: pr-linter
           path: pr/
+
+      - name: Submit formatting suggestions
+        run: |
+          reviewdog \
+              -name="dotnet format" \
+              -f=diff \
+              -f.diff.strip=1 \
+              -reporter="github-pr-check" \
+              -filter-mode="diff_context" \
+              -fail-on-error="false" \
+              -level="warning" \
+              < "./pr-linter/linter.diff"
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
