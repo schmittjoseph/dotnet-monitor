@@ -4,6 +4,7 @@
 using Microsoft.Diagnostics.Monitoring;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 {
@@ -18,9 +19,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             _logger = logger;
         }
 
-        public IInProcessOperation Create(IEndpointInfo endpointInfo, MethodDescription[] methods)
+        public IInProcessOperation Create(IEndpointInfo endpointInfo, MethodDescription[] methods, TimeSpan duration)
         {
-            return new CaptureParametersOperation(endpointInfo, _profilerChannel, _logger, methods);
+            return new CaptureParametersOperation(endpointInfo, _profilerChannel, _logger, methods, duration);
         }
     }
 }

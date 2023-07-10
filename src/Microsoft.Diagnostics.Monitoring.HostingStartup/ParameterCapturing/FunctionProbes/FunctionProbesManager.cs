@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Monitoring.StartupHook;
-using Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
 using System.Collections.Generic;
@@ -28,6 +27,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
        
         private readonly object _requestLocker = new();
         private long _disposedState;
+        private bool _isCapturing;
 
         public FunctionProbesManager(IFunctionProbes probes)
         {
@@ -41,6 +41,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         {
             lock (_requestLocker)
             {
+                if (!_isCapturing)
+                {
+                    return;
+                }
+
                 FunctionProbesStub.InstrumentedMethodCache.Clear();
                 RequestFunctionProbeUninstallation();
             }
@@ -55,6 +60,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
             lock (_requestLocker)
             {
+                if (_isCapturing)
+                {
+                    throw new InvalidOperationException();
+                }
+
                 FunctionProbesStub.InstrumentedMethodCache.Clear();
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
@@ -84,6 +94,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     (uint)functionIds.Count,
                     boxingTokens.ToArray(),
                     argumentCounts.ToArray());
+
+                _isCapturing = true;
             }
         }
 

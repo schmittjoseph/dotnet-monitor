@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring
 {
@@ -90,6 +91,7 @@ namespace Microsoft.Diagnostics.Monitoring
 
     internal sealed class StartCapturingParametersPayload
     {
+        public TimeSpan Duration { get; set; } = Timeout.InfiniteTimeSpan;
         public MethodDescription[] Methods { get; set; } = Array.Empty<MethodDescription>();
     }
 

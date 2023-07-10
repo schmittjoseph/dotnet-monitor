@@ -17,13 +17,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
         private readonly IEndpointInfo _endpointInfo;
         private readonly ILogger _logger;
         private readonly MethodDescription[] _methods;
+        private readonly TimeSpan _duration;
 
-        public CaptureParametersOperation(IEndpointInfo endpointInfo, ProfilerChannel profilerChannel, ILogger logger, MethodDescription[] methods)
+        public CaptureParametersOperation(IEndpointInfo endpointInfo, ProfilerChannel profilerChannel, ILogger logger, MethodDescription[] methods, TimeSpan duration)
         {
             _profilerChannel = profilerChannel;
             _endpointInfo = endpointInfo;
             _logger = logger;
             _methods = methods;
+            _duration = duration;
         }
 
         public async Task ExecuteAsync(TaskCompletionSource<object> startCompletionSource, CancellationToken token)
@@ -58,6 +60,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                 _endpointInfo,
                 new JsonProfilerMessage(IpcCommand.StartCapturingParameters, new StartCapturingParametersPayload
                 {
+                    Duration = _duration,
                     Methods = _methods
                 }),
                 token);

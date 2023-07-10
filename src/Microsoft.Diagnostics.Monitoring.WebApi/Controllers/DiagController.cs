@@ -594,6 +594,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
         public async Task<ActionResult> CaptureParameters(
             [FromQuery]
             string methodNames,
+            [FromQuery][Range(-1, int.MaxValue)]
+            int durationSeconds = 30,
             [FromQuery]
             int? pid = null,
             [FromQuery]
@@ -627,46 +629,13 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             // BuggyDemoWeb.dll!BuggyDemoWeb.Controllers.HomeController.SelectDiagnsticType System.Private.CoreLib.dll!System.String.Concat
             */
 
+            TimeSpan duration = Utilities.ConvertSecondsToTimeSpan(durationSeconds);
+
+
             return await InvokeForProcess(async processInfo =>
             {
-                IInProcessOperation operation = _captureParametersFactory.Create(processInfo.EndpointInfo, methodDescriptions);
+                IInProcessOperation operation = _captureParametersFactory.Create(processInfo.EndpointInfo, methodDescriptions, duration);
                 return await InProcessResult(Utilities.ArtifactType_Parameters, processInfo, operation, tags);
-            }, processKey, Utilities.ArtifactType_Parameters);
-        }
-
-        [HttpDelete("parameters", Name = nameof(StopCaptureParameters))]
-        [ProducesWithProblemDetails(ContentTypes.ApplicationJson, ContentTypes.TextPlain, ContentTypes.ApplicationSpeedscopeJson)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
-        [EgressValidation]
-        public async Task<ActionResult> StopCaptureParameters(
-            [FromQuery]
-            int? pid = null,
-            [FromQuery]
-            Guid? uid = null,
-            [FromQuery]
-            string name = null,
-            [FromQuery]
-            string tags = null)
-        {
-            if (!_inProcessFeatures.IsParameterCapturingEnabled)
-            {
-                return NotFound();
-            }
-
-            ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
-
-            return await InvokeForProcess(async processInfo =>
-            {
-                await _profilerChannel.SendMessage(
-                    processInfo.EndpointInfo,
-                    new JsonProfilerMessage(IpcCommand.StopCapturingParameters, new EmptyPayload()),
-                    CancellationToken.None);
-
-
-                // Register a psuedo operation, provider name: $null OR $psuedo:logs
-                //string operationUrl = await RegisterOperation(egressOperation, Utilities.ArtifactType_Parameters);
-                return Ok();
             }, processKey, Utilities.ArtifactType_Parameters);
         }
 
