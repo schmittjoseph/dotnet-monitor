@@ -50,6 +50,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
         private readonly ILogsOperationFactory _logsOperationFactory;
         private readonly IMetricsOperationFactory _metricsOperationFactory;
         private readonly ITraceOperationFactory _traceOperationFactory;
+        private readonly ICaptureParametersOperationFactory _captureParametersFactory;
 
         public DiagController(ILogger<DiagController> logger,
             IServiceProvider serviceProvider)
@@ -67,6 +68,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             _logsOperationFactory = serviceProvider.GetRequiredService<ILogsOperationFactory>();
             _metricsOperationFactory = serviceProvider.GetRequiredService<IMetricsOperationFactory>();
             _traceOperationFactory = serviceProvider.GetRequiredService<ITraceOperationFactory>();
+            _captureParametersFactory = serviceProvider.GetRequiredService<ICaptureParametersOperationFactory>();
         }
 
         /// <summary>
@@ -610,10 +612,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
 
             // Split
             string[] allMethodNames = methodNames.Split(' ');
-            MethodDescription[] descriptions = new MethodDescription[allMethodNames.Length];
+            MethodDescription[] methodDescriptions = new MethodDescription[allMethodNames.Length];
             for (int i = 0; i < allMethodNames.Length; i++)
             {
-                descriptions[i] = new MethodDescription(allMethodNames[i]);
+                methodDescriptions[i] = new MethodDescription(allMethodNames[i]);
             }
             /*
             {
@@ -627,18 +629,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
 
             return await InvokeForProcess(async processInfo =>
             {
-                await _profilerChannel.SendMessage(
-                    processInfo.EndpointInfo,
-                    new JsonProfilerMessage(IpcCommand.StartCapturingParameters, new StartCapturingParametersPayload
-                    {
-                        Methods = descriptions
-                    }),
-                    CancellationToken.None);
-
-
-                // Register a psuedo operation, provider name: $null OR $psuedo:logs
-                //string operationUrl = await RegisterOperation(egressOperation, Utilities.ArtifactType_Parameters);
-                return Accepted("");
+                IInProcessOperation operation = _captureParametersFactory.Create(processInfo.EndpointInfo, methodDescriptions);
+                return await InProcessResult(Utilities.ArtifactType_Parameters, processInfo, operation, tags);
             }, processKey, Utilities.ArtifactType_Parameters);
         }
 
@@ -805,6 +797,21 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
                 return LogFormat.JsonSequence;
             }
             return null;
+        }
+
+
+        private async Task<ActionResult> InProcessResult(
+            string artifactType,
+            IProcessInfo processInfo,
+            IInProcessOperation operation,
+            string tags)
+        {
+            KeyValueLogScope scope = Utilities.CreateArtifactScope(artifactType, processInfo.EndpointInfo);
+            string location = await RegisterOperation(
+                new InProcessEgressOperation(processInfo, scope, tags, operation),
+                limitKey: artifactType);
+
+            return Accepted(location);
         }
 
         private async Task<ActionResult> Result(

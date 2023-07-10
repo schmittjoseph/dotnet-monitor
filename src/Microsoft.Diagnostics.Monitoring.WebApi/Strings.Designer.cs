@@ -304,6 +304,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Egressed in-process {description} artifact.
+        /// </summary>
+        internal static string LogFormatString_EgressedInProcessArtifact {
+            get {
+                return ResourceManager.GetString("LogFormatString_EgressedInProcessArtifact", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0}.
         /// </summary>
         internal static string LogFormatString_ErrorPayload {

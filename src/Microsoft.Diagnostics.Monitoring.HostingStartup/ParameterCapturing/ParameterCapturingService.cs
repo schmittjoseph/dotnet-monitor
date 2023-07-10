@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventing;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
@@ -22,6 +23,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private readonly bool _isAvailable;
 
         private readonly FunctionProbesManager? _probeManager;
+        private readonly ParameterCapturingEventSource _eventSource = new();
         private readonly ILogger? _logger;
 
         public ParameterCapturingService(IServiceProvider services)
@@ -87,20 +89,31 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
 
             List<MethodInfo> methods = new(payload.Methods.Length);
-            foreach (MethodDescription methodDescription in payload.Methods)
+            List<int> unableToResolve = new();
+            for (int i = 0; i < payload.Methods.Length; i++)
             {
+                MethodDescription methodDescription = payload.Methods[i];
+
                 List<MethodInfo> resolvedMethods = ResolveMethod(dllNameToModules, methodDescription);
                 if (resolvedMethods.Count == 0)
                 {
                     _logger?.LogWarning(ParameterCapturingStrings.UnableToResolveMethod, methodDescription);
-                    throw new ArgumentException($"Failed to resolve method: {methodDescription}");
+                    unableToResolve.Add(i);
                 }
 
                 methods.AddRange(resolvedMethods);
             }
 
+            if (unableToResolve.Count > 0)
+            {
+                Console.WriteLine("emitting");
+                _eventSource.UnableToResolveMethods(unableToResolve.ToArray());
+                return;
+            }
+
             _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', payload.Methods));
             _probeManager.StartCapturing(methods);
+            _eventSource.StartedCapturing();
         }
 
         private void OnStopMessage(EmptyPayload _)
@@ -112,6 +125,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             _logger?.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
             _probeManager.StopCapturing();
+            _eventSource?.StoppedCapturing();
         }
 
         private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, MethodDescription methodDescription)
