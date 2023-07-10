@@ -31,6 +31,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
 
         private Channel<StartCapturingParametersPayload>? _requests;
+        private Channel<bool>? _stopRequests;
 
         public ParameterCapturingService(IServiceProvider services)
         {
@@ -59,6 +60,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 {
                     FullMode = BoundedChannelFullMode.Wait
                 });
+                _stopRequests = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
+                {
+                    FullMode = BoundedChannelFullMode.Wait
+                });
 
                 _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger, FunctionProbesStub.InstrumentedMethodCache));
                 _isAvailable = true;
@@ -81,14 +86,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         private void OnStopMessage(EmptyPayload _)
         {
-            StopCore();
+            _stopRequests?.Writer.TryWrite(true);
         }
 
-        private void StartCore(StartCapturingParametersPayload request)
+        private bool StartCore(StartCapturingParametersPayload request)
         {
             if (!_isAvailable || _probeManager == null)
             {
-                return;
+                return false;
             }
 
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(
@@ -128,16 +133,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (unableToResolve.Count > 0)
             {
                 _eventSource.UnableToResolveMethods(unableToResolve.ToArray());
-                return;
+                return false;
             }
 
 
-            if (Interlocked.CompareExchange(ref _activeRequests, 1, 0) == 0)
+            if (Interlocked.CompareExchange(ref _activeRequests, 1, 0) != 0)
             {
-                _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', request.Methods));
-                _probeManager.StartCapturing(methods);
-                _eventSource.StartedCapturing();
+                return false;
             }
+
+            _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', request.Methods));
+            _probeManager.StartCapturing(methods);
+            _eventSource.StartedCapturing();
+            return true;
         }
 
         private void StopCore()
@@ -234,8 +242,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             while (!stoppingToken.IsCancellationRequested)
             {
                 StartCapturingParametersPayload req = await _requests!.Reader.ReadAsync(stoppingToken);
-                StartCore(req);
-                await Task.Delay(req.Duration, stoppingToken).ConfigureAwait(false);
+                if (!StartCore(req))
+                {
+                    continue;
+                }
+
+                using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+
+                _ = await Task.WhenAny(_stopRequests!.Reader.WaitToReadAsync(cts.Token).AsTask(), Task.Delay(req.Duration, cts.Token)).ConfigureAwait(false);
+                _ = _stopRequests.Reader.TryRead(out _);
+                cts.Cancel();
                 StopCore();
             }
         }

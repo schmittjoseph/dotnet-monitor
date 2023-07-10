@@ -48,6 +48,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
                 FunctionProbesStub.InstrumentedMethodCache.Clear();
                 RequestFunctionProbeUninstallation();
+
+                _isCapturing = false;
             }
         }
 
