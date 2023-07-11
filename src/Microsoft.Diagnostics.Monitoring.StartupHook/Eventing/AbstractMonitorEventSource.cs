@@ -29,8 +29,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
 
 
         // NOTE: Arrays with a non-"byte" element type are not supported well by in-proc EventListener
-        // when using self-describing event format. This format is used to easily support event pipe listening,
-        // which is the primary use of this event source.
+        // when using self-describing event format. This format is used to easily support event pipe listening.
         public AbstractMonitorEventSource()
             : base(EventSourceSettings.EtwSelfDescribingEventFormat)
         {
