@@ -15,17 +15,22 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eve
     internal sealed class ParameterCapturingEventSource : AbstractMonitorEventSource
     {
         [Event(ParameterCapturingEvents.EventIds.StartedCapturing)]
-        public void StartedCapturing()
+        public void CapturingStart()
         {
-            Span<EventData> data = Array.Empty<EventData>();
-            WriteEventCore(ParameterCapturingEvents.EventIds.StartedCapturing, data);
+            
+            WriteEventCore(ParameterCapturingEvents.EventIds.StartedCapturing);
         }
 
         [Event(ParameterCapturingEvents.EventIds.StoppedCapturing)]
-        public void StoppedCapturing()
+        public void CapturingStop()
         {
-            Span<EventData> data = Array.Empty<EventData>();
-            WriteEventCore(ParameterCapturingEvents.EventIds.StoppedCapturing, data);
+            WriteEventCore(ParameterCapturingEvents.EventIds.StoppedCapturing);
+        }
+
+        [Event(ParameterCapturingEvents.EventIds.Error)]
+        public void Error()
+        {
+            WriteEventCore(ParameterCapturingEvents.EventIds.Error);
         }
 
         [Event(ParameterCapturingEvents.EventIds.UnableToResolveMethods)]

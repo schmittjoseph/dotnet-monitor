@@ -65,6 +65,13 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
             _flushEventsTimer.Change(EventSourceBufferAvoidanceTimeout, Timeout.InfiniteTimeSpan);
         }
 
+
+        [NonEvent]
+        protected unsafe void WriteEventCore(int eventId)
+        {
+            WriteEventCore(eventId, Array.Empty<EventData>());
+        }
+
         [NonEvent]
         protected unsafe void WriteEventCore(int eventId, Span<EventData> data)
         {

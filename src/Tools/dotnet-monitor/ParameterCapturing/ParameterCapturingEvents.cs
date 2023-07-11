@@ -12,8 +12,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             // 1 Flush
             public const int StartedCapturing = 2;
             public const int StoppedCapturing = 3;
+            public const int Error = 4;
 
-            public const int UnableToResolveMethods = 4;
+            public const int UnableToResolveMethods = 5;
         }
 
         public static class UnableToResolveMethodsPayloads

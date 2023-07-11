@@ -96,23 +96,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return false;
             }
 
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(
-     assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToArray();
-
-            Dictionary<string, List<Module>> dllNameToModules = new(StringComparer.InvariantCultureIgnoreCase);
-            foreach (Assembly assembly in assemblies)
-            {
-                foreach (Module module in assembly.GetModules())
-                {
-                    if (!dllNameToModules.TryGetValue(module.Name, out List<Module>? moduleList))
-                    {
-                        moduleList = new List<Module>();
-                        dllNameToModules[module.Name] = moduleList;
-                    }
-
-                    moduleList.Add(module);
-                }
-            }
+            Dictionary<(string, string), List<MethodInfo>> methodCache = GenerateMethodCache(request.Methods);
 
             List<MethodInfo> methods = new(request.Methods.Length);
             List<int> unableToResolve = new();
@@ -120,7 +104,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 MethodDescription methodDescription = request.Methods[i];
 
-                List<MethodInfo> resolvedMethods = ResolveMethod(dllNameToModules, methodDescription);
+                List<MethodInfo> resolvedMethods = ResolveMethod(methodCache, methodDescription);
                 if (resolvedMethods.Count == 0)
                 {
                     _logger?.LogWarning(ParameterCapturingStrings.UnableToResolveMethod, methodDescription);
@@ -144,8 +128,70 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', request.Methods));
             _probeManager.StartCapturing(methods);
-            _eventSource.StartedCapturing();
+            _eventSource.CapturingStart();
             return true;
+        }
+
+        private static Dictionary<(string, string), List<MethodInfo>> GenerateMethodCache(MethodDescription[] methodDescriptions)
+        {
+            Dictionary<(string, string), List<MethodInfo>> cache = new();
+
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToArray();
+            Dictionary<string, List<Module>> dllNameToModules = new(StringComparer.InvariantCultureIgnoreCase);
+            foreach (Assembly assembly in assemblies)
+            {
+                foreach (Module module in assembly.GetModules())
+                {
+                    if (!dllNameToModules.TryGetValue(module.Name, out List<Module>? moduleList))
+                    {
+                        moduleList = new List<Module>();
+                        dllNameToModules[module.Name] = moduleList;
+                    }
+
+                    moduleList.Add(module);
+                }
+            }
+
+            foreach (MethodDescription methodDescription in methodDescriptions)
+            {
+                if (cache.ContainsKey((methodDescription.ModuleName, methodDescription.ClassName)))
+                {
+                    continue;
+                }
+
+                if (!dllNameToModules.TryGetValue(methodDescription.ModuleName, out List<Module>? possibleModules))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                List<MethodInfo> classMethods = new();
+
+                foreach (Module module in possibleModules)
+                {
+                    try
+                    {
+                        MethodInfo[]? allMethods = module.Assembly.GetType(methodDescription.ClassName)?.GetMethods(BindingFlags.Public |
+                            BindingFlags.NonPublic |
+                            BindingFlags.Instance |
+                            BindingFlags.Static |
+                            BindingFlags.FlattenHierarchy);
+
+                        if (allMethods == null)
+                        {
+                            continue;
+                        }
+
+                        classMethods.AddRange(allMethods);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                cache.Add((methodDescription.ModuleName, methodDescription.ClassName), classMethods);
+            }
+
+            return cache;
         }
 
         private void StopCore()
@@ -159,72 +205,25 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 _logger?.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
                 _probeManager.StopCapturing();
-                _eventSource.StoppedCapturing();
+                _eventSource.CapturingStop();
             }
         }
 
-        private List<MethodInfo> ResolveMethod(Dictionary<string, List<Module>> dllNameToModules, MethodDescription methodDescription)
+        private static List<MethodInfo> ResolveMethod(Dictionary<(string, string), List<MethodInfo>> methodCache, MethodDescription methodDescription)
         {
             List<MethodInfo> methods = new();
 
-            if (!dllNameToModules.TryGetValue(methodDescription.ModuleName, out List<Module>? possibleModules))
+            if (!methodCache.TryGetValue((methodDescription.ModuleName, methodDescription.ClassName), out List<MethodInfo>? possibleMethods))
             {
                 return methods;
             }
 
-            foreach (Module module in possibleModules)
+
+            foreach (MethodInfo method in possibleMethods)
             {
-                try
+                if (method.Name == methodDescription.MethodName)
                 {
-                    MethodInfo[]? allMethods = module.Assembly.GetType(methodDescription.ClassName)?.GetMethods(BindingFlags.Public |
-                        BindingFlags.NonPublic |
-                        BindingFlags.Instance |
-                        BindingFlags.Static |
-                        BindingFlags.FlattenHierarchy);
-
-                    if (allMethods == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (MethodInfo method in allMethods)
-                    {
-                        if (method.Name != methodDescription.MethodName)
-                        {
-                            continue;
-                        }
-
-                        if (!methodDescription.FilterByParameters)
-                        {
-                            methods.Add(method);
-                            continue;
-                        }
-
-                        ParameterInfo[] paramInfo = method.GetParameters();
-                        if (paramInfo.Length != methodDescription.ParameterTypes?.Length)
-                        {
-                            continue;
-                        }
-
-                        bool mismatch = false;
-                        for (int i = 0; i < paramInfo.Length; i++)
-                        {
-                            if (paramInfo[i].ParameterType.Name != methodDescription.ParameterTypes[i])
-                            {
-                                mismatch = true;
-                                break;
-                            }
-                        }
-
-                        if (!mismatch)
-                        {
-                            methods.Add(method);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger?.LogWarning($"Unable resolve method {methodDescription}, exception: {ex}");
+                    methods.Add(method);
                 }
             }
 

@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.NETCore.Client;
 using Microsoft.Diagnostics.Tracing;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,10 +51,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             // in the order in which they are used.
             switch (traceEvent.EventName)
             {
-                case "StartedCapturing":
+                case "Capturing/Start":
                     OnStartedCapturing.Invoke(this, EventArgs.Empty);
                     break;
-                case "StoppedCapturing":
+                case "Capturing/Stop":
                     OnStoppedCapturing.Invoke(this, EventArgs.Empty);
                     break;
                 case "UnableToResolveMethods":
@@ -63,7 +64,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                 case "Flush":
                     break;
 #if DEBUG
-                default:
+                 default:
                     throw new NotSupportedException("Unhandled event: " + traceEvent.EventName);
 #endif
             }
