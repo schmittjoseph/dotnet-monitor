@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
@@ -23,8 +24,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         public static void EnterProbeStub(ulong uniquifier, object[] args)
         {
+            if (s_inProbe.Value)
+            {
+                return;
+            }
+
             IFunctionProbes? probes = Instance;
-            if (probes == null || s_inProbe.Value)
+            if (probes == null)
             {
                 return;
             }
@@ -33,6 +39,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             {
                 s_inProbe.Value = true;
                 probes.EnterProbe(uniquifier, args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"!!!! JS: {ex}");
+                throw;
             }
             finally
             {

@@ -79,6 +79,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             int numberOfParameters = explicitParameters.Length + (method.HasImplicitThis() ? 1 : 0);
             if (numberOfParameters != supportedParameters.Length)
             {
+                Console.WriteLine($"WUT 1 {numberOfParameters} {supportedParameters.Length} ");
                 return null;
             }
 

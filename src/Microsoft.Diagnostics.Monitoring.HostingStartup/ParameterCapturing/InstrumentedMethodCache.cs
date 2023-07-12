@@ -61,11 +61,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return false;
             }
 
-            return _cache.TryAdd(
+            // JSFIX: Dupe?
+            _cache.TryAdd(
                 method.GetFunctionId(),
                 new InstrumentedMethod(
                     templateString,
                     supportedParameters));
+
+            return true;
         }
 
         public void Clear()

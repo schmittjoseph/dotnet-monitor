@@ -91,9 +91,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 {
                     boxingTokens.Add(UnsupportedParameterToken);
                 }
-                else if (paramType.IsPrimitive)
+                else if (paramType.IsGenericParameter)
                 {
-                    boxingTokens.Add(GetSpecialCaseBoxingToken(Type.GetTypeCode(paramType)));
+                    boxingTokens.Add(UnsupportedParameterToken);
                 }
                 else if (paramType.IsValueType)
                 {
@@ -115,9 +115,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                         boxingTokens.Add((uint)paramType.MetadataToken);
                     }
                 }
-                else if (paramType.IsGenericParameter)
+                else if (paramType.IsPrimitive)
                 {
-                    boxingTokens.Add(UnsupportedParameterToken);
+                    boxingTokens.Add(GetSpecialCaseBoxingToken(Type.GetTypeCode(paramType)));
                 }
                 else if (paramType.IsArray ||
                     paramType.IsClass ||

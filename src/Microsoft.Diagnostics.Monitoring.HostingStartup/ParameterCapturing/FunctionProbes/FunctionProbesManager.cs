@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
@@ -66,14 +67,25 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 {
                     throw new InvalidOperationException();
                 }
+                
 
                 FunctionProbesStub.InstrumentedMethodCache.Clear();
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
                 List<uint> boxingTokens = new();
-
+                Console.WriteLine("START: REQ PROCESSING");
                 foreach (MethodInfo method in methods)
                 {
+                    if (
+                        method.DeclaringType?.FullName?.Contains("System.Array") == true ||
+                        method.DeclaringType?.FullName?.Contains("System.Threading") == true ||
+                        method.DeclaringType?.FullName?.Contains("System.Diagnostics") == true)
+                        // method.DeclaringType?.FullName?.Contains("System.Runtime.CompilerServices") == true ||)
+                    {
+                        continue;
+                    }
+ 
+
                     ulong functionId = method.GetFunctionId();
                     if (functionId == 0)
                     {
@@ -83,6 +95,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
                     if (!FunctionProbesStub.InstrumentedMethodCache.TryAdd(method, methodBoxingTokens))
                     {
+                        Console.WriteLine($"BAILLLLL - {method.DeclaringType?.FullName}.{method.Name}");
                         return;
                     }
 
@@ -90,12 +103,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     argumentCounts.Add((uint)methodBoxingTokens.Length);
                     boxingTokens.AddRange(methodBoxingTokens);
                 }
+                Console.WriteLine("STOP: REQ PROCESSING");
 
                 RequestFunctionProbeInstallation(
                     functionIds.ToArray(),
                     (uint)functionIds.Count,
                     boxingTokens.ToArray(),
                     argumentCounts.ToArray());
+                Console.WriteLine("SENT TO PROFILER");
 
                 _isCapturing = true;
             }

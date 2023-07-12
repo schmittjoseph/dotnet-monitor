@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
@@ -18,12 +19,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         public void EnterProbe(ulong uniquifier, object[] args)
         {
+            /*
             if (args == null ||
                 !_methodCache.TryGetValue(uniquifier, out InstrumentedMethod instrumentedMethod) ||
                 args.Length != instrumentedMethod.SupportedParameters.Length)
             {
                 return;
             }
+            
 
             string[] argValues = new string[instrumentedMethod.NumberOfSupportedParameters];
             int fmtIndex = 0;
@@ -34,10 +37,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     continue;
                 }
 
-                argValues[fmtIndex++] = PrettyPrinter.FormatObject(args[i]);
+                argValues[fmtIndex++] = "skip";
+                //argValues[fmtIndex++] = PrettyPrinter.FormatObject(args[i]);
             }
 
             _logger.Log(LogLevel.Warning, instrumentedMethod.MethodWithParametersTemplateString, argValues);
+            */
             return;
         }
     }

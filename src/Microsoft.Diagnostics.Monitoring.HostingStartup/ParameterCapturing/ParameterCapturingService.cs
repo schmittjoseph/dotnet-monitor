@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -126,6 +127,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return false;
             }
 
+            methods.AddRange(StressTest());
+
             _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', request.Methods));
             _probeManager.StartCapturing(methods);
             _eventSource.CapturingStart();
@@ -207,6 +210,93 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 _probeManager.StopCapturing();
                 _eventSource.CapturingStop();
             }
+        }
+
+
+        private List<MethodInfo> StressTest()
+        {
+            List<MethodInfo> methods = new();
+
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToArray();
+            foreach (Assembly assembly in assemblies)
+            {
+                foreach (Module mod in assembly.Modules)
+                {
+                    if (
+                        //mod.Name.Contains("System.") ||
+                      //  mod.Name.Contains("netstandard") ||
+                        mod.Name.Contains("Microsoft.Diagnostics.Monitoring"))
+                    {
+                        //Console.WriteLine($"Skipping {mod.Name}");
+                        continue;
+                    }
+                    Console.WriteLine(mod.Name);
+                    foreach (var type in mod.GetTypes())
+                    {
+                        methods.AddRange(GetAllMethods(type));
+                    }
+                }
+            }
+            _logger?.LogCritical($"STRESS TEST: Hooking {methods.Count}  methods");
+
+            return methods;
+        }
+        private List<MethodInfo> StressTest2()
+        {
+            Module corLib = typeof(int).Assembly.Modules.First();
+
+            List<MethodInfo> methods = new();
+
+            foreach (Type classType in corLib.GetTypes())
+            {
+                methods.AddRange(GetAllMethods(classType));
+            }
+
+            _logger?.LogCritical($"STRESS TEST: Hooking all {methods.Count} corlib methods");
+
+            return methods;
+        }
+
+        private static List<MethodInfo> GetAllMethods(Type containingType)
+        {
+            List<MethodInfo> methods = new();
+
+            if (containingType.FullName?.Contains("ThreadLocal") == true ||
+                containingType.FullName?.Contains("System.Threading") == true ||
+                containingType.FullName?.Contains("System.Diagnostics") == true)
+            {
+                return methods;
+            }
+            MethodInfo[] ret = containingType.GetMethods(BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Instance |
+                BindingFlags.Static);
+
+            foreach (MethodInfo method in ret)
+            {
+                Type? declType = method.DeclaringType;
+                /*
+                if (declType?.FullName?.Contains("System.Object") == true)
+                {
+                    Debugger.Launch();
+                }
+                */
+
+                if (declType == null || declType.Assembly != containingType.Assembly)
+                {
+                    continue;
+                }
+
+                methods.Add(method);
+            }
+            /*
+            foreach (var nestedType in containingType.GetNestedTypes())
+            {
+                methods.AddRange(GetAllMethods(nestedType));
+            }
+            */
+
+            return methods;
         }
 
         private static List<MethodInfo> ResolveMethod(Dictionary<(string, string), List<MethodInfo>> methodCache, MethodDescription methodDescription)
