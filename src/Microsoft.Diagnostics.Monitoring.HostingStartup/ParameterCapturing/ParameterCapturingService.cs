@@ -287,6 +287,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     continue;
                 }
 
+                if (declType.IsConstructedGenericType)
+                {
+                    continue;
+                }
+
                 methods.Add(method);
             }
             /*
