@@ -5,6 +5,7 @@ using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -28,7 +29,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
        
         private readonly object _requestLocker = new();
         private long _disposedState;
-        private bool _isCapturing;
+
+        private readonly string? _profilerModulePath;
 
         public FunctionProbesManager(IFunctionProbes probes)
         {
@@ -42,11 +44,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         {
             lock (_requestLocker)
             {
-                if (!_isCapturing)
-                {
-                    return;
-                }
-
                 FunctionProbesStub.InstrumentedMethodCache.Clear();
                 RequestFunctionProbeUninstallation();
 
@@ -61,14 +58,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new ArgumentException(nameof(methods));
             }
 
+            Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
             lock (_requestLocker)
             {
-                if (_isCapturing)
-                {
-                    throw new InvalidOperationException();
-                }
-                
-
                 FunctionProbesStub.InstrumentedMethodCache.Clear();
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
@@ -93,9 +85,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     }
 
                     uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
-                    if (!FunctionProbesStub.InstrumentedMethodCache.TryAdd(method, methodBoxingTokens))
+                    if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
                     {
-                        Console.WriteLine($"BAILLLLL - {method.DeclaringType?.FullName}.{method.Name}");
                         return;
                     }
 
@@ -105,6 +96,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 }
                 Console.WriteLine("STOP: REQ PROCESSING");
 
+                FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
                 RequestFunctionProbeInstallation(
                     functionIds.ToArray(),
                     (uint)functionIds.Count,

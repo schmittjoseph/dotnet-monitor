@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     FullMode = BoundedChannelFullMode.Wait
                 });
 
-                _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger, FunctionProbesStub.InstrumentedMethodCache));
+                _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger));
                 _isAvailable = true;
             }
             catch
