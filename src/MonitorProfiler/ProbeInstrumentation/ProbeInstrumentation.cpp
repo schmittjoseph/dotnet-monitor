@@ -5,6 +5,8 @@
 #include "macros.h"
 #include "ProbeInstrumentation.h"
 #include "../Utilities/BlockingQueue.h"
+#include "../Utilities/NameCache.h"
+#include "../Utilities/TypeNameUtilities.h"
 
 using namespace std;
 
@@ -259,6 +261,8 @@ HRESULT ProbeInstrumentation::InstallProbes(vector<UNPROCESSED_INSTRUMENTATION_R
         // Consider allowing the caller to specify one.
         processedRequest.uniquifier = static_cast<ULONG64>(req.functionId);
         processedRequest.boxingTypes = req.boxingTypes;
+
+        // __debugbreak();
 
         IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(
             req.functionId,

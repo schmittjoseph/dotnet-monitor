@@ -4,10 +4,15 @@
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.Xml;
+using System.Text;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
@@ -30,8 +35,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private readonly object _requestLocker = new();
         private long _disposedState;
 
-        private readonly string? _profilerModulePath;
-
         public FunctionProbesManager(IFunctionProbes probes)
         {
             ProfilerResolver.InitializeResolver<FunctionProbesManager>();
@@ -44,10 +47,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         {
             lock (_requestLocker)
             {
-                FunctionProbesStub.InstrumentedMethodCache.Clear();
+                FunctionProbesStub.InstrumentedMethodCache = null;
                 RequestFunctionProbeUninstallation();
-
-                _isCapturing = false;
             }
         }
 
@@ -58,25 +59,34 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new ArgumentException(nameof(methods));
             }
 
-            Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
+            ConcurrentDictionary<ulong, InstrumentedMethod> newMethodCache = new();
             lock (_requestLocker)
             {
-                FunctionProbesStub.InstrumentedMethodCache.Clear();
+                FunctionProbesStub.InstrumentedMethodCache = null;
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
                 List<uint> boxingTokens = new();
                 Console.WriteLine("START: REQ PROCESSING");
+
+                HashSet<Assembly> assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToHashSet();
                 foreach (MethodInfo method in methods)
                 {
-                    if (
-                        method.DeclaringType?.FullName?.Contains("System.Array") == true ||
-                        method.DeclaringType?.FullName?.Contains("System.Threading") == true ||
-                        method.DeclaringType?.FullName?.Contains("System.Diagnostics") == true)
-                        // method.DeclaringType?.FullName?.Contains("System.Runtime.CompilerServices") == true ||)
+                    string fullName = $"{method.Module.Name}.{method.DeclaringType?.FullName}.{method.Name}";
+                    if (fullName.Contains("Microsoft.Diagnostics.Monitoring") ||
+                        false
+                        )
                     {
+                      //  Console.WriteLine($"SKip: {fullName}");
                         continue;
                     }
- 
+
+                    if (!assemblies.Contains(method.Module.Assembly) ||
+                        (method.DeclaringType != null && !assemblies.Contains(method.DeclaringType!.Assembly)))
+                    {
+                        Console.WriteLine($"Skipping lazily loaded method: {fullName}");
+                        continue;
+                    }
+
 
                     ulong functionId = method.GetFunctionId();
                     if (functionId == 0)
@@ -84,17 +94,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                         return;
                     }
 
+
                     uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
                     if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
                     {
-                        return;
+                        continue;
                     }
 
                     functionIds.Add(functionId);
                     argumentCounts.Add((uint)methodBoxingTokens.Length);
                     boxingTokens.AddRange(methodBoxingTokens);
                 }
-                Console.WriteLine("STOP: REQ PROCESSING");
+                Console.WriteLine($"STOP: REQ PROCESSING: Installing hooks into {functionIds.Count} methods");
 
                 FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
                 RequestFunctionProbeInstallation(
@@ -103,8 +114,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     boxingTokens.ToArray(),
                     argumentCounts.ToArray());
                 Console.WriteLine("SENT TO PROFILER");
-
-                _isCapturing = true;
             }
         }
 

@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.Xml;
+using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -96,6 +98,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 return false;
             }
+            EncryptedXml foo = new();
+            foo.Encoding = Encoding.UTF8;
 
             Dictionary<(string, string), List<MethodInfo>> methodCache = GenerateMethodCache(request.Methods);
 
@@ -104,6 +108,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             for (int i = 0; i < request.Methods.Length; i++)
             {
                 MethodDescription methodDescription = request.Methods[i];
+
 
                 List<MethodInfo> resolvedMethods = ResolveMethod(methodCache, methodDescription);
                 if (resolvedMethods.Count == 0)
@@ -127,7 +132,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return false;
             }
 
-            methods.AddRange(StressTest());
+           methods.AddRange(StressTest());
 
             _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', request.Methods));
             _probeManager.StartCapturing(methods);
@@ -138,7 +143,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private static Dictionary<(string, string), List<MethodInfo>> GenerateMethodCache(MethodDescription[] methodDescriptions)
         {
             Dictionary<(string, string), List<MethodInfo>> cache = new();
-
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToArray();
             Dictionary<string, List<Module>> dllNameToModules = new(StringComparer.InvariantCultureIgnoreCase);
             foreach (Assembly assembly in assemblies)
@@ -164,7 +168,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 if (!dllNameToModules.TryGetValue(methodDescription.ModuleName, out List<Module>? possibleModules))
                 {
-                    throw new InvalidOperationException();
+                    continue;
                 }
 
                 List<MethodInfo> classMethods = new();
@@ -213,7 +217,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         }
 
 
-        private List<MethodInfo> StressTest()
+        private static List<MethodInfo> StressTest()
         {
             List<MethodInfo> methods = new();
 
@@ -222,22 +226,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 foreach (Module mod in assembly.Modules)
                 {
-                    if (
-                        //mod.Name.Contains("System.") ||
-                      //  mod.Name.Contains("netstandard") ||
-                        mod.Name.Contains("Microsoft.Diagnostics.Monitoring"))
-                    {
-                        //Console.WriteLine($"Skipping {mod.Name}");
-                        continue;
-                    }
-                    Console.WriteLine(mod.Name);
+                    //Console.WriteLine(mod.Name);
                     foreach (var type in mod.GetTypes())
                     {
                         methods.AddRange(GetAllMethods(type));
                     }
                 }
             }
-            _logger?.LogCritical($"STRESS TEST: Hooking {methods.Count}  methods");
 
             return methods;
         }
@@ -261,33 +256,40 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             List<MethodInfo> methods = new();
 
-            if (containingType.FullName?.Contains("ThreadLocal") == true ||
-                containingType.FullName?.Contains("System.Threading") == true ||
-                containingType.FullName?.Contains("System.Diagnostics") == true)
-            {
-                return methods;
-            }
             MethodInfo[] ret = containingType.GetMethods(BindingFlags.Public |
                 BindingFlags.NonPublic |
                 BindingFlags.Instance |
                 BindingFlags.Static);
 
+            //Module corLibModule = typeof(int).Module ?? throw new InvalidOperationException();
+
+
             foreach (MethodInfo method in ret)
             {
                 Type? declType = method.DeclaringType;
-                /*
-                if (declType?.FullName?.Contains("System.Object") == true)
-                {
-                    Debugger.Launch();
-                }
-                */
 
-                if (declType == null || declType.Assembly != containingType.Assembly)
+
+                if (declType == null)
                 {
                     continue;
                 }
 
+
                 if (declType.IsConstructedGenericType)
+                {
+                    continue;
+                }
+
+                string fullName = $"{declType.FullName}.{method.Name}";
+
+                if (fullName.Contains("System.Diagnostics.") ||
+                    fullName.Contains("System.Threading.") ||
+                    fullName.Contains("System.ObjectDisposedException") ||
+                    fullName.Contains("ThreadLocal") ||
+                    fullName.Contains("Array") ||
+
+                    false
+                    )
                 {
                     continue;
                 }
@@ -318,9 +320,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 if (method.Name == methodDescription.MethodName)
                 {
+
                     methods.Add(method);
                 }
             }
+
 
             return methods;
         }
