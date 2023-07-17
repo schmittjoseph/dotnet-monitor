@@ -247,16 +247,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 {
                     StopCapturing();
                 }
-                catch
+                catch (Exception ex)
                 {
                     //
-                    // We're in a faulted state so there's nothing else that can be safely done
-                    // for the remainder of the app's lifetime.
+                    // We're in a faulted state from an internal exception so there's
+                    // nothing else that can be safely done for the remainder of the app's lifetime.
                     //
-                    // Unregister our command callbacks so that any attempts to use
-                    // them from dotnet-monitor will result in observable faulures.
-                    //
-                    UnregisterCommands();
+                    UnrecoverableInternalFault(ex);
                     return;
                 }
                 finally
@@ -264,6 +261,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     _eventSource.CapturingStop();
                 }
             }
+        }
+
+        private void UnrecoverableInternalFault(Exception ex)
+        {
+            //
+            // Unregister our command callbacks so that any attempts to use
+            // them from dotnet-monitor will result in observable faulures.
+            //
+            UnregisterCommands();
+            _eventSource.UnrecoverableInternalFault(ex);
         }
 
         private static void UnregisterCommands()

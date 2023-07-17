@@ -28,6 +28,28 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eve
         }
 
         [NonEvent]
+        public void UnrecoverableInternalFault(Exception ex)
+        {
+            UnrecoverableInternalFault(ex.GetType().FullName ?? string.Empty, ex.ToString());
+        }
+
+        [Event(ParameterCapturingEvents.EventIds.UnrecoverableInternalFault)]
+        public void UnrecoverableInternalFault(
+            string exceptionType,
+            string exceptionMessage)
+        {
+            Span<EventData> data = stackalloc EventData[2];
+            using PinnedData typePinned = PinnedData.Create(exceptionType);
+            using PinnedData messagePinned = PinnedData.Create(exceptionMessage);
+
+            SetValue(ref data[ParameterCapturingEvents.UnrecoverableInternalFaultPayload.FailureType], typePinned);
+            SetValue(ref data[ParameterCapturingEvents.UnrecoverableInternalFaultPayload.FailureMessage], messagePinned);
+
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.UnrecoverableInternalFault, data);
+        }
+        
+
+        [NonEvent]
         public void FailedToCapture(Exception ex)
         {
             FailedToCapture(ex.GetType().FullName ?? string.Empty, ex.ToString());

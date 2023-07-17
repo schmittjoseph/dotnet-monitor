@@ -14,12 +14,19 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             public const int CapturingStart = 2;
             public const int CapturingStop = 3;
             public const int FailedToCapture = 4;
+            public const int UnrecoverableInternalFault = 5;
         }
 
         public enum CapturingFailureReason : short
         {
             UnableToResolveMethods,
             InternalError
+        }
+
+        public static class UnrecoverableInternalFaultPayload
+        {
+            public const int FailureType = 0;
+            public const int FailureMessage = 1;
         }
 
         public static class CapturingFailedPayloads
