@@ -283,9 +283,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 string fullName = $"{declType.FullName}.{method.Name}";
 
                 if (fullName.Contains("System.Diagnostics.") ||
-                    fullName.Contains("System.Threading.") ||
+                    fullName.Contains("Microsoft.Diagnostics.") ||
                     fullName.Contains("System.ObjectDisposedException") ||
-                    fullName.Contains("ThreadLocal") ||
                     fullName.Contains("Array") ||
 
                     false
