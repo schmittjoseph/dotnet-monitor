@@ -4,6 +4,7 @@
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -11,28 +12,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     public class UnresolvedMethodsExceptions : Exception
     {
-        private readonly MethodDescription[] _unresolvedMethods;
-
-        public UnresolvedMethodsExceptions(IEnumerable<MethodDescription> unresolvedMethods) : base("Unable to resolve one or more methods")
+        public UnresolvedMethodsExceptions(IEnumerable<MethodDescription> unresolvedMethods) : base(BuildMessage(unresolvedMethods))
         {
-            _unresolvedMethods = unresolvedMethods.ToArray();
         }
 
-
-
-        public override string ToString()
+        private static string BuildMessage(IEnumerable<MethodDescription> unresolvedMethods)
         {
             StringBuilder text = new();
-            text.AppendLine(Message);
-
-            for (int i = 0; i < _unresolvedMethods.Length; i++)
+            text.AppendLine();
+            foreach (MethodDescription method in unresolvedMethods)
             {
                 text.Append("--> ");
-                text.Append(_unresolvedMethods[i].ToString());
-                text.AppendLine();
+                text.AppendLine(method.ToString());
             }
 
-            return text.ToString();
+            return string.Format(CultureInfo.InvariantCulture, ParameterCapturingStrings.UnresolvedMethodsFormatString, text.ToString());
         }
     }
 }

@@ -74,14 +74,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                 }),
                 token);
 
-            startCompletionSource?.TrySetResult(null);
-
             token.Register(async () =>
             {
                 await StopAsync(CancellationToken.None);
             });
 
             await capturingStartedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
+            startCompletionSource?.TrySetResult(null);
+
             await capturingStoppedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
         }
 

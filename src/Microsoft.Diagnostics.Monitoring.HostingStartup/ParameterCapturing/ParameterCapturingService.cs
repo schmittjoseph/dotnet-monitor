@@ -68,6 +68,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
             catch
             {
+                UnregisterCommands();
             }
         }
 
@@ -117,8 +118,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw ex;
             }
 
-            _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join<MethodDescription>(' ', request.Methods));
             _probeManager.StartCapturing(methods);
+            _logger?.LogInformation(
+                ParameterCapturingStrings.StartParameterCapturingFormatString,
+                request.Duration,
+                request.Methods.Length);
         }
 
         private static Dictionary<(string, string), List<MethodInfo>> GenerateMethodCache(MethodDescription[] methodDescriptions)

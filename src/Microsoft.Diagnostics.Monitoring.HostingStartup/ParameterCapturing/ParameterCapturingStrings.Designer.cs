@@ -98,16 +98,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting Parameter Capturing for the following methods: {methodNames}.
+        ///   Looks up a localized string similar to Started Parameter Capturing for {duration} on {numberOfMethods} method(s)..
         /// </summary>
-        internal static string StartParameterCapturing {
+        internal static string StartParameterCapturingFormatString {
             get {
-                return ResourceManager.GetString("StartParameterCapturing", resourceCulture);
+                return ResourceManager.GetString("StartParameterCapturingFormatString", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Stopping Parameter Capturing..
+        ///   Looks up a localized string similar to Stopped Parameter Capturing..
         /// </summary>
         internal static string StopParameterCapturing {
             get {
@@ -148,6 +148,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         internal static string UnknownParameterNameFormatString {
             get {
                 return ResourceManager.GetString("UnknownParameterNameFormatString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to resolve one or more methods {0}.
+        /// </summary>
+        internal static string UnresolvedMethodsFormatString {
+            get {
+                return ResourceManager.GetString("UnresolvedMethodsFormatString", resourceCulture);
             }
         }
         

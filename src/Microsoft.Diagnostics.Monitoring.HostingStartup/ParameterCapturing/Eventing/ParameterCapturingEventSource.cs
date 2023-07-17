@@ -8,16 +8,12 @@ using System.Diagnostics.Tracing;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventing
 {
-    // This event source should be optimized for speed as much as possible since it will
-    // likely be sending many events every second. Avoid any APIs that use params/varargs
-    // style calls and avoid heap allocations as much as possible.
     [EventSource(Name = ParameterCapturingEvents.SourceName)]
     internal sealed class ParameterCapturingEventSource : AbstractMonitorEventSource
     {
         [Event(ParameterCapturingEvents.EventIds.CapturingStart)]
         public void CapturingStart()
         {
-            
             WriteEventWithFlushing(ParameterCapturingEvents.EventIds.CapturingStart);
         }
 
