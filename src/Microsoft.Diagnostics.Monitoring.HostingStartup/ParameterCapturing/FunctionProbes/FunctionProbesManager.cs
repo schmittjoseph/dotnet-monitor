@@ -5,6 +5,7 @@ using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -46,7 +47,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     return;
                 }
 
-                FunctionProbesStub.InstrumentedMethodCache.Clear();
+                FunctionProbesStub.InstrumentedMethodCache = null;
                 RequestFunctionProbeUninstallation();
 
                 _isCapturing = false;
@@ -60,6 +61,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new ArgumentException(nameof(methods));
             }
 
+            Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
             lock (_requestLocker)
             {
                 if (_isCapturing)
@@ -67,7 +69,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     throw new InvalidOperationException();
                 }
 
-                FunctionProbesStub.InstrumentedMethodCache.Clear();
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
                 List<uint> boxingTokens = new();
@@ -81,9 +82,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     }
 
                     uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
-                    if (!FunctionProbesStub.InstrumentedMethodCache.TryAdd(method, methodBoxingTokens))
+                    if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
                     {
-                        return;
+                        // Duplicate, ignore
+                        continue;
                     }
 
                     functionIds.Add(functionId);
@@ -91,6 +93,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     boxingTokens.AddRange(methodBoxingTokens);
                 }
 
+                FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
                 RequestFunctionProbeInstallation(
                     functionIds.ToArray(),
                     (uint)functionIds.Count,
