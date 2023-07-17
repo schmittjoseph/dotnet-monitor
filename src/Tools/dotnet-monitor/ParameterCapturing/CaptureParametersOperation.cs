@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Monitoring;
 using Microsoft.Diagnostics.Monitoring.WebApi;
+using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Text;

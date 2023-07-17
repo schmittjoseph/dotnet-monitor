@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <Compile Include="..\Tools\dotnet-monitor\InProcessFeatures\InProcessFeaturesIdentifiers.cs" Link="InProcessFeaturesIdentifiers.cs" />
-    <Compile Include="..\\Tools\dotnet-monitor\ParameterCapturing\ParameterCapturingEvents.cs" Link="ParameterCapturing\Eventing\ParameterCapturingEvents.cs" />
+    <Compile Include="..\Tools\dotnet-monitor\ParameterCapturing\ParameterCapturingEvents.cs" Link="ParameterCapturing\Eventing\ParameterCapturingEvents.cs" />
   </ItemGroup>
 
   <ItemGroup>

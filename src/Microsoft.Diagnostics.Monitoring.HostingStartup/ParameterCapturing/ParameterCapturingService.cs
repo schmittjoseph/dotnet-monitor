@@ -4,6 +4,7 @@
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventing;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
+using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -126,7 +127,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return false;
             }
 
-            _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join(' ', request.Methods));
+            _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join<MethodDescription>(' ', request.Methods));
             _probeManager.StartCapturing(methods);
             _eventSource.CapturingStart();
             return true;

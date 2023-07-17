@@ -586,14 +586,14 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             Utilities.GetProcessKey(pid, uid, name));
         }
 
-        [HttpGet("parameters", Name = nameof(CaptureParameters))]
-        [ProducesWithProblemDetails(ContentTypes.ApplicationJson, ContentTypes.TextPlain, ContentTypes.ApplicationSpeedscopeJson)]
+        [HttpPost("parameters", Name = nameof(CaptureParameters))]
+        [ProducesWithProblemDetails(ContentTypes.ApplicationJson)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(void), StatusCodes.Status202Accepted)]
         [EgressValidation]
         public async Task<ActionResult> CaptureParameters(
-            [FromQuery]
-            string methodNames,
+            [FromBody][Required]
+            MethodDescription[] methods,
             [FromQuery][Range(-1, int.MaxValue)]
             int durationSeconds = 30,
             [FromQuery]
@@ -611,30 +611,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             }
 
             ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
-
-            // Split
-            string[] allMethodNames = methodNames.Split(' ');
-            MethodDescription[] methodDescriptions = new MethodDescription[allMethodNames.Length];
-            for (int i = 0; i < allMethodNames.Length; i++)
-            {
-                methodDescriptions[i] = new MethodDescription(allMethodNames[i]);
-            }
-            /*
-            {
-                ModuleName = "BuggyDemoWeb.dll",
-                ClassName = "BuggyDemoWeb.Controllers.HomeController",
-                MethodName = "SelectDiagnsticType",
-                FilterByParameters = false
-            }
-            // BuggyDemoWeb.dll!BuggyDemoWeb.Controllers.HomeController.SelectDiagnsticType System.Private.CoreLib.dll!System.String.Concat
-            */
-
             TimeSpan duration = Utilities.ConvertSecondsToTimeSpan(durationSeconds);
-
 
             return await InvokeForProcess(async processInfo =>
             {
-                IInProcessOperation operation = _captureParametersFactory.Create(processInfo.EndpointInfo, methodDescriptions, duration);
+                IInProcessOperation operation = _captureParametersFactory.Create(processInfo.EndpointInfo, methods, duration);
                 return await InProcessResult(Utilities.ArtifactType_Parameters, processInfo, operation, tags);
             }, processKey, Utilities.ArtifactType_Parameters);
         }
