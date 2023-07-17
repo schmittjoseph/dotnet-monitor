@@ -24,12 +24,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private long _disposedState;
         private readonly bool _isAvailable;
 
-        private long _activeRequests;
-
         private readonly FunctionProbesManager? _probeManager;
         private readonly ParameterCapturingEventSource _eventSource = new();
         private readonly ILogger? _logger;
-
 
         private Channel<StartCapturingParametersPayload>? _requests;
         private Channel<bool>? _stopRequests;
@@ -89,7 +86,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _stopRequests?.Writer.TryWrite(true);
         }
 
-        private void StartCore(StartCapturingParametersPayload request)
+        private void StartCapturing(StartCapturingParametersPayload request)
         {
             if (!_isAvailable || _probeManager == null)
             {
@@ -118,11 +115,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 UnresolvedMethodsExceptions ex = new(unableToResolve);
                 _logger?.Log(LogLevel.Warning, ex, null, Array.Empty<object>());
                 throw ex;
-            }
-
-            if (Interlocked.CompareExchange(ref _activeRequests, 1, 0) != 0)
-            {
-                // throw?
             }
 
             _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join<MethodDescription>(' ', request.Methods));
@@ -191,18 +183,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return cache;
         }
 
-        private void StopCore()
+        private void StopCapturing()
         {
             if (!_isAvailable || _probeManager == null)
             {
                 return;
             }
 
-            if (Interlocked.CompareExchange(ref _activeRequests, 0, 1) == 1)
-            {
-                _logger?.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
-                _probeManager.StopCapturing();
-            }
+            _logger?.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
+            _probeManager.StopCapturing();
         }
 
         private static List<MethodInfo> ResolveMethod(Dictionary<(string, string), List<MethodInfo>> methodCache, MethodDescription methodDescription)
@@ -233,13 +222,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
-            stoppingToken.Register(StopCore);
+            stoppingToken.Register(StopCapturing);
             while (!stoppingToken.IsCancellationRequested)
             {
                 StartCapturingParametersPayload req = await _requests!.Reader.ReadAsync(stoppingToken);
                 try
                 {
-                    StartCore(req);
+                    StartCapturing(req);
                     _eventSource.CapturingStart();
                 }
                 catch (Exception ex)
@@ -253,9 +242,30 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 _ = await Task.WhenAny(_stopRequests!.Reader.WaitToReadAsync(cts.Token).AsTask(), Task.Delay(req.Duration, cts.Token)).ConfigureAwait(false);
                 _ = _stopRequests.Reader.TryRead(out _);
                 cts.Cancel();
-                StopCore();
-                _eventSource.CapturingStop();
+
+                try
+                {
+                    StopCapturing();
+                }
+                catch (Exception)
+                {
+                    // We're in a faulted state so there's nothing else we can do.
+                    // Unregister our command callbacks so that any attempts to use
+                    // them from dotnet-monitor will result in observable faulures.
+                    UnregisterCommands();
+                    return;
+                }
+                finally
+                {
+                    _eventSource.CapturingStop();
+                }
             }
+        }
+
+        private static void UnregisterCommands()
+        {
+            SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StartCapturingParameters);
+            SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StopCapturingParameters);
         }
 
         public override void Dispose()
@@ -265,6 +275,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             try
             {
+                UnregisterCommands();
                 _probeManager?.Dispose();
             }
             catch
