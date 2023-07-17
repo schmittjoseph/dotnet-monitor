@@ -18,19 +18,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eve
         public void CapturingStart()
         {
             
-            WriteEventCore(ParameterCapturingEvents.EventIds.StartedCapturing);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.StartedCapturing);
         }
 
         [Event(ParameterCapturingEvents.EventIds.StoppedCapturing)]
         public void CapturingStop()
         {
-            WriteEventCore(ParameterCapturingEvents.EventIds.StoppedCapturing);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.StoppedCapturing);
         }
 
         [Event(ParameterCapturingEvents.EventIds.Error)]
         public void Error()
         {
-            WriteEventCore(ParameterCapturingEvents.EventIds.Error);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.Error);
         }
 
         [Event(ParameterCapturingEvents.EventIds.UnableToResolveMethods)]
@@ -42,13 +42,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eve
 
             SetValue(ref data[ParameterCapturingEvents.UnableToResolveMethodsPayloads.MethodDescriptionIndices], methodDescriptionIndicesAsSpan);
 
-            WriteEventCore(ParameterCapturingEvents.EventIds.UnableToResolveMethods, data);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.UnableToResolveMethods, data);
         }
 
-        [Event(ReservedEventIds.Flush)]
+        [Event(ParameterCapturingEvents.EventIds.Flush)]
         protected override void Flush()
         {
-            WriteEvent(ReservedEventIds.Flush);
+            WriteEvent(ParameterCapturingEvents.EventIds.Flush);
         }
     }
 }

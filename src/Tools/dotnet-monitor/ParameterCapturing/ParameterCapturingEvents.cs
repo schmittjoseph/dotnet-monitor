@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 
         public static class EventIds
         {
-            // 1 Flush
+            public const int Flush = 1;
             public const int StartedCapturing = 2;
             public const int StoppedCapturing = 3;
             public const int Error = 4;

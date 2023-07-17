@@ -11,11 +11,6 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
 {
     internal abstract class AbstractMonitorEventSource : EventSource
     {
-        public static class ReservedEventIds
-        {
-            public const int Flush = 1;
-        }
-
         // Arrays are expected to have a 16-bit field for the length of the array.
         // The length of the array is the number of elements, not the number of bytes.
         private const int ArrayLengthFieldSize = sizeof(short);
@@ -32,10 +27,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
 
         private readonly Timer _flushEventsTimer;
 
-
         // NOTE: Arrays with a non-"byte" element type are not supported well by in-proc EventListener
-        // when using self-describing event format. This format is used to easily support event pipe listening,
-        // which is the primary use of this event source.
+        // when using self-describing event format. This format is used to easily support event pipe listening.
         public AbstractMonitorEventSource()
             : base(EventSourceSettings.EtwSelfDescribingEventFormat)
         {
@@ -48,6 +41,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
             base.Dispose(disposing);
         }
 
+        // Abstract base classes cannot define events so make the derived class define the flush event.
         protected abstract void Flush();
 
 
@@ -65,15 +59,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
             _flushEventsTimer.Change(EventSourceBufferAvoidanceTimeout, Timeout.InfiniteTimeSpan);
         }
 
-
         [NonEvent]
-        protected unsafe void WriteEventCore(int eventId)
+        protected unsafe void WriteEventWithFlushing(int eventId)
         {
-            WriteEventCore(eventId, Array.Empty<EventData>());
+            WriteEvent(eventId);
+            RestartFlushingEventTimer();
         }
 
         [NonEvent]
-        protected unsafe void WriteEventCore(int eventId, Span<EventData> data)
+        protected unsafe void WriteEventWithFlushing(int eventId, Span<EventData> data)
         {
             fixed (EventData* dataPtr = data)
             {
@@ -108,6 +102,38 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
             data.Size = value.Size;
         }
 
+        [NonEvent]
+        protected static int GetArrayDataSize<T>(T[] data) where T : unmanaged
+        {
+            // Arrays are written with a length prefix + the data as bytes
+            return ArrayLengthFieldSize + Unsafe.SizeOf<T>() * data.Length;
+        }
+
+        [NonEvent]
+        protected static unsafe void FillArrayData<T>(Span<byte> target, T[] source) where T : unmanaged
+        {
+#if DEBUG
+            // Double-check that the Span is correctly sized. This shouldn't be encountered
+            // at runtime so long as Span is constructed correctly using GetArrayDataSize.
+            if (target.Length != GetArrayDataSize(source))
+                throw new ArgumentOutOfRangeException(nameof(source));
+#endif
+
+            // First, copy the length of the array to the beginning of the data
+            short length = checked((short)source.Length);
+            ReadOnlySpan<byte> lengthSpan = new(Unsafe.AsPointer(ref Unsafe.AsRef(length)), ArrayLengthFieldSize);
+            lengthSpan.CopyTo(target);
+
+            // Second, copy the array data as bytes
+            if (source.Length > 0)
+            {
+                ReadOnlySpan<byte> dataSpan = MemoryMarshal.CreateReadOnlySpan(
+                    ref Unsafe.As<T, byte>(ref MemoryMarshal.GetArrayDataReference(source)),
+                    Unsafe.SizeOf<T>() * source.Length);
+
+                dataSpan.CopyTo(target.Slice(ArrayLengthFieldSize));
+            }
+        }
 
         protected struct PinnedData : IDisposable
         {
@@ -141,37 +167,5 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Eventing
 
             public int Size { get; }
         }
-
-        protected static int GetArrayDataSize<T>(T[] data) where T : unmanaged
-        {
-            // Arrays are written with a length prefix + the data as bytes
-            return ArrayLengthFieldSize + Unsafe.SizeOf<T>() * data.Length;
-        }
-
-        protected static unsafe void FillArrayData<T>(Span<byte> target, T[] source) where T : unmanaged
-        {
-#if DEBUG
-            // Double-check that the Span is correctly sized. This shouldn't be encountered
-            // at runtime so long as Span is constructed correctly using GetArrayDataSize.
-            if (target.Length != GetArrayDataSize(source))
-                throw new ArgumentOutOfRangeException(nameof(source));
-#endif
-
-            // First, copy the length of the array to the beginning of the data
-            short length = checked((short)source.Length);
-            ReadOnlySpan<byte> lengthSpan = new(Unsafe.AsPointer(ref Unsafe.AsRef(length)), ArrayLengthFieldSize);
-            lengthSpan.CopyTo(target);
-
-            // Second, copy the array data as bytes
-            if (source.Length > 0)
-            {
-                ReadOnlySpan<byte> dataSpan = MemoryMarshal.CreateReadOnlySpan(
-                    ref Unsafe.As<T, byte>(ref MemoryMarshal.GetArrayDataReference(source)),
-                    Unsafe.SizeOf<T>() * source.Length);
-
-                dataSpan.CopyTo(target.Slice(ArrayLengthFieldSize));
-            }
-        }
     }
-
 }
