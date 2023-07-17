@@ -25,7 +25,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 
     internal sealed class EventParameterCapturingPipeline : EventSourcePipeline<EventParameterCapturingPipelineSettings>
     {
-
         public EventHandler OnStartedCapturing;
         public EventHandler OnStoppedCapturing;
 
@@ -57,9 +56,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 
         private void Callback(TraceEvent traceEvent)
         {
-            Console.WriteLine(traceEvent.EventName);
-            // Using event name instead of event ID because event ID seem to be dynamically assigned
-            // in the order in which they are used.
             switch (traceEvent.EventName)
             {
                 case "Capturing/Start":

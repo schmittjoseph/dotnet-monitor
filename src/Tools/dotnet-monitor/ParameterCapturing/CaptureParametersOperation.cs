@@ -81,16 +81,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                 await StopAsync(CancellationToken.None);
             });
 
-            try
-            {
-                await capturingStartedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                throw;
-            }
+            await capturingStartedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
             await capturingStoppedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
         }
 
