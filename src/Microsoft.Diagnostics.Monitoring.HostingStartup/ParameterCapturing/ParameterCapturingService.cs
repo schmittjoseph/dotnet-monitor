@@ -249,7 +249,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
                 catch (Exception)
                 {
-                    // We're in a faulted state so there's nothing else we can do.
+                    // We're in a faulted state so there's nothing else that can be safely done
+                    // for the remainder of the app's lifetime.
+                    //
                     // Unregister our command callbacks so that any attempts to use
                     // them from dotnet-monitor will result in observable faulures.
                     UnregisterCommands();
