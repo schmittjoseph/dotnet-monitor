@@ -10,16 +10,22 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
         public static class EventIds
         {
             public const int Flush = 1;
-            public const int StartedCapturing = 2;
-            public const int StoppedCapturing = 3;
-            public const int Error = 4;
 
-            public const int UnableToResolveMethods = 5;
+            public const int CapturingStart = 2;
+            public const int CapturingStop = 3;
+            public const int FailedToCapture = 4;
         }
 
-        public static class UnableToResolveMethodsPayloads
+        public enum CapturingFailureReason : short
         {
-            public const int MethodDescriptionIndices = 0;
+            UnableToResolveMethods,
+            InternalError
+        }
+
+        public static class CapturingFailedPayloads
+        {
+            public const int FailureType = 0;
+            public const int FailureMessage = 1;
         }
     }
 }

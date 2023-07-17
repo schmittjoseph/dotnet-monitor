@@ -111,11 +111,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 logLevel: LogLevel.Warning,
                 formatString: Strings.LogFormatString_ErrorPayload);
 
-        private static readonly Action<ILogger, string, Exception> _egressedInProcessArtifact =
-            LoggerMessage.Define<string>(
-                eventId: new EventId(18, "EgressedInProcessArtifact"),
+        private static readonly Action<ILogger, Exception> _generatedInProcessArtifact =
+            LoggerMessage.Define(
+                eventId: new EventId(18, "GeneratedInProcessArtifact"),
                 logLevel: LogLevel.Information,
-                formatString: Strings.LogFormatString_EgressedInProcessArtifact);
+                formatString: Strings.Message_GeneratedInProcessArtifact);
         
         public static void RequestFailed(this ILogger logger, Exception ex)
         {
@@ -202,9 +202,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _errorPayload(logger, message, null);
         }
 
-        public static void EgressedInProcessArtifact(this ILogger logger, string description)
+        public static void GeneratedInProcessArtifact(this ILogger logger)
         {
-            _egressedInProcessArtifact(logger, description, null);
+            _generatedInProcessArtifact(logger, null);
         }
     }
 }

@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Monitoring;
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -37,22 +37,30 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             };
 
 
-            TaskCompletionSource<bool> stoppedCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            TaskCompletionSource<bool> ackCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            TaskCompletionSource<int[]> unableToResolveMethodsCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object> capturingStoppedCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object> capturingStartedCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using EventParameterCapturingPipeline eventTracePipeline = new(_endpointInfo.Endpoint, settings);
             eventTracePipeline.OnStartedCapturing += (_, _) =>
             {
-                ackCompletionSource.TrySetResult(true);
+                capturingStartedCompletionSource.TrySetResult(null);
             };
             eventTracePipeline.OnStoppedCapturing += (_, _) =>
             {
-                stoppedCompletionSource.TrySetResult(true);
+                capturingStoppedCompletionSource.TrySetResult(null);
             };
-            eventTracePipeline.OnUnableToResolveMethods += (_, unresolvedInidices) =>
+            eventTracePipeline.OnCapturingFailed += (_, remoteException) =>
             {
-                unableToResolveMethodsCompletionSource.TrySetResult(unresolvedInidices);
+                Exception ex;
+                if (remoteException.FailureType == typeof(UnresolvedMethodsExceptions).FullName)
+                {
+                    ex = new ArgumentException(remoteException.FailureMessage);
+                }
+                else
+                {
+                    ex = new InvalidOperationException(remoteException.FailureMessage);
+                }
+                capturingStartedCompletionSource.TrySetException(ex);
             };
 
             Task runPipelineTask = eventTracePipeline.StartAsync(token);
@@ -73,25 +81,17 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                 await StopAsync(CancellationToken.None);
             });
 
-
-            // unwrap..
-            await await Task.WhenAny(
-                ackCompletionSource.Task,
-                unableToResolveMethodsCompletionSource.Task
-                ).WaitAsync(token).ConfigureAwait(false);
-
-            if (unableToResolveMethodsCompletionSource.Task.IsCompleted)
+            try
             {
-                int[] indicies = await unableToResolveMethodsCompletionSource.Task;
-                StringBuilder unresolvedMethods = new();
-                foreach (int i in indicies)
-                {
-                    unresolvedMethods.Append(_methods[i]);
-                }
-                throw new ArgumentException($"Could not resolve all methods: {unresolvedMethods}");
-            }
+                await capturingStartedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
 
-            await stoppedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                throw;
+            }
+            await capturingStoppedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken token)
@@ -103,7 +103,5 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
         }
 
         public bool IsStoppable => true;
-
-        public string Description => "Parameter Capturing";
     }
 }

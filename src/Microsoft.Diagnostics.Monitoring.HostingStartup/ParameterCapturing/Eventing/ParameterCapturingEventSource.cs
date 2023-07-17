@@ -14,35 +14,38 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eve
     [EventSource(Name = ParameterCapturingEvents.SourceName)]
     internal sealed class ParameterCapturingEventSource : AbstractMonitorEventSource
     {
-        [Event(ParameterCapturingEvents.EventIds.StartedCapturing)]
+        [Event(ParameterCapturingEvents.EventIds.CapturingStart)]
         public void CapturingStart()
         {
             
-            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.StartedCapturing);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.CapturingStart);
         }
 
-        [Event(ParameterCapturingEvents.EventIds.StoppedCapturing)]
+        [Event(ParameterCapturingEvents.EventIds.CapturingStop)]
         public void CapturingStop()
         {
-            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.StoppedCapturing);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.CapturingStop);
         }
 
-        [Event(ParameterCapturingEvents.EventIds.Error)]
-        public void Error()
+        [NonEvent]
+        public void FailedToCapture(Exception ex)
         {
-            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.Error);
+            FailedToCapture(ex.GetType().FullName ?? string.Empty, ex.ToString());
         }
 
-        [Event(ParameterCapturingEvents.EventIds.UnableToResolveMethods)]
-        public void UnableToResolveMethods(int[] MethodDescriptionIndices)
+        [Event(ParameterCapturingEvents.EventIds.FailedToCapture)]
+        public void FailedToCapture(
+            string exceptionType,
+            string exceptionMessage)
         {
-            Span<EventData> data = stackalloc EventData[1];
-            Span<byte> methodDescriptionIndicesAsSpan = stackalloc byte[GetArrayDataSize(MethodDescriptionIndices)];
-            FillArrayData(methodDescriptionIndicesAsSpan, MethodDescriptionIndices);
+            Span<EventData> data = stackalloc EventData[2];
+            using PinnedData typePinned = PinnedData.Create(exceptionType);
+            using PinnedData messagePinned = PinnedData.Create(exceptionMessage);
 
-            SetValue(ref data[ParameterCapturingEvents.UnableToResolveMethodsPayloads.MethodDescriptionIndices], methodDescriptionIndicesAsSpan);
+            SetValue(ref data[ParameterCapturingEvents.CapturingFailedPayloads.FailureType], typePinned);
+            SetValue(ref data[ParameterCapturingEvents.CapturingFailedPayloads.FailureMessage], messagePinned);
 
-            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.UnableToResolveMethods, data);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.FailedToCapture, data);
         }
 
         [Event(ParameterCapturingEvents.EventIds.Flush)]

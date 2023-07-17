@@ -32,7 +32,5 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         /// Reports if the production of the diagnostic artifact is able to be stopped.
         /// </summary>
         bool IsStoppable { get; }
-
-        string Description { get; }
     }
 }

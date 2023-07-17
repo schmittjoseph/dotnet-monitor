@@ -227,12 +227,6 @@
 1 Format Parameter:
 1. location: The location that the artifact was egressed to</comment>
   </data>
-  <data name="LogFormatString_EgressedInProcessArtifact" xml:space="preserve">
-    <value>Egressed in-process {description} artifact</value>
-    <comment>Gets the format string that is printed in the 4:EgressedArtifact event.
-1 Format Parameter:
-1. location: The location that the artifact was egressed to</comment>
-  </data>
   <data name="LogFormatString_ErrorPayload" xml:space="preserve">
     <value>{0}</value>
   </data>
@@ -316,5 +310,8 @@
   </data>
   <data name="Message_CollectionRuleStateReason_Throttled" xml:space="preserve">
     <value>This collection rule is temporarily throttled because the ActionCountLimit has been reached within the ActionCountSlidingWindowDuration.</value>
+  </data>
+  <data name="Message_GeneratedInProcessArtifact" xml:space="preserve">
+    <value>Finished generating in-process artifact</value>
   </data>
 </root>

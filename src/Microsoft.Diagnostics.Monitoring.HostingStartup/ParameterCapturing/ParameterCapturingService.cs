@@ -71,7 +71,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
             catch
             {
-                // TODO: Log
             }
         }
 
@@ -90,17 +89,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _stopRequests?.Writer.TryWrite(true);
         }
 
-        private bool StartCore(StartCapturingParametersPayload request)
+        private void StartCore(StartCapturingParametersPayload request)
         {
             if (!_isAvailable || _probeManager == null)
             {
-                return false;
+                throw new InvalidOperationException();
             }
 
             Dictionary<(string, string), List<MethodInfo>> methodCache = GenerateMethodCache(request.Methods);
 
             List<MethodInfo> methods = new(request.Methods.Length);
-            List<int> unableToResolve = new();
+            List<MethodDescription> unableToResolve = new();
             for (int i = 0; i < request.Methods.Length; i++)
             {
                 MethodDescription methodDescription = request.Methods[i];
@@ -108,8 +107,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 List<MethodInfo> resolvedMethods = ResolveMethod(methodCache, methodDescription);
                 if (resolvedMethods.Count == 0)
                 {
-                    _logger?.LogWarning(ParameterCapturingStrings.UnableToResolveMethod, methodDescription);
-                    unableToResolve.Add(i);
+                    unableToResolve.Add(methodDescription);
                 }
 
                 methods.AddRange(resolvedMethods);
@@ -117,20 +115,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             if (unableToResolve.Count > 0)
             {
-                _eventSource.UnableToResolveMethods(unableToResolve.ToArray());
-                return false;
+                UnresolvedMethodsExceptions ex = new(unableToResolve);
+                _logger?.Log(LogLevel.Warning, ex, null, Array.Empty<object>());
+                throw ex;
             }
-
 
             if (Interlocked.CompareExchange(ref _activeRequests, 1, 0) != 0)
             {
-                return false;
+                // throw?
             }
 
             _logger?.LogInformation(ParameterCapturingStrings.StartParameterCapturing, string.Join<MethodDescription>(' ', request.Methods));
             _probeManager.StartCapturing(methods);
-            _eventSource.CapturingStart();
-            return true;
         }
 
         private static Dictionary<(string, string), List<MethodInfo>> GenerateMethodCache(MethodDescription[] methodDescriptions)
@@ -206,7 +202,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 _logger?.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
                 _probeManager.StopCapturing();
-                _eventSource.CapturingStop();
             }
         }
 
@@ -242,8 +237,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             while (!stoppingToken.IsCancellationRequested)
             {
                 StartCapturingParametersPayload req = await _requests!.Reader.ReadAsync(stoppingToken);
-                if (!StartCore(req))
+                try
                 {
+                    StartCore(req);
+                    _eventSource.CapturingStart();
+                }
+                catch (Exception ex)
+                {
+                    _eventSource.FailedToCapture(ex);
                     continue;
                 }
 
@@ -253,6 +254,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 _ = _stopRequests.Reader.TryRead(out _);
                 cts.Cancel();
                 StopCore();
+                _eventSource.CapturingStop();
             }
         }
 

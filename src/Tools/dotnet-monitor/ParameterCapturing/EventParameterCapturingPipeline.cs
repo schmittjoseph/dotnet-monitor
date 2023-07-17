@@ -6,20 +6,30 @@ using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.NETCore.Client;
 using Microsoft.Diagnostics.Tracing;
 using System;
-using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 {
+    internal sealed class RemoteException
+    {
+        public string FailureType { get; set; }
+        public string FailureMessage { get; set; }
+
+        public void ReThrow()
+        {
+            throw new Exception($"[{FailureType}]: {FailureMessage}");
+        }
+    }
+
     internal sealed class EventParameterCapturingPipeline : EventSourcePipeline<EventParameterCapturingPipelineSettings>
     {
 
         public EventHandler OnStartedCapturing;
         public EventHandler OnStoppedCapturing;
 
-        public EventHandler<int[]> OnUnableToResolveMethods;
+        public EventHandler<RemoteException> OnCapturingFailed;
 
         public EventParameterCapturingPipeline(IpcEndpoint endpoint, EventParameterCapturingPipelineSettings settings)
             : base(new DiagnosticsClient(endpoint), settings)
@@ -47,6 +57,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 
         private void Callback(TraceEvent traceEvent)
         {
+            Console.WriteLine(traceEvent.EventName);
             // Using event name instead of event ID because event ID seem to be dynamically assigned
             // in the order in which they are used.
             switch (traceEvent.EventName)
@@ -57,9 +68,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                 case "Capturing/Stop":
                     OnStoppedCapturing.Invoke(this, EventArgs.Empty);
                     break;
-                case "UnableToResolveMethods":
-                    int[] unresolvedIndicies = traceEvent.GetPayload<int[]>(ParameterCapturingEvents.UnableToResolveMethodsPayloads.MethodDescriptionIndices);
-                    OnUnableToResolveMethods.Invoke(this, unresolvedIndicies);
+                case "FailedToCapture":
+                    string exceptionType = traceEvent.GetPayload<string>(ParameterCapturingEvents.CapturingFailedPayloads.FailureType);
+                    string exceptionMessage = traceEvent.GetPayload<string>(ParameterCapturingEvents.CapturingFailedPayloads.FailureMessage);
+                    OnCapturingFailed.Invoke(this, new RemoteException()
+                    {
+                        FailureType = exceptionType,
+                        FailureMessage = exceptionMessage
+                    });
                     break;
                 case "Flush":
                     break;

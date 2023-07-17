@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             {
                 await _operation.ExecuteAsync(null, token);
 
-                logger.EgressedInProcessArtifact(_operation.Description);
+                logger.GeneratedInProcessArtifact();
 
                 return ExecutionResult<EgressResult>.Succeeded(new EgressResult());
             }, logger, token);
