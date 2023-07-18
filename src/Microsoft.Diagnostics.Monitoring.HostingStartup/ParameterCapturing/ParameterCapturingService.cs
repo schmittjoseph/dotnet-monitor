@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Channels;
@@ -55,6 +56,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 ArgumentNullException.ThrowIfNull(SharedInternals.MessageDispatcher);
 
+
+                // TODO: Clarify the threading model here
                 _requests = Channel.CreateBounded<StartCapturingParametersPayload>(new BoundedChannelOptions(capacity: 1)
                 {
                     FullMode = BoundedChannelFullMode.DropWrite
@@ -123,10 +126,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw new InvalidOperationException();
             }
 
-            List<MethodInfo> methods = new(request.Methods.Length);
-            List<MethodDescription> unableToResolve = new();
-
             MethodResolver resolver = new();
+            List<MethodInfo> methods = new(request.Methods.Length);
+            List<MethodDescription> methodsFailedToResolve = new();
 
             for (int i = 0; i < request.Methods.Length; i++)
             {
@@ -135,15 +137,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 List<MethodInfo> resolvedMethods = resolver.ResolveMethodDescription(methodDescription);
                 if (resolvedMethods.Count == 0)
                 {
-                    unableToResolve.Add(methodDescription);
+                    methodsFailedToResolve.Add(methodDescription);
                 }
 
                 methods.AddRange(resolvedMethods);
             }
 
-            if (unableToResolve.Count > 0)
+            if (methodsFailedToResolve.Count > 0)
             {
-                UnresolvedMethodsExceptions ex = new(unableToResolve);
+                UnresolvedMethodsExceptions ex = new(methodsFailedToResolve);
                 _logger!.LogWarning(ex.Message);
                 throw ex;
             }

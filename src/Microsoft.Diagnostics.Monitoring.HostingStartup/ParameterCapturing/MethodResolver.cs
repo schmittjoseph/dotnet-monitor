@@ -73,11 +73,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
             }
 
-            if (matchingMethods.Count == 0)
-            {
-                throw new UnresolvedMethodsExceptions(methodDescription);
-            }
-
             return matchingMethods;
         }
 
