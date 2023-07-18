@@ -20,8 +20,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 
         public enum ServiceNotAvailableReason : uint
         {
-            None = 0,
-            NotSupported,
+            NotSupported = 0,
             InternalError
         }
 

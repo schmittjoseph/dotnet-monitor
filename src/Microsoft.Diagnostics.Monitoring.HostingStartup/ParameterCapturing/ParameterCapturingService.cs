@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Channels;
@@ -24,7 +23,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
     {
         private long _disposedState;
 
-        private ParameterCapturingEvents.ServiceNotAvailableReason _notAvailableReason = ParameterCapturingEvents.ServiceNotAvailableReason.None;
+        private ParameterCapturingEvents.ServiceNotAvailableReason? _notAvailableReason;
         private string _notAvailableDetails = string.Empty;
 
         private readonly FunctionProbesManager? _probeManager;
@@ -62,19 +61,20 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 });
                 _stopRequests = Channel.CreateBounded<bool>(new BoundedChannelOptions(capacity: 2)
                 {
-                    FullMode = BoundedChannelFullMode.DropWrite,
-                    SingleReader = true,
-                    SingleWriter = true
+                    FullMode = BoundedChannelFullMode.DropWrite
                 });
 
                 _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger));
             }
             catch (Exception ex)
             {
-                UnrecoverableInternalFault(ex);
-                _requests?.Writer.TryComplete();
-                _stopRequests?.Writer.TryComplete();
+                UnrecoverableError(ex);
             }
+        }
+
+        private bool IsAvailable()
+        {
+            return _notAvailableReason == null;
         }
 
         private void OnStartMessage(StartCapturingParametersPayload payload)
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 if (!IsAvailable())
                 {
-                    _eventSource.ServiceNotAvailable(_notAvailableReason, _notAvailableDetails);
+                    _eventSource.ServiceNotAvailable(_notAvailableReason!.Value, _notAvailableDetails);
                     return;
                 }
                 else
@@ -100,18 +100,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
         }
 
-        private bool IsAvailable()
-        {
-            return _notAvailableReason == ParameterCapturingEvents.ServiceNotAvailableReason.None;
-        }
-
         private void OnStopMessage(EmptyPayload _)
         {
             if (_stopRequests?.Writer.TryWrite(true) != true)
             {
-                if (!IsAvailable())
+                if (IsAvailable())
                 {
-                    _eventSource.ServiceNotAvailable(_notAvailableReason, _notAvailableDetails);
+                    _eventSource.ServiceNotAvailable(_notAvailableReason!.Value, _notAvailableDetails);
                     return;
                 }
                 else
@@ -128,15 +123,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw new InvalidOperationException();
             }
 
-            Dictionary<(string, string), List<MethodInfo>> methodCache = GenerateMethodCache(request.Methods);
-
             List<MethodInfo> methods = new(request.Methods.Length);
             List<MethodDescription> unableToResolve = new();
+
+            MethodResolver resolver = new();
+
             for (int i = 0; i < request.Methods.Length; i++)
             {
                 MethodDescription methodDescription = request.Methods[i];
 
-                List<MethodInfo> resolvedMethods = ResolveMethod(methodCache, methodDescription);
+                List<MethodInfo> resolvedMethods = resolver.ResolveMethodDescription(methodDescription);
                 if (resolvedMethods.Count == 0)
                 {
                     unableToResolve.Add(methodDescription);
@@ -148,7 +144,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (unableToResolve.Count > 0)
             {
                 UnresolvedMethodsExceptions ex = new(unableToResolve);
-                _logger!.Log(LogLevel.Warning, ex, null, Array.Empty<object>());
+                _logger!.LogWarning(ex.Message);
                 throw ex;
             }
 
@@ -157,68 +153,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 ParameterCapturingStrings.StartParameterCapturingFormatString,
                 request.Duration,
                 request.Methods.Length);
-        }
-
-        private static Dictionary<(string, string), List<MethodInfo>> GenerateMethodCache(MethodDescription[] methodDescriptions)
-        {
-            Dictionary<(string, string), List<MethodInfo>> cache = new();
-
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToArray();
-            Dictionary<string, List<Module>> dllNameToModules = new(StringComparer.InvariantCultureIgnoreCase);
-            foreach (Assembly assembly in assemblies)
-            {
-                foreach (Module module in assembly.GetModules())
-                {
-                    if (!dllNameToModules.TryGetValue(module.Name, out List<Module>? moduleList))
-                    {
-                        moduleList = new List<Module>();
-                        dllNameToModules[module.Name] = moduleList;
-                    }
-
-                    moduleList.Add(module);
-                }
-            }
-
-            foreach (MethodDescription methodDescription in methodDescriptions)
-            {
-                if (cache.ContainsKey((methodDescription.ModuleName, methodDescription.ClassName)))
-                {
-                    continue;
-                }
-
-                if (!dllNameToModules.TryGetValue(methodDescription.ModuleName, out List<Module>? possibleModules))
-                {
-                    throw new InvalidOperationException();
-                }
-
-                List<MethodInfo> classMethods = new();
-
-                foreach (Module module in possibleModules)
-                {
-                    try
-                    {
-                        MethodInfo[]? allMethods = module.Assembly.GetType(methodDescription.ClassName)?.GetMethods(BindingFlags.Public |
-                            BindingFlags.NonPublic |
-                            BindingFlags.Instance |
-                            BindingFlags.Static |
-                            BindingFlags.FlattenHierarchy);
-
-                        if (allMethods == null)
-                        {
-                            continue;
-                        }
-
-                        classMethods.AddRange(allMethods);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                cache.Add((methodDescription.ModuleName, methodDescription.ClassName), classMethods);
-            }
-
-            return cache;
         }
 
         private void StopCapturing()
@@ -230,27 +164,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             _logger!.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
             _probeManager!.StopCapturing();
-        }
-
-        private static List<MethodInfo> ResolveMethod(Dictionary<(string, string), List<MethodInfo>> methodCache, MethodDescription methodDescription)
-        {
-            List<MethodInfo> methods = new();
-
-            if (!methodCache.TryGetValue((methodDescription.ModuleName, methodDescription.ClassName), out List<MethodInfo>? possibleMethods))
-            {
-                return methods;
-            }
-
-
-            foreach (MethodInfo method in possibleMethods)
-            {
-                if (method.Name == methodDescription.MethodName)
-                {
-                    methods.Add(method);
-                }
-            }
-
-            return methods;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -276,14 +189,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
 
                 using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-
                 Task stopSignalTask = _stopRequests!.Reader.WaitToReadAsync(cts.Token).AsTask();
                 _ = await Task.WhenAny(stopSignalTask, Task.Delay(req.Duration, cts.Token)).ConfigureAwait(false);
 
                 // Signal the other stop condition tasks to cancel
                 cts.Cancel();
 
-                // Clear any stop requests
+                // Clear the stop request (if present)
                 _ = _stopRequests.Reader.TryRead(out _);
 
                 try
@@ -295,13 +207,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 {
                     // We're in a faulted state from an internal exception so there's
                     // nothing else that can be safely done for the remainder of the app's lifetime.
-                    UnrecoverableInternalFault(ex);
+                    UnrecoverableError(ex);
                     return;
                 }
             }
         }
 
-        private void UnrecoverableInternalFault(Exception ex)
+        private void UnrecoverableError(Exception ex)
         {
             if (ex is NotSupportedException)
             {
@@ -314,7 +226,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 _notAvailableDetails = ex.ToString();
             }
 
-            _eventSource.ServiceNotAvailable(_notAvailableReason, _notAvailableDetails);
+            _eventSource.ServiceNotAvailable(_notAvailableReason!.Value, _notAvailableDetails);
 
             _ = _requests?.Writer.TryComplete();
             _ = _stopRequests?.Writer.TryComplete();

@@ -11,6 +11,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     public class UnresolvedMethodsExceptions : Exception
     {
+
+        public UnresolvedMethodsExceptions(MethodDescription methodDescription) : this(new MethodDescription[] { methodDescription }) { }
+
         public UnresolvedMethodsExceptions(IEnumerable<MethodDescription> unresolvedMethods) : base(BuildMessage(unresolvedMethods))
         {
         }
