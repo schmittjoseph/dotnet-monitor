@@ -12,15 +12,16 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 {
-    internal sealed class RemoteException
+    internal sealed class CapturingFailedArgs
     {
-        public string FailureType { get; set; }
-        public string FailureMessage { get; set; }
+        public ParameterCapturingEvents.CapturingFailedReason Reason { get; set; }
+        public string Details { get; set; }
+    }
 
-        public void ReThrow()
-        {
-            throw new Exception($"[{FailureType}]: {FailureMessage}");
-        }
+    internal sealed class ServiceNotAvailableArgs
+    {
+        public ParameterCapturingEvents.ServiceNotAvailableReason Reason { get; set; }
+        public string Details { get; set; }
     }
 
     internal sealed class EventParameterCapturingPipeline : EventSourcePipeline<EventParameterCapturingPipelineSettings>
@@ -28,7 +29,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
         public EventHandler OnStartedCapturing;
         public EventHandler OnStoppedCapturing;
 
-        public EventHandler<RemoteException> OnCapturingFailed;
+        public EventHandler<CapturingFailedArgs> OnCapturingFailed;
+        public EventHandler<ServiceNotAvailableArgs> OnServiceNotAvailable;
 
         public EventParameterCapturingPipeline(IpcEndpoint endpoint, EventParameterCapturingPipelineSettings settings)
             : base(new DiagnosticsClient(endpoint), settings)
@@ -56,6 +58,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
 
         private void Callback(TraceEvent traceEvent)
         {
+            Console.WriteLine(traceEvent.EventName);
             switch (traceEvent.EventName)
             {
                 case "Capturing/Start":
@@ -65,14 +68,28 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
                     OnStoppedCapturing.Invoke(this, EventArgs.Empty);
                     break;
                 case "FailedToCapture":
-                    string exceptionType = traceEvent.GetPayload<string>(ParameterCapturingEvents.CapturingFailedPayloads.FailureType);
-                    string exceptionMessage = traceEvent.GetPayload<string>(ParameterCapturingEvents.CapturingFailedPayloads.FailureMessage);
-                    OnCapturingFailed.Invoke(this, new RemoteException()
+                {
+                    ParameterCapturingEvents.CapturingFailedReason reason = traceEvent.GetPayload<ParameterCapturingEvents.CapturingFailedReason>(ParameterCapturingEvents.CapturingFailedPayloads.Reason);
+                    string details = traceEvent.GetPayload<string>(ParameterCapturingEvents.CapturingFailedPayloads.Details);
+
+                    OnCapturingFailed.Invoke(this, new CapturingFailedArgs()
                     {
-                        FailureType = exceptionType,
-                        FailureMessage = exceptionMessage
+                        Reason = reason,
+                        Details = details
                     });
                     break;
+                }
+                case "ServiceNotAvailable":
+                {
+                    ParameterCapturingEvents.ServiceNotAvailableReason reason = traceEvent.GetPayload<ParameterCapturingEvents.ServiceNotAvailableReason>(ParameterCapturingEvents.ServiceNotAvailablePayload.Reason);
+                    string details = traceEvent.GetPayload<string>(ParameterCapturingEvents.ServiceNotAvailablePayload.Details);
+                    OnServiceNotAvailable.Invoke(this, new ServiceNotAvailableArgs()
+                    {
+                        Reason = reason,
+                        Details = details
+                    });
+                    break;
+                }
                 case "Flush":
                     break;
 #if DEBUG

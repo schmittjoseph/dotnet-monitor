@@ -14,25 +14,36 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             public const int CapturingStart = 2;
             public const int CapturingStop = 3;
             public const int FailedToCapture = 4;
-            public const int UnrecoverableInternalFault = 5;
+            public const int ServiceNotAvailable = 5;
         }
 
-        public enum CapturingFailureReason : short
+
+        public enum ServiceNotAvailableReason : uint
         {
-            UnableToResolveMethods,
+            None = 0,
+            NotSupported,
             InternalError
         }
 
-        public static class UnrecoverableInternalFaultPayload
+        public static class ServiceNotAvailablePayload
         {
-            public const int FailureType = 0;
-            public const int FailureMessage = 1;
+            public const int Reason = 0;
+            public const int Details = 1;
+        }
+
+
+        public enum CapturingFailedReason : uint
+        {
+            UnresolvedMethods = 0,
+            InvalidRequest,
+            TooManyRequests,
+            InternalError
         }
 
         public static class CapturingFailedPayloads
         {
-            public const int FailureType = 0;
-            public const int FailureMessage = 1;
+            public const int Reason = 0;
+            public const int Details = 1;
         }
     }
 }

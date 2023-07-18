@@ -23,45 +23,55 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eve
             WriteEventWithFlushing(ParameterCapturingEvents.EventIds.CapturingStop);
         }
 
-        [NonEvent]
-        public void UnrecoverableInternalFault(Exception ex)
-        {
-            UnrecoverableInternalFault(ex.GetType().FullName ?? string.Empty, ex.ToString());
-        }
 
-        [Event(ParameterCapturingEvents.EventIds.UnrecoverableInternalFault)]
-        public void UnrecoverableInternalFault(
-            string exceptionType,
-            string exceptionMessage)
+        [Event(ParameterCapturingEvents.EventIds.ServiceNotAvailable)]
+        public void ServiceNotAvailable(
+            ParameterCapturingEvents.ServiceNotAvailableReason Reason,
+            string Details)
         {
             Span<EventData> data = stackalloc EventData[2];
-            using PinnedData typePinned = PinnedData.Create(exceptionType);
-            using PinnedData messagePinned = PinnedData.Create(exceptionMessage);
+            using PinnedData detailsPinned = PinnedData.Create(Details);
 
-            SetValue(ref data[ParameterCapturingEvents.UnrecoverableInternalFaultPayload.FailureType], typePinned);
-            SetValue(ref data[ParameterCapturingEvents.UnrecoverableInternalFaultPayload.FailureMessage], messagePinned);
+            SetValue(ref data[ParameterCapturingEvents.ServiceNotAvailablePayload.Reason], Reason);
+            SetValue(ref data[ParameterCapturingEvents.ServiceNotAvailablePayload.Details], detailsPinned);
 
-            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.UnrecoverableInternalFault, data);
+            WriteEventWithFlushing(ParameterCapturingEvents.EventIds.ServiceNotAvailable, data);
         }
-        
 
         [NonEvent]
         public void FailedToCapture(Exception ex)
         {
-            FailedToCapture(ex.GetType().FullName ?? string.Empty, ex.ToString());
+            ParameterCapturingEvents.CapturingFailedReason reason;
+            string details;
+            if (ex is UnresolvedMethodsExceptions)
+            {
+                reason = ParameterCapturingEvents.CapturingFailedReason.UnresolvedMethods;
+                details = ex.Message;
+            }
+            else if (ex is ArgumentException)
+            {
+                reason = ParameterCapturingEvents.CapturingFailedReason.InvalidRequest;
+                details = ex.Message;
+            }
+            else
+            {
+                reason = ParameterCapturingEvents.CapturingFailedReason.InternalError;
+                details = ex.ToString();
+            }
+
+            FailedToCapture(reason, details);
         }
 
         [Event(ParameterCapturingEvents.EventIds.FailedToCapture)]
         public void FailedToCapture(
-            string exceptionType,
-            string exceptionMessage)
+            ParameterCapturingEvents.CapturingFailedReason Reason,
+            string Details)
         {
             Span<EventData> data = stackalloc EventData[2];
-            using PinnedData typePinned = PinnedData.Create(exceptionType);
-            using PinnedData messagePinned = PinnedData.Create(exceptionMessage);
+            using PinnedData detailsPinned = PinnedData.Create(Details);
 
-            SetValue(ref data[ParameterCapturingEvents.CapturingFailedPayloads.FailureType], typePinned);
-            SetValue(ref data[ParameterCapturingEvents.CapturingFailedPayloads.FailureMessage], messagePinned);
+            SetValue(ref data[ParameterCapturingEvents.CapturingFailedPayloads.Reason], Reason);
+            SetValue(ref data[ParameterCapturingEvents.CapturingFailedPayloads.Details], detailsPinned);
 
             WriteEventWithFlushing(ParameterCapturingEvents.EventIds.FailedToCapture, data);
         }

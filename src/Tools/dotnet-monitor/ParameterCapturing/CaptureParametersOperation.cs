@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Monitoring;
-using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -43,25 +43,45 @@ namespace Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing
             await using EventParameterCapturingPipeline eventTracePipeline = new(_endpointInfo.Endpoint, settings);
             eventTracePipeline.OnStartedCapturing += (_, _) =>
             {
-                capturingStartedCompletionSource.TrySetResult(null);
+                _ = capturingStartedCompletionSource.TrySetResult(null);
             };
             eventTracePipeline.OnStoppedCapturing += (_, _) =>
             {
-                capturingStoppedCompletionSource.TrySetResult(null);
+                _ = capturingStoppedCompletionSource.TrySetResult(null);
             };
-            eventTracePipeline.OnCapturingFailed += (_, remoteException) =>
+            eventTracePipeline.OnCapturingFailed += (_, failureArgs) =>
             {
                 Exception ex;
-                if (remoteException.FailureType == typeof(UnresolvedMethodsExceptions).FullName)
+                switch (failureArgs.Reason)
                 {
-                    ex = new ArgumentException(remoteException.FailureMessage);
+                    case ParameterCapturingEvents.CapturingFailedReason.UnresolvedMethods:
+                    case ParameterCapturingEvents.CapturingFailedReason.InvalidRequest:
+                        ex = new MonitoringException(failureArgs.Details);
+                        break;
+                    default:
+                        ex = new InvalidOperationException(failureArgs.Details);
+                        break;
                 }
-                else
-                {
-                    ex = new InvalidOperationException(remoteException.FailureMessage);
-                }
-                capturingStartedCompletionSource.TrySetException(ex);
+
+                _ = capturingStartedCompletionSource.TrySetException(ex);
             };
+            eventTracePipeline.OnServiceNotAvailable += (_, notAvailableArgs) =>
+            {
+                Exception ex;
+                switch (notAvailableArgs.Reason)
+                {
+                    case ParameterCapturingEvents.ServiceNotAvailableReason.NotSupported:
+                        ex = new MonitoringException(notAvailableArgs.Details);
+                        break;
+                    default:
+                        ex = new InvalidOperationException(notAvailableArgs.Details);
+                        break;
+                }
+
+                _ = capturingStartedCompletionSource.TrySetException(ex);
+                _ = capturingStoppedCompletionSource.TrySetException(ex);
+            };
+
 
             Task runPipelineTask = eventTracePipeline.StartAsync(token);
 

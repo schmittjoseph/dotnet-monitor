@@ -5,7 +5,6 @@ using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing

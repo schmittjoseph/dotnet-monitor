@@ -62,6 +62,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unable to create an ILogger instance in the target process..
+        /// </summary>
+        internal static string FeatureUnsupported_NoLogger {
+            get {
+                return ResourceManager.GetString("FeatureUnsupported_NoLogger", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to null.
         /// </summary>
         internal static string NullArgumentValue {
@@ -121,15 +130,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         internal static string ThisParameterName {
             get {
                 return ResourceManager.GetString("ThisParameterName", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not resolve method {methodName}.
-        /// </summary>
-        internal static string UnableToResolveMethod {
-            get {
-                return ResourceManager.GetString("UnableToResolveMethod", resourceCulture);
             }
         }
         

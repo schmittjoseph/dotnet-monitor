@@ -5,6 +5,7 @@ using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventin
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
+using Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing;
 using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,7 +23,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
     internal sealed class ParameterCapturingService : BackgroundService, IDisposable
     {
         private long _disposedState;
-        private readonly bool _isAvailable;
+
+        private ParameterCapturingEvents.ServiceNotAvailableReason _notAvailableReason = ParameterCapturingEvents.ServiceNotAvailableReason.None;
+        private string _notAvailableDetails = string.Empty;
 
         private readonly FunctionProbesManager? _probeManager;
         private readonly ParameterCapturingEventSource _eventSource = new();
@@ -33,42 +36,44 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         public ParameterCapturingService(IServiceProvider services)
         {
-            _logger = services.GetService<ILogger<ParameterCapturingService>>();
-            if (_logger == null)
-            {
-                return;
-            }
+            // Register the command callbacks (if possible) first so that dotnet-monitor
+            // can be notified of any initialization errors when it tries to invoke the commands.
+            SharedInternals.MessageDispatcher?.RegisterCallback<StartCapturingParametersPayload>(
+                IpcCommand.StartCapturingParameters,
+                OnStartMessage);
+
+            SharedInternals.MessageDispatcher?.RegisterCallback<EmptyPayload>(
+                IpcCommand.StopCapturingParameters,
+                OnStopMessage);
 
             try
             {
-                if (SharedInternals.MessageDispatcher == null)
+                _logger = services.GetService<ILogger>();
+                if (_logger == null)
                 {
-                    throw new NullReferenceException();
+                    throw new NotSupportedException(ParameterCapturingStrings.FeatureUnsupported_NoLogger);
                 }
 
-                SharedInternals.MessageDispatcher.RegisterCallback<StartCapturingParametersPayload>(
-                    IpcCommand.StartCapturingParameters,
-                    OnStartMessage);
+                ArgumentNullException.ThrowIfNull(SharedInternals.MessageDispatcher);
 
-                SharedInternals.MessageDispatcher.RegisterCallback<EmptyPayload>(
-                    IpcCommand.StopCapturingParameters,
-                    OnStopMessage);
-
-                _requests = Channel.CreateBounded<StartCapturingParametersPayload>(new BoundedChannelOptions(1)
+                _requests = Channel.CreateBounded<StartCapturingParametersPayload>(new BoundedChannelOptions(capacity: 1)
                 {
-                    FullMode = BoundedChannelFullMode.Wait
+                    FullMode = BoundedChannelFullMode.DropWrite
                 });
-                _stopRequests = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
+                _stopRequests = Channel.CreateBounded<bool>(new BoundedChannelOptions(capacity: 2)
                 {
-                    FullMode = BoundedChannelFullMode.Wait
+                    FullMode = BoundedChannelFullMode.DropWrite,
+                    SingleReader = true,
+                    SingleWriter = true
                 });
 
                 _probeManager = new FunctionProbesManager(new LogEmittingProbes(_logger));
-                _isAvailable = true;
             }
-            catch
+            catch (Exception ex)
             {
-                UnregisterCommands();
+                UnrecoverableInternalFault(ex);
+                _requests?.Writer.TryComplete();
+                _stopRequests?.Writer.TryComplete();
             }
         }
 
@@ -76,20 +81,49 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             if (payload.Methods.Length == 0)
             {
+                _eventSource.FailedToCapture(new ArgumentException(nameof(payload.Methods)));
                 return;
             }
 
-            _ = _requests?.Writer.TryWrite(payload);
+            if (_requests?.Writer.TryWrite(payload) != true)
+            {
+                if (!IsAvailable())
+                {
+                    _eventSource.ServiceNotAvailable(_notAvailableReason, _notAvailableDetails);
+                    return;
+                }
+                else
+                {
+                    // The channel is full, which should never happen if dotnet-monitor is properly rate limiting requests.
+                    _eventSource.FailedToCapture(ParameterCapturingEvents.CapturingFailedReason.TooManyRequests, string.Empty);
+                }
+            }
+        }
+
+        private bool IsAvailable()
+        {
+            return _notAvailableReason == ParameterCapturingEvents.ServiceNotAvailableReason.None;
         }
 
         private void OnStopMessage(EmptyPayload _)
         {
-            _stopRequests?.Writer.TryWrite(true);
+            if (_stopRequests?.Writer.TryWrite(true) != true)
+            {
+                if (!IsAvailable())
+                {
+                    _eventSource.ServiceNotAvailable(_notAvailableReason, _notAvailableDetails);
+                    return;
+                }
+                else
+                {
+                    // The channel is full which is OK as stop requests aren't tied to a specific operation.
+                }
+            }
         }
 
         private void StartCapturing(StartCapturingParametersPayload request)
         {
-            if (!_isAvailable || _probeManager == null)
+            if (!IsAvailable())
             {
                 throw new InvalidOperationException();
             }
@@ -114,12 +148,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (unableToResolve.Count > 0)
             {
                 UnresolvedMethodsExceptions ex = new(unableToResolve);
-                _logger?.Log(LogLevel.Warning, ex, null, Array.Empty<object>());
+                _logger!.Log(LogLevel.Warning, ex, null, Array.Empty<object>());
                 throw ex;
             }
 
-            _probeManager.StartCapturing(methods);
-            _logger?.LogInformation(
+            _probeManager!.StartCapturing(methods);
+            _logger!.LogInformation(
                 ParameterCapturingStrings.StartParameterCapturingFormatString,
                 request.Duration,
                 request.Methods.Length);
@@ -189,13 +223,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         private void StopCapturing()
         {
-            if (!_isAvailable || _probeManager == null)
+            if (!IsAvailable())
             {
                 return;
             }
 
-            _logger?.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
-            _probeManager.StopCapturing();
+            _logger!.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
+            _probeManager!.StopCapturing();
         }
 
         private static List<MethodInfo> ResolveMethod(Dictionary<(string, string), List<MethodInfo>> methodCache, MethodDescription methodDescription)
@@ -221,7 +255,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!_isAvailable)
+            if (!IsAvailable())
             {
                 return;
             }
@@ -243,44 +277,47 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
 
-                _ = await Task.WhenAny(_stopRequests!.Reader.WaitToReadAsync(cts.Token).AsTask(), Task.Delay(req.Duration, cts.Token)).ConfigureAwait(false);
-                _ = _stopRequests.Reader.TryRead(out _);
+                Task stopSignalTask = _stopRequests!.Reader.WaitToReadAsync(cts.Token).AsTask();
+                _ = await Task.WhenAny(stopSignalTask, Task.Delay(req.Duration, cts.Token)).ConfigureAwait(false);
+
+                // Signal the other stop condition tasks to cancel
                 cts.Cancel();
+
+                // Clear any stop requests
+                _ = _stopRequests.Reader.TryRead(out _);
 
                 try
                 {
                     StopCapturing();
+                    _eventSource.CapturingStop();
                 }
                 catch (Exception ex)
                 {
-                    //
                     // We're in a faulted state from an internal exception so there's
                     // nothing else that can be safely done for the remainder of the app's lifetime.
-                    //
                     UnrecoverableInternalFault(ex);
                     return;
-                }
-                finally
-                {
-                    _eventSource.CapturingStop();
                 }
             }
         }
 
         private void UnrecoverableInternalFault(Exception ex)
         {
-            //
-            // Unregister our command callbacks so that any attempts to use
-            // them from dotnet-monitor will result in observable faulures.
-            //
-            UnregisterCommands();
-            _eventSource.UnrecoverableInternalFault(ex);
-        }
+            if (ex is NotSupportedException)
+            {
+                _notAvailableReason = ParameterCapturingEvents.ServiceNotAvailableReason.NotSupported;
+                _notAvailableDetails = ex.Message;
+            }
+            else
+            {
+                _notAvailableReason = ParameterCapturingEvents.ServiceNotAvailableReason.InternalError;
+                _notAvailableDetails = ex.ToString();
+            }
 
-        private static void UnregisterCommands()
-        {
-            SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StartCapturingParameters);
-            SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StopCapturingParameters);
+            _eventSource.ServiceNotAvailable(_notAvailableReason, _notAvailableDetails);
+
+            _ = _requests?.Writer.TryComplete();
+            _ = _stopRequests?.Writer.TryComplete();
         }
 
         public override void Dispose()
@@ -288,9 +325,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (!DisposableHelper.CanDispose(ref _disposedState))
                 return;
 
+            SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StartCapturingParameters);
+            SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StopCapturingParameters);
+
             try
             {
-                UnregisterCommands();
                 _probeManager?.Dispose();
             }
             catch
