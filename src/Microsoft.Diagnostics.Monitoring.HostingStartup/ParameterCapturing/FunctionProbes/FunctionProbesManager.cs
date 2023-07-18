@@ -54,6 +54,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             }
 
             Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
+            BoxingTokensResolver boxingTokensResolver = new();
             lock (_requestLocker)
             {
                 List<ulong> functionIds = new(methods.Count);
@@ -68,7 +69,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                         return;
                     }
 
-                    uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+                    uint[] methodBoxingTokens = boxingTokensResolver.GetBoxingTokens(method);
                     if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
                     {
                         // Duplicate, ignore

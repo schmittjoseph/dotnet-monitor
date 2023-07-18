@@ -36,11 +36,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void MethodTemplateString(Type declaringType, string methodName, string templateString)
         {
             // Arrange
+            BoxingTokensResolver resolver = new();
             MethodInfo method = declaringType.GetMethod(methodName);
             Assert.NotNull(method);
 
             // Act
-            bool[] supportedParameters = BoxingTokens.AreParametersSupported(BoxingTokens.GetBoxingTokens(method));
+            bool[] supportedParameters = BoxingTokensResolver.AreParametersSupported(resolver.GetBoxingTokens(method));
             string actualTemplateString = PrettyPrinter.ConstructTemplateStringFromMethod(method, supportedParameters);
 
             // Assert

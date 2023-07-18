@@ -8,7 +8,7 @@ using System;
 using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
-using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.BoxingTokens;
+using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.BoxingTokensResolver;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing
 {
@@ -42,17 +42,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeRef), true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.TypeSpec), true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.ValueType_TypeDef), true)]
-        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.ValueType_TypeRef), false)]
+        [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.ValueType_TypeRef), true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.ValueType_TypeSpec), false)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.VarArgs), true, true)]
         [InlineData(typeof(StaticTestMethodSignatures), nameof(StaticTestMethodSignatures.Unicode_ΦΨ), true)]
         public void GetBoxingTokens_Detects_UnsupportedParameters(Type declaringType, string methodName, params bool[] supported)
         {
             // Arrange
+            BoxingTokensResolver resolver = new();
             MethodInfo method = declaringType.GetMethod(methodName);
 
             // Act
-            bool[] supportedParameters = BoxingTokens.AreParametersSupported(BoxingTokens.GetBoxingTokens(method));
+            bool[] supportedParameters = BoxingTokensResolver.AreParametersSupported(resolver.GetBoxingTokens(method));
 
             // Assert
             Assert.Equal(supported, supportedParameters);
@@ -62,11 +63,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void GetBoxingTokens_Detects_UnsupportedGenericParameters()
         {
             // Arrange
+            BoxingTokensResolver resolver = new();
             MethodInfo method = Type.GetType($"{nameof(SampleMethods)}.GenericTestMethodSignatures`2").GetMethod("GenericParameters");
             bool[] supported = new bool[] { true, false, false, false };
 
             // Act
-            bool[] supportedParameters = BoxingTokens.AreParametersSupported(BoxingTokens.GetBoxingTokens(method));
+            bool[] supportedParameters = BoxingTokensResolver.AreParametersSupported(resolver.GetBoxingTokens(method));
 
             // Assert
             Assert.Equal(supported, supportedParameters);
@@ -76,6 +78,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void GetBoxingTokens_Handles_Primitives()
         {
             // Arrange
+            BoxingTokensResolver resolver = new();
             uint[] expectedBoxingTokens = new uint[] {
                 SpecialCaseBoxingTypes.Boolean.BoxingToken(),
                 SpecialCaseBoxingTypes.Char.BoxingToken(),
@@ -93,7 +96,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.Primitives));
 
             // Act
-            uint[] actualBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+            uint[] actualBoxingTokens = resolver.GetBoxingTokens(method);
 
             // Assert
             Assert.Equal(expectedBoxingTokens, actualBoxingTokens);
@@ -103,6 +106,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void GetBoxingTokens_Handles_BuiltInReferenceTypes()
         {
             // Arrange
+            BoxingTokensResolver resolver = new();
             uint[] expectedBoxingTokens = new uint[] {
                 SpecialCaseBoxingTypes.Object.BoxingToken(),
                 SpecialCaseBoxingTypes.Object.BoxingToken(),
@@ -111,7 +115,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.BuiltInReferenceTypes));
 
             // Act
-            uint[] actualBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+            uint[] actualBoxingTokens = resolver.GetBoxingTokens(method);
 
             // Assert
             Assert.Equal(expectedBoxingTokens, actualBoxingTokens);

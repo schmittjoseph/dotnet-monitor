@@ -6,11 +6,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
-    internal static class BoxingTokens
+    internal sealed class BoxingTokensResolver
     {
+        // Cache
+        private readonly Dictionary<Assembly, Dictionary<string, uint>> assemblyTypeRefTokens = new();
+
         private static readonly uint UnsupportedParameterToken = SpecialCaseBoxingTypes.Unknown.BoxingToken();
         private static readonly uint SkipBoxingToken = SpecialCaseBoxingTypes.Object.BoxingToken();
 
@@ -32,12 +37,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             Double,
         };
 
-        public static uint BoxingToken(this SpecialCaseBoxingTypes specialCase)
-        {
-            const uint SpecialCaseBoxingTypeFlag = 0x7f000000;
-            return SpecialCaseBoxingTypeFlag | (uint)specialCase;
-        }
-
         public static bool IsParameterSupported(uint token)
         {
             return token != UnsupportedParameterToken;
@@ -54,7 +53,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return supported;
         }
 
-        public static uint[] GetBoxingTokens(MethodInfo method)
+
+
+        public uint[] GetBoxingTokens(MethodInfo method)
         {
             List<Type> methodParameterTypes = method.GetParameters().Select(p => p.ParameterType).ToList();
             List<uint> boxingTokens = new List<uint>(methodParameterTypes.Count + (method.HasImplicitThis() ? 1 : 0));
@@ -110,7 +111,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     else if (paramType.Assembly != method.Module.Assembly)
                     {
                         // Typeref
-                        boxingTokens.Add(UnsupportedParameterToken);
+                        boxingTokens.Add(GetTypeRefToken(method, paramType));
                     }
                     else
                     {
@@ -131,6 +132,67 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
 
             return boxingTokens.ToArray();
+        }
+
+        private uint GetTypeRefToken(MethodInfo method, Type parameterType)
+        {
+            if (parameterType.FullName == null)
+            {
+                return UnsupportedParameterToken;
+            }
+
+            HydrateTypeRefCache(method.Module.Assembly);
+            if (assemblyTypeRefTokens.TryGetValue(method.Module.Assembly, out Dictionary<string, uint>? typeRefTokens))
+            {
+                if (typeRefTokens != null && typeRefTokens.TryGetValue(parameterType.FullName, out uint token))
+                {
+                    return token;
+                }
+            }
+
+            return UnsupportedParameterToken;
+        }
+
+        private unsafe void HydrateTypeRefCache(Assembly assembly)
+        {
+            if (assemblyTypeRefTokens.ContainsKey(assembly))
+            {
+                return;
+            }
+
+            Dictionary<string, uint>? typeRefTokens = new();
+            if (!assembly.TryGetRawMetadata(out byte* pMdBlob, out int mdLength))
+            {
+                assemblyTypeRefTokens.Add(assembly, typeRefTokens);
+                return;
+            }
+
+            MetadataReader mdReader = new(pMdBlob, mdLength);
+            foreach (TypeReferenceHandle hTypeRef in mdReader.TypeReferences)
+            {
+                if (hTypeRef.IsNil)
+                {
+                    continue;
+                }
+
+                TypeReference typeRef = mdReader.GetTypeReference(hTypeRef);
+                if (typeRef.Namespace.IsNil || typeRef.Name.IsNil)
+                {
+                    continue;
+                }
+
+                string typeRefNamespace = mdReader.GetString(typeRef.Namespace);
+                string typeRefName = mdReader.GetString(typeRef.Name);
+
+                string fullName = string.Concat(typeRefNamespace, '.', typeRefName);
+                Console.WriteLine(fullName);
+                if (!typeRefTokens.TryAdd(fullName, (uint)mdReader.GetToken(hTypeRef)))
+                {
+                    return;
+                }
+            }
+
+            assemblyTypeRefTokens.Add(assembly, typeRefTokens);
         }
 
         private static uint GetSpecialCaseBoxingTokenForPrimitive(TypeCode typeCode)
