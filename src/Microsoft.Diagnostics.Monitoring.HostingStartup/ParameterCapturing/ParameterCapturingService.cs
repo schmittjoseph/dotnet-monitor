@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             try
             {
-                _logger = services.GetService<ILogger>();
+                _logger = services.GetService<ILogger<ParameterCapturingService>>();
                 if (_logger == null)
                 {
                     throw new NotSupportedException(ParameterCapturingStrings.FeatureUnsupported_NoLogger);
