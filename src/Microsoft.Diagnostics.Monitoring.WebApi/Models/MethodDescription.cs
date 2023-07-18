@@ -5,10 +5,15 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
+#if STARTUPHOOK || HOSTINGSTARTUP
+namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher.Models
+#else
 namespace Microsoft.Diagnostics.Monitoring.WebApi.Models
+#endif
 {
     public class MethodDescription
     {
+        // CONSIDER: Commonize this with our stack frame representation
         [JsonPropertyName("moduleName")]
         [Required]
         public string ModuleName { get; set; } = string.Empty;

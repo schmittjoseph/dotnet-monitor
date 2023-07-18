@@ -5,6 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <IsShippingAssembly>true</IsShippingAssembly>
     <OutputType>Library</OutputType>
+    <DefineConstants>$(DefineConstants);HOSTINGSTARTUP</DefineConstants>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
