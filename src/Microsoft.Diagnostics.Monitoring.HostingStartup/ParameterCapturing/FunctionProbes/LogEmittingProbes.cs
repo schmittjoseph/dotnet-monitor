@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
@@ -16,6 +17,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         public void EnterProbe(ulong uniquifier, object[] args)
         {
+            // JSFIX: Expensive test code to avoid recursing on any methods called by loggers
+            /*
+            var trace = new StackTrace(fNeedFileInfo: false);
+            foreach (var frame in trace.GetFrames())
+            {
+                if (frame.HasMethod() && frame.GetMethod()?.DeclaringType?.FullName?.Contains("log", System.StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    return;
+                }
+            }
+            */
+
+
             var methodCache = FunctionProbesStub.InstrumentedMethodCache;
             if (methodCache == null ||
                 args == null ||
@@ -37,6 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 argValues[fmtIndex++] = PrettyPrinter.FormatObject(args[i]);
             }
 
+            // Console.WriteLine("IO Test");
             _logger.Log(LogLevel.Information, instrumentedMethod.MethodWithParametersTemplateString, argValues);
             return;
         }

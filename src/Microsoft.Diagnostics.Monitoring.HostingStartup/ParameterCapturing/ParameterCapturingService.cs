@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,8 +69,96 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return Task.CompletedTask;
             }
 
+            /*
+            if (!Debugger.IsAttached)
+            {
+                Debugger.Launch();
+            }
+            */
+
+            StressTest();
+
             return Task.Delay(Timeout.Infinite, stoppingToken);
         }
+
+
+        private void StressTest()
+        {
+            const bool OnlyHookCorLib = true;
+
+            List<MethodInfo> methods = new();
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.ReflectionOnly && !assembly.IsDynamic).ToArray();
+            foreach (Assembly assembly in assemblies)
+            {
+                foreach (Module mod in assembly.Modules)
+                {
+                    if (OnlyHookCorLib && !mod.Name.StartsWith("System.Private.CoreLib", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    foreach (Type type in mod.GetTypes())
+                    {
+                        methods.AddRange(GetAllMethods(type));
+                    }
+                }
+            }
+
+            _logger!.LogCritical("Beginning stress test, hooked {Number} methods", methods.Count);
+            _probeManager!.StartCapturing(methods);
+        }
+
+
+        private static List<MethodInfo> GetAllMethods(Type containingType)
+        {
+            List<MethodInfo> methods = new();
+
+            MethodInfo[] possibleMethods = containingType.GetMethods(
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Instance |
+                BindingFlags.Static);
+
+            foreach (MethodInfo method in possibleMethods)
+            {
+                Type? declType = method.DeclaringType;
+                if (declType == null)
+                {
+                    continue;
+                }
+
+                if (declType.IsConstructedGenericType)
+                {
+                    continue;
+                }
+
+                string fullName = $"{declType.Module.Name}!{declType.FullName}.{method.Name}";
+
+                if (fullName.Contains("System.Diagnostics.") ||
+//                    fullName.Contains("log", StringComparison.OrdinalIgnoreCase) ||
+//                    fullName.Contains("System.Collections") ||
+//                    fullName.Contains("System.Threading") ||
+                    fullName.Contains("Microsoft.Diagnostics.") ||
+                    false
+                    )
+                {
+                    continue;
+                }
+
+                methods.Add(method);
+            }
+
+            /*
+            foreach (var nestedType in containingType.GetNestedTypes())
+            {
+                methods.AddRange(GetAllMethods(nestedType));
+            }
+            */
+
+            return methods;
+        }
+
+
 
         public override void Dispose()
         {
