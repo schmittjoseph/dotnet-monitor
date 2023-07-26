@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using SampleMethods;
@@ -220,12 +221,20 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
 
             await WaitForProbeInstallationAsync(probeManager, probeProxy, new[] { method }, token);
 
+            ulong? faultingUniquifier = null;
+            probeManager.OnProbeFault += (_, uniquifier) =>
+            {
+                faultingUniquifier = uniquifier;
+            };
             StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
 
             Assert.Equal(1, probeProxy.GetProbeInvokeCount(method));
 
+            Assert.NotNull(faultingUniquifier);
+            Assert.Equal(method.GetFunctionId(), faultingUniquifier.Value);
+
             // Probes should be uninstalled now.
-            await WaitForProbeUninstallationAsync(probeManager, probeProxy, token, explicitStopCaptureCall: false);
+            await WaitForProbeUninstallationAsync(probeManager, probeProxy, token);
         }
 
         private static async Task Test_RecursingProbeAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
@@ -334,29 +343,17 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             }
         }
 
-        private static async Task WaitForProbeUninstallationAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token, bool explicitStopCaptureCall = true)
+        private static async Task WaitForProbeUninstallationAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
         {
-            if (explicitStopCaptureCall)
-            {
-                probeManager.StopCapturing();
-            }
+            await probeManager.StopCapturingAsync().WaitAsync(token);
 
             MethodInfo uninstallationTestMethod = typeof(FunctionProbesScenario).GetMethod(nameof(FunctionProbesScenario.UninstallationTestStub));
             Assert.NotNull(uninstallationTestMethod);
 
             probeProxy.RegisterPerFunctionProbe(uninstallationTestMethod, (object[] args) => { });
 
-            while (!token.IsCancellationRequested)
-            {
-                int currentCount = probeProxy.GetProbeInvokeCount(uninstallationTestMethod);
-                uninstallationTestMethod.Invoke(null, null);
-                if (currentCount == probeProxy.GetProbeInvokeCount(uninstallationTestMethod))
-                {
-                    return;
-                }
-
-                await Task.Delay(100, token);
-            }
+            uninstallationTestMethod.Invoke(null, null);
+            Assert.Equal(0, probeProxy.GetProbeInvokeCount(uninstallationTestMethod));
 
             token.ThrowIfCancellationRequested();
         }
@@ -378,18 +375,11 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 uninstallationTestMethod
             };
             methodsToCapture.AddRange(methods);
-            probeManager.StartCapturing(methodsToCapture);
 
-            while (!token.IsCancellationRequested)
-            {
-                installationTestMethod.Invoke(null, null);
-                if (probeProxy.GetProbeInvokeCount(installationTestMethod) != 0)
-                {
-                    return;
-                }
+            await probeManager.StartCapturingAsync(methodsToCapture).WaitAsync(token);
 
-                await Task.Delay(100, token);
-            }
+            installationTestMethod.Invoke(null, null);
+            Assert.Equal(1, probeProxy.GetProbeInvokeCount(installationTestMethod));
 
             token.ThrowIfCancellationRequested();
         }

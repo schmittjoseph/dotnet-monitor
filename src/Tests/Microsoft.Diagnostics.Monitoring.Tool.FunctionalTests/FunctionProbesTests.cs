@@ -10,7 +10,6 @@ using Xunit;
 using Xunit.Abstractions;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners;
 using Microsoft.Diagnostics.Monitoring.WebApi;
-using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Options;
 using System.Collections.Generic;
 using System.Linq;

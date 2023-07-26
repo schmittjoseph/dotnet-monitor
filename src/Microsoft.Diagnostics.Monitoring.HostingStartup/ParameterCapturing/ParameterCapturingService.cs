@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw new InvalidOperationException();
             }
 
-            _probeManager?.StopCapturing();
+            //_probeManager?.StopCapturing();
         }
 
         public void StartCapturing(IList<MethodInfo> methods)
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 throw new InvalidOperationException();
             }
 
-            _probeManager?.StartCapturing(methods);
+            //_probeManager?.StartCapturing(methods);
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)

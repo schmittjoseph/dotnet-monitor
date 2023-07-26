@@ -10,3 +10,5 @@ EXPORTS
     RequestFunctionProbeUninstallation PRIVATE
     RegisterMonitorMessageCallback     PRIVATE
     UnregisterMonitorMessageCallback   PRIVATE
+    RegisterFunctionProbeCallbacks     PRIVATE
+    UnregisterFunctionProbeCallbacks   PRIVATE
