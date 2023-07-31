@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -222,11 +223,21 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             await WaitForProbeInstallationAsync(probeManager, probeProxy, new[] { method }, token);
 
             ulong? faultingUniquifier = null;
-            probeManager.OnProbeFault += (_, uniquifier) =>
+
+            void onFault(object caller, ulong uniquifier)
             {
+                Console.WriteLine("WE HERE"); // not called, but probemanager is, so something is wrong with the event
                 faultingUniquifier = uniquifier;
-            };
-            StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
+            }
+            probeManager.OnProbeFault += onFault;
+            try
+            {
+                StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
+            }
+            finally
+            {
+                probeManager.OnProbeFault -= onFault;
+            }
 
             Assert.Equal(1, probeProxy.GetProbeInvokeCount(method));
 
@@ -259,11 +270,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             {
             });
 
-            using CancellationTokenSource timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeoutSource.CancelAfter(TimeSpan.FromSeconds(5));
-
-            // There's currently no notification mechanism for determining probe installation success, wait for timeout instead.
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await WaitForProbeInstallationAsync(probeManager, probeProxy, new[] { method }, timeoutSource.Token));
+            await Assert.ThrowsAsync<COMException>(async () => await WaitForProbeInstallationAsync(probeManager, probeProxy, new[] { method }, token));
         }
 
         private static async Task Test_AssertsInProbesAreCaughtAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)

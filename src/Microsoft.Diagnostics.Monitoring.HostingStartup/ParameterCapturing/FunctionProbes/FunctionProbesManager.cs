@@ -87,7 +87,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void OnFault(ulong uniquifier)
         {
+            Console.WriteLine("WE HERE 1");
             OnProbeFault?.Invoke(this, uniquifier);
+            StopCapturingCore();
         }
 
         // Not thread safe, caller must ensure safety.

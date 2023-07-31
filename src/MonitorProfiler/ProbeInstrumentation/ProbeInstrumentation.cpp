@@ -108,7 +108,7 @@ void ProbeInstrumentation::WorkerThread()
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
                 if (g_pOnProbeFaultCallback != nullptr)
                 {
-                    g_pOnProbeFaultCallback(payload.functionId);
+                    g_pOnProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
                 }
             }
             break;
@@ -148,10 +148,6 @@ void ProbeInstrumentation::ShutdownBackgroundService()
 
 void STDMETHODCALLTYPE ProbeInstrumentation::OnFunctionProbeFault(ULONG64 uniquifier)
 {
-    //
-    // Faulting behavior: When any function probe faults, uninstall all probes.
-    //
-
     PROBE_WORKER_PAYLOAD payload = {};
     payload.instruction = ProbeWorkerInstruction::FAULTING_PROBE;
 
