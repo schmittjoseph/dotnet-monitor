@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventing;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
@@ -88,6 +87,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     OnStopMessage);
 
                 _initializedState = new InitializedState(services);
+                _initializedState.ProbeManager.OnProbeFault += OnProbeFault;
             }
             catch (NotSupportedException ex)
             {
@@ -97,6 +97,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 UnrecoverableError(ex);
             }
+        }
+
+        private void OnProbeFault(object? sender, ulong uniquifier)
+        {
+            if (_initializedState == null)
+            {
+                return;
+            }
+
+            Task.Run(_initializedState.ProbeManager.StopCapturingAsync);
         }
 
         private bool IsAvailable()
@@ -276,19 +286,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _eventSource.ServiceStateUpdate(_serviceState, _serviceStateDetails);
         }
 
-        private void OnProbeFault(object? caller, ulong uniquifier)
-        {
-            _initializedState?.ProbeManager.StopCapturingAsync();
-        }
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (_initializedState == null)
             {
                 return;
             }
-
-            _initializedState.ProbeManager.OnProbeFault += OnProbeFault;
 
             ChangeServiceState(ParameterCapturingEvents.ServiceState.Running);
             while (IsAvailable() && !stoppingToken.IsCancellationRequested)
@@ -330,13 +333,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StartCapturingParameters);
             SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StopCapturingParameters);
 
-            try
+            if (_initializedState != null)
             {
-                _initializedState?.Dispose();
-            }
-            catch
-            {
+                _initializedState.ProbeManager.OnProbeFault -= OnProbeFault;
+                try
+                {
+                    _initializedState.Dispose();
+                }
+                catch
+                {
 
+                }
             }
 
             base.Dispose();

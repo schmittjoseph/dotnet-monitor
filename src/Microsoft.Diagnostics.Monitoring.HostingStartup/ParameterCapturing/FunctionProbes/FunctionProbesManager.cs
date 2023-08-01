@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
@@ -40,8 +41,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         [DllImport(ProfilerIdentifiers.MutatingProfiler.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void UnregisterFunctionProbeCallbacks();
 
-        private long _disposedState;
+        private const long CapturingStateStopped = default(long);
+        private const long CapturingStateStopping = 1;
+        private const long CapturingStateStarted = 2;
+        private const long CapturingStateStarting = 3;
 
+        private long _disposedState;
+        private long _capturingState;
+        
         private TaskCompletionSource? _installationTaskSource;
         private TaskCompletionSource? _uninstallationTaskSource;
 
@@ -59,11 +66,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void OnInstallation(int hresult)
         {
+            _capturingState = CapturingStateStarted;
             CompleteTaskSource(_installationTaskSource, hresult);
         }
 
         private void OnUninstallation(int hresult)
         {
+            _capturingState = CapturingStateStopped;
             CompleteTaskSource(_uninstallationTaskSource, hresult);
         }
 
@@ -90,10 +99,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             }
         }
 
+        private void StopCapturingCore()
+        {
+            if (CapturingStateStarted == Interlocked.CompareExchange(ref _capturingState, CapturingStateStopping, CapturingStateStarted))
+            {
+                FunctionProbesStub.InstrumentedMethodCache = null;
+                RequestFunctionProbeUninstallation();
+            }
+        }
+
         public Task StopCapturingAsync()
         {
-            FunctionProbesStub.InstrumentedMethodCache = null;
-            RequestFunctionProbeUninstallation();
+            StopCapturingCore();
             return _uninstallationTaskSource?.Task ?? Task.CompletedTask;
         }
 
@@ -104,37 +121,52 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new ArgumentException(nameof(methods));
             }
 
-            Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
-            List<ulong> functionIds = new(methods.Count);
-            List<uint> argumentCounts = new(methods.Count);
-            List<uint> boxingTokens = new();
-
-            foreach (MethodInfo method in methods)
+            if (CapturingStateStopped != Interlocked.CompareExchange(ref _capturingState, CapturingStateStarting, CapturingStateStopped))
             {
-                ulong functionId = method.GetFunctionId();
-                if (functionId == 0)
-                {
-                    throw new NotSupportedException(method.Name);
-                }
-
-                uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
-                if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
-                {
-                    // Duplicate, ignore
-                    continue;
-                }
-
-                functionIds.Add(functionId);
-                argumentCounts.Add((uint)methodBoxingTokens.Length);
-                boxingTokens.AddRange(methodBoxingTokens);
+                throw new InvalidOperationException();
             }
 
-            FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
-            RequestFunctionProbeInstallation(
-                functionIds.ToArray(),
-                (uint)functionIds.Count,
-                boxingTokens.ToArray(),
-                argumentCounts.ToArray());
+            try
+            {
+                Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
+                List<ulong> functionIds = new(methods.Count);
+                List<uint> argumentCounts = new(methods.Count);
+                List<uint> boxingTokens = new();
+
+                foreach (MethodInfo method in methods)
+                {
+                    ulong functionId = method.GetFunctionId();
+                    if (functionId == 0)
+                    {
+                        throw new NotSupportedException(method.Name);
+                    }
+
+                    uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+                    if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
+                    {
+                        // Duplicate, ignore
+                        continue;
+                    }
+
+                    functionIds.Add(functionId);
+                    argumentCounts.Add((uint)methodBoxingTokens.Length);
+                    boxingTokens.AddRange(methodBoxingTokens);
+                }
+
+                FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
+                RequestFunctionProbeInstallation(
+                    functionIds.ToArray(),
+                    (uint)functionIds.Count,
+                    boxingTokens.ToArray(),
+                    argumentCounts.ToArray());
+
+                _capturingState = CapturingStateStarted;
+            }
+            catch
+            {
+                _capturingState = CapturingStateStopped;
+                throw;
+            }
 
             _installationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
             _uninstallationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);

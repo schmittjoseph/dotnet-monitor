@@ -283,7 +283,7 @@ HRESULT ProbeInstrumentation::InstallProbes(vector<UNPROCESSED_INSTRUMENTATION_R
 
         if (req.functionId == m_probeFunctionId)
         {
-            return E_FAIL;
+            return E_INVALIDARG;
         }
 
         // For now just use the function id as the uniquifier.

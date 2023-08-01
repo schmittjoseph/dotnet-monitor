@@ -235,24 +235,25 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
 
             await probeManager.StartCapturingAsync(new[] { method }).WaitAsync(token);
 
-            ulong? faultingUniquifier = null;
-
+            TaskCompletionSource<ulong> faultingUniquifierSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
             void onFault(object caller, ulong uniquifier)
             {
-                faultingUniquifier = uniquifier;
+                _ = faultingUniquifierSource.TrySetResult(uniquifier);
             }
             probeManager.OnProbeFault += onFault;
+
+            StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
+
+            // Faults are handled asynchronously, so wait for the event to propagate
             try
             {
-                StaticTestMethodSignatures.ExceptionRegionAtBeginningOfMethod(null);
+                ulong faultingUniquifier = await faultingUniquifierSource.Task.WaitAsync(token);
+                Assert.Equal(method.GetFunctionId(), faultingUniquifier);
             }
             finally
             {
                 probeManager.OnProbeFault -= onFault;
             }
-
-            Assert.NotNull(faultingUniquifier);
-            Assert.Equal(method.GetFunctionId(), faultingUniquifier.Value);
         }
 
         private static async Task Test_RecursingProbeAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
@@ -280,8 +281,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             using CancellationTokenSource timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(token);
             timeoutSource.CancelAfter(TimeSpan.FromSeconds(5));
 
-            // JSFIX
-            await Assert.ThrowsAnyAsync<COMException>(async () => await probeManager.StartCapturingAsync(new[] { method }).WaitAsync(token));
+            await Assert.ThrowsAnyAsync<ArgumentException>(async () => await probeManager.StartCapturingAsync(new[] { method }).WaitAsync(token));
         }
 
         private static async Task Test_AssertsInProbesAreCaughtAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
