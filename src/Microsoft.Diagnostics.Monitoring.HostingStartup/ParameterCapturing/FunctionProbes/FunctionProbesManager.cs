@@ -40,14 +40,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         [DllImport(ProfilerIdentifiers.MutatingProfiler.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void UnregisterFunctionProbeCallbacks();
 
-        private const long CapturingStateStopped = default(long);
-        private const long CapturingStateActive = 1;
-
         private long _disposedState;
-        private long _capturingState;
 
         private TaskCompletionSource? _installationTaskSource;
         private TaskCompletionSource? _uninstallationTaskSource;
+
+        public event EventHandler<ulong>? OnProbeFault;
 
         public FunctionProbesManager(IFunctionProbes probes)
         {
@@ -71,7 +69,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void OnFault(ulong uniquifier)
         {
-
+            OnProbeFault?.Invoke(this, uniquifier);
         }
 
         private static void CompleteTaskSource(TaskCompletionSource? taskCompletionSource, int hresult)
@@ -92,73 +90,56 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             }
         }
 
-
-        public void StopCapturing()
+        public Task StopCapturingAsync()
         {
-            lock (_requestLocker)
-            {
-                if (!_isCapturing)
-                {
-                    return;
-                }
-
-                FunctionProbesStub.InstrumentedMethodCache = null;
-                RequestFunctionProbeUninstallation();
-
-                _isCapturing = false;
-            }
+            FunctionProbesStub.InstrumentedMethodCache = null;
+            RequestFunctionProbeUninstallation();
+            return _uninstallationTaskSource?.Task ?? Task.CompletedTask;
         }
 
-        public void StartCapturing(IList<MethodInfo> methods)
+        public Task StartCapturingAsync(IList<MethodInfo> methods)
         {
             if (methods.Count == 0)
             {
                 throw new ArgumentException(nameof(methods));
             }
 
-            
-
             Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
-            lock (_requestLocker)
+            List<ulong> functionIds = new(methods.Count);
+            List<uint> argumentCounts = new(methods.Count);
+            List<uint> boxingTokens = new();
+
+            foreach (MethodInfo method in methods)
             {
-                if (_isCapturing)
+                ulong functionId = method.GetFunctionId();
+                if (functionId == 0)
                 {
-                    throw new InvalidOperationException();
+                    throw new NotSupportedException(method.Name);
                 }
 
-                List<ulong> functionIds = new(methods.Count);
-                List<uint> argumentCounts = new(methods.Count);
-                List<uint> boxingTokens = new();
-
-                foreach (MethodInfo method in methods)
+                uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
+                if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
                 {
-                    ulong functionId = method.GetFunctionId();
-                    if (functionId == 0)
-                    {
-                        return;
-                    }
-
-                    uint[] methodBoxingTokens = BoxingTokens.GetBoxingTokens(method);
-                    if (!newMethodCache.TryAdd(functionId, new InstrumentedMethod(method, methodBoxingTokens)))
-                    {
-                        // Duplicate, ignore
-                        continue;
-                    }
-
-                    functionIds.Add(functionId);
-                    argumentCounts.Add((uint)methodBoxingTokens.Length);
-                    boxingTokens.AddRange(methodBoxingTokens);
+                    // Duplicate, ignore
+                    continue;
                 }
 
-                FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
-                RequestFunctionProbeInstallation(
-                    functionIds.ToArray(),
-                    (uint)functionIds.Count,
-                    boxingTokens.ToArray(),
-                    argumentCounts.ToArray());
-
-                _isCapturing = true;
+                functionIds.Add(functionId);
+                argumentCounts.Add((uint)methodBoxingTokens.Length);
+                boxingTokens.AddRange(methodBoxingTokens);
             }
+
+            FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
+            RequestFunctionProbeInstallation(
+                functionIds.ToArray(),
+                (uint)functionIds.Count,
+                boxingTokens.ToArray(),
+                argumentCounts.ToArray());
+
+            _installationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _uninstallationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            return _installationTaskSource.Task;
         }
 
         public void Dispose()
@@ -167,7 +148,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 return;
 
             FunctionProbesStub.Instance = null;
-            StopCapturing();
+
+            _installationTaskSource?.TrySetCanceled();
+            _uninstallationTaskSource?.TrySetCanceled();
+
+            try
+            {
+                UnregisterFunctionProbeCallbacks();
+            }
+            catch
+            {
+            }
         }
     }
 }

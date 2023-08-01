@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventing;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
@@ -167,7 +168,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _ = request.StopRequest.TrySetResult();
         }
 
-        private bool TryStartCapturing(StartCapturingParametersPayload request)
+        private async Task<bool> TryStartCapturingAsync(StartCapturingParametersPayload request, CancellationToken token)
         {
             try
             {
@@ -201,7 +202,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     throw ex;
                 }
 
-                _initializedState.ProbeManager.StartCapturing(methods);
+                await _initializedState.ProbeManager.StartCapturingAsync(methods).WaitAsync(token).ConfigureAwait(false);
+
                 _eventSource.CapturingStart(request.RequestId);
                 _initializedState.Logger.LogInformation(
                     ParameterCapturingStrings.StartParameterCapturingFormatString,
@@ -225,7 +227,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return false;
         }
 
-        private void TryStopCapturing(Guid requestId)
+        private async Task TryStopCapturingAsync(Guid requestId, CancellationToken token)
         {
             try
             {
@@ -236,7 +238,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
 
                 _initializedState.Logger.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
-                _initializedState.ProbeManager.StopCapturing();
+                await _initializedState.ProbeManager.StopCapturingAsync().WaitAsync(token).ConfigureAwait(false);
                 _eventSource.CapturingStop(requestId);
             }
             catch (Exception ex)
@@ -274,6 +276,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _eventSource.ServiceStateUpdate(_serviceState, _serviceStateDetails);
         }
 
+        private void OnProbeFault(object? caller, ulong uniquifier)
+        {
+            _initializedState?.ProbeManager.StopCapturingAsync();
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (_initializedState == null)
@@ -281,11 +288,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
+            _initializedState.ProbeManager.OnProbeFault += OnProbeFault;
+
             ChangeServiceState(ParameterCapturingEvents.ServiceState.Running);
             while (IsAvailable() && !stoppingToken.IsCancellationRequested)
             {
                 CapturingRequest request = await _initializedState.RequestQueue.Reader.ReadAsync(stoppingToken);
-                if (!TryStartCapturing(request.Payload))
+
+                if (!await TryStartCapturingAsync(request.Payload, stoppingToken).ConfigureAwait(false))
                 {
                     continue;
                 }
@@ -302,7 +312,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 }
 
-                TryStopCapturing(request.Payload.RequestId);
+                await TryStopCapturingAsync(request.Payload.RequestId, stoppingToken).ConfigureAwait(false);
                 _ = _initializedState.AllRequests.TryRemove(request.Payload.RequestId, out _);
             }
 

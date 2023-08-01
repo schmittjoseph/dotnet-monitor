@@ -105,13 +105,14 @@ void ProbeInstrumentation::WorkerThread()
         case ProbeWorkerInstruction::FAULTING_PROBE:
             m_pLogger->Log(LogLevel::Error, _LS("Function probe faulting in function: 0x%08x"), payload.functionId);
             {
+                BOOL shouldUninstall = FALSE;
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
                 if (g_pOnProbeFaultCallback != nullptr)
                 {
                     g_pOnProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
                 }
             }
-            __fallthrough;
+            break;
 
         case ProbeWorkerInstruction::UNINSTALL_PROBES:
             hr = UninstallProbes();
