@@ -14,6 +14,15 @@ using namespace std;
 #define DLLEXPORT
 #endif
 
+typedef void (STDMETHODCALLTYPE *ProbeInstallationCallback)(INT32);
+typedef void (STDMETHODCALLTYPE *ProbeUninstallationCallback)(INT32);
+typedef void (STDMETHODCALLTYPE *ProbeFaultCallback)(ULONG64);
+
+mutex g_probeManagementCallbacksMutex; // guards g_pOnProbeInstallationCallback, g_pOnProbeUninstallationCallback, g_pOnProbeFaultCallback
+ProbeInstallationCallback g_pOnProbeInstallationCallback = nullptr;
+ProbeUninstallationCallback g_pOnProbeUninstallationCallback = nullptr;
+ProbeFaultCallback g_pOnProbeFaultCallback = nullptr;
+
 BlockingQueue<PROBE_WORKER_PAYLOAD> g_probeManagementQueue;
 
 ProbeInstrumentation::ProbeInstrumentation(const shared_ptr<ILogger>& logger, ICorProfilerInfo12* profilerInfo) :
@@ -84,10 +93,24 @@ void ProbeInstrumentation::WorkerThread()
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes: 0x%08x"), hr);
             }
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_pOnProbeInstallationCallback != nullptr)
+                {
+                    g_pOnProbeInstallationCallback(hr);
+                }
+            }
             break;
 
         case ProbeWorkerInstruction::FAULTING_PROBE:
             m_pLogger->Log(LogLevel::Error, _LS("Function probe faulting in function: 0x%08x"), payload.functionId);
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_pOnProbeFaultCallback != nullptr)
+                {
+                    g_pOnProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
+                }
+            }
             __fallthrough;
 
         case ProbeWorkerInstruction::UNINSTALL_PROBES:
@@ -95,6 +118,13 @@ void ProbeInstrumentation::WorkerThread()
             if (hr != S_OK)
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to uninstall probes: 0x%08x"), hr);
+            }
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_pOnProbeUninstallationCallback != nullptr)
+                {
+                    g_pOnProbeUninstallationCallback(hr);
+                }
             }
             break;
 
@@ -389,6 +419,48 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
         RequestFunctionProbeUninstallation();
         return hr;
     }
+
+    return S_OK;
+}
+
+STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
+    ProbeInstallationCallback pInstallationCallback,
+    ProbeUninstallationCallback pUninstallationCallback,
+    ProbeFaultCallback pFaultCallback)
+{
+    //
+    // Note: Require locking to access g_pManagedMessageCallback as it is
+    // used on another thread (in ProcessCallstackMessage).
+    //
+    // A lock-free approach could be used to safely update and observe the value of the callback,
+    // however that would introduce the edge case where the provided callback is unregistered
+    // right before it is invoked.
+    // This means that the unregistered callback would still be invoked, leading to potential issues
+    // such as calling into an instanced method that has been disposed.
+    //
+    // For simplicitly just use locking for now as it prevents the above edge case.
+    //
+    lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+    if (g_pOnProbeInstallationCallback != nullptr &&
+        g_pOnProbeUninstallationCallback != nullptr &&
+        g_pOnProbeFaultCallback != nullptr)
+    {
+        return E_FAIL;
+    }
+
+    g_pOnProbeInstallationCallback = pInstallationCallback;
+    g_pOnProbeUninstallationCallback = pUninstallationCallback;
+    g_pOnProbeFaultCallback = pFaultCallback;
+
+    return S_OK;
+}
+
+STDAPI DLLEXPORT UnregisterFunctionProbeCallbacks()
+{
+    lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+    g_pOnProbeInstallationCallback = nullptr;
+    g_pOnProbeUninstallationCallback = nullptr;
+    g_pOnProbeFaultCallback = nullptr;
 
     return S_OK;
 }

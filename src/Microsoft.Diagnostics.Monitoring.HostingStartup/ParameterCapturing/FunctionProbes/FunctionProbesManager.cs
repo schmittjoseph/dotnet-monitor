@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
@@ -25,18 +26,72 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             uint count,
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokens,
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokenCounts);
-       
-        private readonly object _requestLocker = new();
+
+        private delegate void FunctionProbeInstallationCallback(int hresult);
+        private delegate void FunctionProbeUninstallationCallback(int hresult);
+        private delegate void FunctionProbeFaultCallback(ulong uniquifier);
+
+        [DllImport(ProfilerIdentifiers.MutatingProfiler.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
+        private static extern void RegisterFunctionProbeCallbacks(
+            FunctionProbeInstallationCallback onInstallation,
+            FunctionProbeUninstallationCallback onUninstallation,
+            FunctionProbeFaultCallback onFault);
+
+        [DllImport(ProfilerIdentifiers.MutatingProfiler.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
+        private static extern void UnregisterFunctionProbeCallbacks();
+
+        private const long CapturingStateStopped = default(long);
+        private const long CapturingStateActive = 1;
+
         private long _disposedState;
-        private bool _isCapturing;
+        private long _capturingState;
+
+        private TaskCompletionSource? _installationTaskSource;
+        private TaskCompletionSource? _uninstallationTaskSource;
 
         public FunctionProbesManager(IFunctionProbes probes)
         {
             ProfilerResolver.InitializeResolver<FunctionProbesManager>();
 
             RequestFunctionProbeRegistration(FunctionProbesStub.GetProbeFunctionId());
+            RegisterFunctionProbeCallbacks(OnInstallation, OnUninstallation, OnFault);
+
             FunctionProbesStub.Instance = probes;
         }
+
+        private void OnInstallation(int hresult)
+        {
+            CompleteTaskSource(_installationTaskSource, hresult);
+        }
+
+        private void OnUninstallation(int hresult)
+        {
+            CompleteTaskSource(_uninstallationTaskSource, hresult);
+        }
+
+        private void OnFault(ulong uniquifier)
+        {
+
+        }
+
+        private static void CompleteTaskSource(TaskCompletionSource? taskCompletionSource, int hresult)
+        {
+            if (taskCompletionSource == null)
+            {
+                return;
+            }
+
+            Exception? ex = Marshal.GetExceptionForHR(hresult);
+            if (ex == null)
+            {
+                _ = taskCompletionSource.TrySetResult();
+            }
+            else
+            {
+                _ = taskCompletionSource.TrySetException(ex);
+            }
+        }
+
 
         public void StopCapturing()
         {
@@ -60,6 +115,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             {
                 throw new ArgumentException(nameof(methods));
             }
+
+            
 
             Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
             lock (_requestLocker)
