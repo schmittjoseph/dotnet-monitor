@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -281,7 +280,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             using CancellationTokenSource timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(token);
             timeoutSource.CancelAfter(TimeSpan.FromSeconds(5));
 
-            await Assert.ThrowsAnyAsync<ArgumentException>(async () => await probeManager.StartCapturingAsync(new[] { method }).WaitAsync(token));
+            await Assert.ThrowsAsync<ArgumentException>(async () => await probeManager.StartCapturingAsync(new[] { method }).WaitAsync(token));
         }
 
         private static async Task Test_AssertsInProbesAreCaughtAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
