@@ -87,7 +87,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     OnStopMessage);
 
                 _initializedState = new InitializedState(services);
-                _initializedState.ProbeManager.OnProbeFault += OnProbeFault;
             }
             catch (NotSupportedException ex)
             {
@@ -97,16 +96,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 UnrecoverableError(ex);
             }
-        }
-
-        private void OnProbeFault(object? sender, ulong uniquifier)
-        {
-            if (_initializedState == null)
-            {
-                return;
-            }
-
-            Task.Run(_initializedState.ProbeManager.StopCapturingAsync);
         }
 
         private bool IsAvailable()
@@ -293,13 +282,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
+
             ChangeServiceState(ParameterCapturingEvents.ServiceState.Running);
             while (IsAvailable() && !stoppingToken.IsCancellationRequested)
             {
                 CapturingRequest request = await _initializedState.RequestQueue.Reader.ReadAsync(stoppingToken);
 
+                void onProbeFault(object? sender, ulong uniquifier)
+                {
+                    _ = request.StopRequest.TrySetResult();
+                }
+
+                _initializedState.ProbeManager.OnProbeFault += onProbeFault;
                 if (!await TryStartCapturingAsync(request.Payload, stoppingToken).ConfigureAwait(false))
                 {
+                    _initializedState.ProbeManager.OnProbeFault -= onProbeFault;
                     continue;
                 }
 
@@ -317,7 +314,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 await TryStopCapturingAsync(request.Payload.RequestId, stoppingToken).ConfigureAwait(false);
                 _ = _initializedState.AllRequests.TryRemove(request.Payload.RequestId, out _);
+                _initializedState.ProbeManager.OnProbeFault -= onProbeFault;
             }
+
 
             if (IsAvailable())
             {
@@ -335,7 +334,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             if (_initializedState != null)
             {
-                _initializedState.ProbeManager.OnProbeFault -= OnProbeFault;
                 try
                 {
                     _initializedState.Dispose();
