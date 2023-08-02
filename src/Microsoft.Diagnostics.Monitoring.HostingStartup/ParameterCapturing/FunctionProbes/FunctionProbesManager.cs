@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private long _disposedState;
         private long _capturingState;
 
-        private TaskCompletionSource _probeRegistrationSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _probeRegistrationSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         
         private TaskCompletionSource? _installationTaskSource;
         private TaskCompletionSource? _uninstallationTaskSource;
