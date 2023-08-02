@@ -43,22 +43,22 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         [DllImport(ProfilerIdentifiers.MutatingProfiler.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void UnregisterFunctionProbeCallbacks();
 
-        private const long CapturingStateStopped = default(long);
-        private const long CapturingStateStopping = 1;
-        private const long CapturingStateStarted = 2;
-        private const long CapturingStateStarting = 3;
-
-        private long _disposedState;
-        private long _capturingState;
+        private long _probeState;
+        private const long ProbeStateUninitialized = default(long);
+        private const long ProbeStateUninstalled = 1;
+        private const long ProbeStateUninstalling = 2;
+        private const long ProbeStateInstalling = 3;
+        private const long ProbeStateInstalled = 4;
+        private const long ProbeStateUnrecoverable = 5;
 
         private readonly TaskCompletionSource _probeRegistrationSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        
         private TaskCompletionSource? _installationTaskSource;
         private TaskCompletionSource? _uninstallationTaskSource;
 
-        public event EventHandler<ulong>? OnProbeFault;
+        private long _disposedState;
 
         public Task InitializationTask { get { return _probeRegistrationSource.Task; } }
+        public event EventHandler<ulong>? OnProbeFault;
 
         public FunctionProbesManager(IFunctionProbes probes)
         {
@@ -72,58 +72,96 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void OnRegistration(int hresult)
         {
-            CompleteTaskSource(_probeRegistrationSource, hresult);
+            TransitionStateFromHr(_probeRegistrationSource, hresult,
+                expectedState: ProbeStateUninitialized,
+                succeededState: ProbeStateUninstalled,
+                failedState: ProbeStateUnrecoverable);
         }
 
         private void OnInstallation(int hresult)
         {
-            _capturingState = CapturingStateStarted;
-            CompleteTaskSource(_installationTaskSource, hresult);
+            TransitionStateFromHr(_installationTaskSource, hresult,
+                expectedState: ProbeStateInstalling,
+                succeededState: ProbeStateInstalled,
+                failedState: ProbeStateUninstalled);
         }
 
         private void OnUninstallation(int hresult)
         {
-            _capturingState = CapturingStateStopped;
-            CompleteTaskSource(_uninstallationTaskSource, hresult);
+            TransitionStateFromHr(_uninstallationTaskSource, hresult,
+                expectedState: ProbeStateUninstalling,
+                succeededState: ProbeStateUninstalled,
+                failedState: ProbeStateInstalled);
         }
 
         private void OnFault(ulong uniquifier)
         {
             OnProbeFault?.Invoke(this, uniquifier);
         }
-
-        private static void CompleteTaskSource(TaskCompletionSource? taskCompletionSource, int hresult)
+        
+        private void TransitionStateFromHr(TaskCompletionSource? taskCompletionSource, int hresult, long expectedState, long succeededState, long failedState)
         {
-            if (taskCompletionSource == null)
-            {
-                return;
-            }
+            Exception? ex = Marshal.GetExceptionForHR(hresult);          
 
-            Exception? ex = Marshal.GetExceptionForHR(hresult);
             if (ex == null)
             {
-                _ = taskCompletionSource.TrySetResult();
+                if (expectedState == Interlocked.CompareExchange(ref _probeState, succeededState, expectedState))
+                {
+                    _ = taskCompletionSource?.TrySetResult();
+                }
+                else
+                {
+                    // Unexpected
+                    _probeState = ProbeStateUnrecoverable;
+                }
             }
             else
             {
-                _ = taskCompletionSource.TrySetException(ex);
-            }
-        }
-
-        private void StopCapturingCore()
-        {
-            if (CapturingStateStarted == Interlocked.CompareExchange(ref _capturingState, CapturingStateStopping, CapturingStateStarted))
-            {
-                FunctionProbesStub.InstrumentedMethodCache = null;
-                RequestFunctionProbeUninstallation();
+                if (expectedState == Interlocked.CompareExchange(ref _probeState, failedState, expectedState))
+                {
+                    _ = taskCompletionSource?.TrySetException(ex);
+                }
+                else
+                {
+                    // Unexpected
+                    _probeState = ProbeStateUnrecoverable;
+                }
             }
         }
 
         public Task StopCapturingAsync()
         {
-            StopCapturingCore();
-            return _uninstallationTaskSource?.Task ?? Task.CompletedTask;
+            if (ProbeStateInstalled != Interlocked.CompareExchange(ref _probeState, ProbeStateUninstalling, ProbeStateInstalled))
+            {
+                throw new InvalidOperationException();
+            }
+
+            _uninstallationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            try
+            {
+                StopCapturingCore();
+            }
+            catch
+            {
+                _uninstallationTaskSource = null;
+                _probeState = ProbeStateInstalled;
+                throw;
+            }
+
+            return _uninstallationTaskSource.Task;
         }
+
+        private void StopCapturingCore()
+        {
+            if (_probeState == ProbeStateUninstalled)
+            {
+                return;
+            }
+
+            FunctionProbesStub.InstrumentedMethodCache = null;
+            RequestFunctionProbeUninstallation();
+        }
+
 
         public Task StartCapturingAsync(IList<MethodInfo> methods)
         {
@@ -132,7 +170,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new ArgumentException(nameof(methods));
             }
 
-            if (CapturingStateStopped != Interlocked.CompareExchange(ref _capturingState, CapturingStateStarting, CapturingStateStopped))
+            if (ProbeStateUninstalled != Interlocked.CompareExchange(ref _probeState, ProbeStateInstalling, ProbeStateUninstalled))
             {
                 throw new InvalidOperationException();
             }
@@ -165,22 +203,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 }
 
                 FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
+
+                _installationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _probeState = ProbeStateInstalled;
                 RequestFunctionProbeInstallation(
                     functionIds.ToArray(),
                     (uint)functionIds.Count,
                     boxingTokens.ToArray(),
                     argumentCounts.ToArray());
-
-                _capturingState = CapturingStateStarted;
             }
             catch
             {
-                _capturingState = CapturingStateStopped;
+                _probeState = ProbeStateUninstalled;
+                _installationTaskSource = null;
                 throw;
             }
-
-            _installationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            _uninstallationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             return _installationTaskSource.Task;
         }
@@ -192,12 +229,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
             FunctionProbesStub.Instance = null;
 
-            _installationTaskSource?.TrySetCanceled();
-            _uninstallationTaskSource?.TrySetCanceled();
+            _ = _installationTaskSource?.TrySetCanceled();
+            _ = _uninstallationTaskSource?.TrySetCanceled();
 
             try
             {
                 UnregisterFunctionProbeCallbacks();
+                StopCapturingCore();
             }
             catch
             {
