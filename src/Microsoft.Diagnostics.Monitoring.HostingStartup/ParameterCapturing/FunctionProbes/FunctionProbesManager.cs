@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -111,8 +112,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 }
                 else
                 {
-                    // Unexpected
-                    _probeState = ProbeStateUnrecoverable;
+                    // Unexpected, the profiler is in a different state than us.
+                    StateMismatch(expectedState);
                 }
             }
             else
@@ -123,10 +124,20 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 }
                 else
                 {
-                    // Unexpected
-                    _probeState = ProbeStateUnrecoverable;
+                    // Unexpected, the profiler is in a different state than us.
+                    StateMismatch(expectedState);
                 }
             }
+        }
+
+        private void StateMismatch(long expected)
+        {
+            InvalidOperationException ex = new(string.Format(CultureInfo.InvariantCulture, ParameterCapturingStrings.ErrorMessage_ProbeStateMismatchFormatString, expected, _probeState));
+
+            _probeState = ProbeStateUnrecoverable;
+            _ = _installationTaskSource?.TrySetException(ex);
+            _ = _uninstallationTaskSource?.TrySetException(ex);
+            _ = _probeRegistrationSource?.TrySetException(ex);
         }
 
         public Task StopCapturingAsync()
@@ -136,7 +147,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new InvalidOperationException();
             }
 
-            _uninstallationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _uninstallationTaskSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             try
             {
                 StopCapturingCore();
@@ -204,8 +215,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
                 FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
 
-                _installationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                _probeState = ProbeStateInstalled;
+                _installationTaskSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 RequestFunctionProbeInstallation(
                     functionIds.ToArray(),
                     (uint)functionIds.Count,
