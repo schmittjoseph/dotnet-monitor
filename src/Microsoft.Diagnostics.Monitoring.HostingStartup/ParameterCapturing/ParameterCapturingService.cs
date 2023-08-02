@@ -331,16 +331,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StartCapturingParameters);
             SharedInternals.MessageDispatcher?.UnregisterCallback(IpcCommand.StopCapturingParameters);
 
-            if (_initializedState != null)
+            try
             {
-                try
-                {
-                    _initializedState.Dispose();
-                }
-                catch
-                {
+                _initializedState?.Dispose();
+            }
+            catch
+            {
 
-                }
             }
 
             base.Dispose();
