@@ -14,14 +14,16 @@ using namespace std;
 #define DLLEXPORT
 #endif
 
-typedef void (STDMETHODCALLTYPE *ProbeInstallationCallback)(INT32);
-typedef void (STDMETHODCALLTYPE *ProbeUninstallationCallback)(INT32);
+typedef void (STDMETHODCALLTYPE *ProbeRegistrationCallback)(HRESULT);
+typedef void (STDMETHODCALLTYPE *ProbeInstallationCallback)(HRESULT);
+typedef void (STDMETHODCALLTYPE *ProbeUninstallationCallback)(HRESULT);
 typedef void (STDMETHODCALLTYPE *ProbeFaultCallback)(ULONG64);
 
-mutex g_probeManagementCallbacksMutex; // guards g_pOnProbeInstallationCallback, g_pOnProbeUninstallationCallback, g_pOnProbeFaultCallback
-ProbeInstallationCallback g_pOnProbeInstallationCallback = nullptr;
-ProbeUninstallationCallback g_pOnProbeUninstallationCallback = nullptr;
-ProbeFaultCallback g_pOnProbeFaultCallback = nullptr;
+mutex g_probeManagementCallbacksMutex; // guards g_pProbeRegistrationCallback, g_pProbeInstallationCallback, g_pProbeUninstallationCallback, g_pProbeFaultCallback
+ProbeRegistrationCallback g_pProbeRegistrationCallback = nullptr;
+ProbeInstallationCallback g_pProbeInstallationCallback = nullptr;
+ProbeUninstallationCallback g_pProbeUninstallationCallback = nullptr;
+ProbeFaultCallback g_pProbeFaultCallback = nullptr;
 
 BlockingQueue<PROBE_WORKER_PAYLOAD> g_probeManagementQueue;
 
@@ -85,6 +87,13 @@ void ProbeInstrumentation::WorkerThread()
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to register function probe: 0x%08x"), hr);
             }
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_pProbeRegistrationCallback != nullptr)
+                {
+                    g_pProbeRegistrationCallback(hr);
+                }
+            }
             break;
 
         case ProbeWorkerInstruction::INSTALL_PROBES:
@@ -95,9 +104,9 @@ void ProbeInstrumentation::WorkerThread()
             }
             {
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pOnProbeInstallationCallback != nullptr)
+                if (g_pProbeInstallationCallback != nullptr)
                 {
-                    g_pOnProbeInstallationCallback(hr);
+                    g_pProbeInstallationCallback(hr);
                 }
             }
             break;
@@ -107,9 +116,9 @@ void ProbeInstrumentation::WorkerThread()
             {
                 BOOL shouldUninstall = FALSE;
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pOnProbeFaultCallback != nullptr)
+                if (g_pProbeFaultCallback != nullptr)
                 {
-                    g_pOnProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
+                    g_pProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
                 }
             }
             break;
@@ -122,9 +131,9 @@ void ProbeInstrumentation::WorkerThread()
             }
             {
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pOnProbeUninstallationCallback != nullptr)
+                if (g_pProbeUninstallationCallback != nullptr)
                 {
-                    g_pOnProbeUninstallationCallback(hr);
+                    g_pProbeUninstallationCallback(hr);
                 }
             }
             break;
@@ -421,13 +430,14 @@ HRESULT STDMETHODCALLTYPE ProbeInstrumentation::GetReJITParameters(ModuleID modu
 }
 
 STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
+    ProbeRegistrationCallback pRegistrationCallback,
     ProbeInstallationCallback pInstallationCallback,
     ProbeUninstallationCallback pUninstallationCallback,
     ProbeFaultCallback pFaultCallback)
 {
     //
-    // Note: Require locking to access g_pManagedMessageCallback as it is
-    // used on another thread (in ProcessCallstackMessage).
+    // Note: Require locking to access probe callbacks as it is
+    // used on another thread (in WorkerThread).
     //
     // A lock-free approach could be used to safely update and observe the value of the callback,
     // however that would introduce the edge case where the provided callback is unregistered
@@ -438,16 +448,18 @@ STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
     // For simplicitly just use locking for now as it prevents the above edge case.
     //
     lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-    if (g_pOnProbeInstallationCallback != nullptr &&
-        g_pOnProbeUninstallationCallback != nullptr &&
-        g_pOnProbeFaultCallback != nullptr)
+    if (g_pProbeRegistrationCallback != nullptr &&
+        g_pProbeInstallationCallback != nullptr &&
+        g_pProbeUninstallationCallback != nullptr &&
+        g_pProbeFaultCallback != nullptr)
     {
         return E_FAIL;
     }
 
-    g_pOnProbeInstallationCallback = pInstallationCallback;
-    g_pOnProbeUninstallationCallback = pUninstallationCallback;
-    g_pOnProbeFaultCallback = pFaultCallback;
+    g_pProbeRegistrationCallback = pRegistrationCallback;
+    g_pProbeInstallationCallback = pInstallationCallback;
+    g_pProbeUninstallationCallback = pUninstallationCallback;
+    g_pProbeFaultCallback = pFaultCallback;
 
     return S_OK;
 }
@@ -455,9 +467,10 @@ STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
 STDAPI DLLEXPORT UnregisterFunctionProbeCallbacks()
 {
     lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-    g_pOnProbeInstallationCallback = nullptr;
-    g_pOnProbeUninstallationCallback = nullptr;
-    g_pOnProbeFaultCallback = nullptr;
+    g_pProbeRegistrationCallback = nullptr;
+    g_pProbeInstallationCallback = nullptr;
+    g_pProbeUninstallationCallback = nullptr;
+    g_pProbeFaultCallback = nullptr;
 
     return S_OK;
 }

@@ -66,6 +66,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                         PerFunctionProbeProxy probeProxy = new PerFunctionProbeProxy();
                         using FunctionProbesManager probeManager = new(probeProxy);
 
+                        await probeManager.InitializationTask.WaitAsync(token);
                         await testCase(probeManager, probeProxy, token);
 
                         return 0;

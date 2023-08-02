@@ -28,12 +28,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokens,
             [MarshalAs(UnmanagedType.LPArray)] uint[] boxingTokenCounts);
 
+        private delegate void FunctionProbeRegistrationCallback(int hresult);
         private delegate void FunctionProbeInstallationCallback(int hresult);
         private delegate void FunctionProbeUninstallationCallback(int hresult);
         private delegate void FunctionProbeFaultCallback(ulong uniquifier);
 
         [DllImport(ProfilerIdentifiers.MutatingProfiler.LibraryRootFileName, CallingConvention = CallingConvention.StdCall, PreserveSig = false)]
         private static extern void RegisterFunctionProbeCallbacks(
+            FunctionProbeRegistrationCallback onRegistration,
             FunctionProbeInstallationCallback onInstallation,
             FunctionProbeUninstallationCallback onUninstallation,
             FunctionProbeFaultCallback onFault);
@@ -48,20 +50,29 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private long _disposedState;
         private long _capturingState;
+
+        private TaskCompletionSource _probeRegistrationSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         
         private TaskCompletionSource? _installationTaskSource;
         private TaskCompletionSource? _uninstallationTaskSource;
 
         public event EventHandler<ulong>? OnProbeFault;
 
+        public Task InitializationTask { get { return _probeRegistrationSource.Task; } }
+
         public FunctionProbesManager(IFunctionProbes probes)
         {
             ProfilerResolver.InitializeResolver<FunctionProbesManager>();
 
+            RegisterFunctionProbeCallbacks(OnRegistration, OnInstallation, OnUninstallation, OnFault);
             RequestFunctionProbeRegistration(FunctionProbesStub.GetProbeFunctionId());
-            RegisterFunctionProbeCallbacks(OnInstallation, OnUninstallation, OnFault);
 
             FunctionProbesStub.Instance = probes;
+        }
+
+        private void OnRegistration(int hresult)
+        {
+            CompleteTaskSource(_probeRegistrationSource, hresult);
         }
 
         private void OnInstallation(int hresult)

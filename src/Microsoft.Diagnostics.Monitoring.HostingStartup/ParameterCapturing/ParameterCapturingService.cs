@@ -282,6 +282,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 return;
             }
 
+            try
+            {
+                await _initializedState.ProbeManager.InitializationTask.WaitAsync(stoppingToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                UnrecoverableError(ex);
+                return;
+            }
 
             ChangeServiceState(ParameterCapturingEvents.ServiceState.Running);
             while (IsAvailable() && !stoppingToken.IsCancellationRequested)
