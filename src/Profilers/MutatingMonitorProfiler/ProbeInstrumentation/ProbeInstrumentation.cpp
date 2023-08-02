@@ -19,11 +19,16 @@ typedef void (STDMETHODCALLTYPE *ProbeInstallationCallback)(HRESULT);
 typedef void (STDMETHODCALLTYPE *ProbeUninstallationCallback)(HRESULT);
 typedef void (STDMETHODCALLTYPE *ProbeFaultCallback)(ULONG64);
 
-mutex g_probeManagementCallbacksMutex; // guards g_pProbeRegistrationCallback, g_pProbeInstallationCallback, g_pProbeUninstallationCallback, g_pProbeFaultCallback
-ProbeRegistrationCallback g_pProbeRegistrationCallback = nullptr;
-ProbeInstallationCallback g_pProbeInstallationCallback = nullptr;
-ProbeUninstallationCallback g_pProbeUninstallationCallback = nullptr;
-ProbeFaultCallback g_pProbeFaultCallback = nullptr;
+typedef struct _PROBE_MANAGEMENT_CALLBACKS
+{
+    ProbeRegistrationCallback pProbeRegistrationCallback;
+    ProbeInstallationCallback pProbeInstallationCallback;
+    ProbeUninstallationCallback pProbeUninstallationCallback;
+    ProbeFaultCallback pProbeFaultCallback;
+} PROBE_MANAGEMENT_CALLBACKS;
+
+mutex g_probeManagementCallbacksMutex; // guards g_probeManagementCallbacks
+PROBE_MANAGEMENT_CALLBACKS g_probeManagementCallbacks = {};
 
 BlockingQueue<PROBE_WORKER_PAYLOAD> g_probeManagementQueue;
 
@@ -89,9 +94,9 @@ void ProbeInstrumentation::WorkerThread()
             }
             {
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pProbeRegistrationCallback != nullptr)
+                if (g_probeManagementCallbacks.pProbeRegistrationCallback != nullptr)
                 {
-                    g_pProbeRegistrationCallback(hr);
+                    g_probeManagementCallbacks.pProbeRegistrationCallback(hr);
                 }
             }
             break;
@@ -104,9 +109,9 @@ void ProbeInstrumentation::WorkerThread()
             }
             {
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pProbeInstallationCallback != nullptr)
+                if (g_probeManagementCallbacks.pProbeInstallationCallback != nullptr)
                 {
-                    g_pProbeInstallationCallback(hr);
+                    g_probeManagementCallbacks.pProbeInstallationCallback(hr);
                 }
             }
             break;
@@ -116,9 +121,9 @@ void ProbeInstrumentation::WorkerThread()
             {
                 BOOL shouldUninstall = FALSE;
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pProbeFaultCallback != nullptr)
+                if (g_probeManagementCallbacks.pProbeFaultCallback != nullptr)
                 {
-                    g_pProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
+                    g_probeManagementCallbacks.pProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
                 }
             }
             break;
@@ -131,9 +136,9 @@ void ProbeInstrumentation::WorkerThread()
             }
             {
                 lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_pProbeUninstallationCallback != nullptr)
+                if (g_probeManagementCallbacks.pProbeUninstallationCallback != nullptr)
                 {
-                    g_pProbeUninstallationCallback(hr);
+                    g_probeManagementCallbacks.pProbeUninstallationCallback(hr);
                 }
             }
             break;
@@ -435,6 +440,11 @@ STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
     ProbeUninstallationCallback pUninstallationCallback,
     ProbeFaultCallback pFaultCallback)
 {
+    ExpectedPtr(pRegistrationCallback);
+    ExpectedPtr(pInstallationCallback);
+    ExpectedPtr(pUninstallationCallback);
+    ExpectedPtr(pFaultCallback);
+
     //
     // Note: Require locking to access probe callbacks as it is
     // used on another thread (in WorkerThread).
@@ -448,18 +458,18 @@ STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
     // For simplicitly just use locking for now as it prevents the above edge case.
     //
     lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-    if (g_pProbeRegistrationCallback != nullptr &&
-        g_pProbeInstallationCallback != nullptr &&
-        g_pProbeUninstallationCallback != nullptr &&
-        g_pProbeFaultCallback != nullptr)
+
+    // Just check one of the callbacks to see if they're already set,
+    // a mixture of set and unset callbacks is not supported.
+    if (g_probeManagementCallbacks.pProbeRegistrationCallback != nullptr)
     {
         return E_FAIL;
     }
-
-    g_pProbeRegistrationCallback = pRegistrationCallback;
-    g_pProbeInstallationCallback = pInstallationCallback;
-    g_pProbeUninstallationCallback = pUninstallationCallback;
-    g_pProbeFaultCallback = pFaultCallback;
+   
+    g_probeManagementCallbacks.pProbeRegistrationCallback = pRegistrationCallback;
+    g_probeManagementCallbacks.pProbeInstallationCallback = pInstallationCallback;
+    g_probeManagementCallbacks.pProbeUninstallationCallback = pUninstallationCallback;
+    g_probeManagementCallbacks.pProbeFaultCallback = pFaultCallback;
 
     return S_OK;
 }
@@ -467,10 +477,6 @@ STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
 STDAPI DLLEXPORT UnregisterFunctionProbeCallbacks()
 {
     lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-    g_pProbeRegistrationCallback = nullptr;
-    g_pProbeInstallationCallback = nullptr;
-    g_pProbeUninstallationCallback = nullptr;
-    g_pProbeFaultCallback = nullptr;
-
+    g_probeManagementCallbacks = {};
     return S_OK;
 }
