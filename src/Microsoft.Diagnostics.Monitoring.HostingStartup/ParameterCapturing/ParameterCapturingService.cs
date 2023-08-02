@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     throw ex;
                 }
 
-                await _initializedState.ProbeManager.StartCapturingAsync(methods).WaitAsync(token).ConfigureAwait(false);
+                await _initializedState.ProbeManager.StartCapturingAsync(methods, token).ConfigureAwait(false);
 
                 _eventSource.CapturingStart(request.RequestId);
                 _initializedState.Logger.LogInformation(
@@ -237,7 +237,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
 
                 _initializedState.Logger.LogInformation(ParameterCapturingStrings.StopParameterCapturing);
-                await _initializedState.ProbeManager.StopCapturingAsync().WaitAsync(token).ConfigureAwait(false);
+                await _initializedState.ProbeManager.StopCapturingAsync(token).ConfigureAwait(false);
                 _eventSource.CapturingStop(requestId);
             }
             catch (Exception ex)
@@ -279,16 +279,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             if (_initializedState == null)
             {
-                return;
-            }
-
-            try
-            {
-                await _initializedState.ProbeManager.InitializationTask.WaitAsync(stoppingToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                UnrecoverableError(ex);
                 return;
             }
 

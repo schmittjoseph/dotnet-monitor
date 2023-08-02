@@ -45,8 +45,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private static extern void UnregisterFunctionProbeCallbacks();
 
         private long _probeState;
-        private const long ProbeStateUninitialized = default(long);
-        private const long ProbeStateUninstalled = 1;
+        private const long ProbeStateUninstalled = default(long);
         private const long ProbeStateUninstalling = 2;
         private const long ProbeStateInstalling = 3;
         private const long ProbeStateInstalled = 4;
@@ -58,7 +57,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private long _disposedState;
 
-        public Task InitializationTask { get { return _probeRegistrationTaskSource.Task; } }
         public event EventHandler<ulong>? OnProbeFault;
 
         public FunctionProbesManager(IFunctionProbes probes)
@@ -74,7 +72,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private void OnRegistration(int hresult)
         {
             TransitionStateFromHr(_probeRegistrationTaskSource, hresult,
-                expectedState: ProbeStateUninitialized,
+                expectedState: ProbeStateUninstalled,
                 succeededState: ProbeStateUninstalled,
                 failedState: ProbeStateUnrecoverable);
         }
@@ -132,7 +130,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             _ = _probeRegistrationTaskSource?.TrySetException(ex);
         }
 
-        public Task StopCapturingAsync()
+        public async Task StopCapturingAsync(CancellationToken token)
         {
             if (ProbeStateInstalled != Interlocked.CompareExchange(ref _probeState, ProbeStateUninstalling, ProbeStateInstalled))
             {
@@ -151,7 +149,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw;
             }
 
-            return _uninstallationTaskSource.Task;
+            await _uninstallationTaskSource.Task.WaitAsync(token).ConfigureAwait(false);
         }
 
         private void StopCapturingCore()
@@ -166,7 +164,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         }
 
 
-        public Task StartCapturingAsync(IList<MethodInfo> methods)
+        public async Task StartCapturingAsync(IList<MethodInfo> methods, CancellationToken token)
         {
             if (methods.Count == 0)
             {
@@ -180,6 +178,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
             try
             {
+                await _probeRegistrationTaskSource.Task.WaitAsync(token).ConfigureAwait(false);
+
                 Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw;
             }
 
-            return _installationTaskSource.Task;
+            await _installationTaskSource.Task.WaitAsync(token).ConfigureAwait(false);
         }
 
         public void Dispose()
