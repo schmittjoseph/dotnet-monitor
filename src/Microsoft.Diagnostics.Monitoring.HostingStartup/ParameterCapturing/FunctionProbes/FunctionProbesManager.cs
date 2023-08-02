@@ -102,31 +102,23 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         
         private void TransitionStateFromHr(TaskCompletionSource? taskCompletionSource, int hresult, long expectedState, long succeededState, long failedState)
         {
-            Exception? ex = Marshal.GetExceptionForHR(hresult);          
+            Exception? ex = Marshal.GetExceptionForHR(hresult);
+            long newState = (ex == null) ? succeededState : failedState;
+
+            if (expectedState != Interlocked.CompareExchange(ref _probeState, newState, expectedState))
+            {
+                // Unexpected, the profiler is in a different state than us.
+                StateMismatch(expectedState);
+                return;
+            }
 
             if (ex == null)
             {
-                if (expectedState == Interlocked.CompareExchange(ref _probeState, succeededState, expectedState))
-                {
-                    _ = taskCompletionSource?.TrySetResult();
-                }
-                else
-                {
-                    // Unexpected, the profiler is in a different state than us.
-                    StateMismatch(expectedState);
-                }
+                _ = taskCompletionSource?.TrySetResult();
             }
             else
             {
-                if (expectedState == Interlocked.CompareExchange(ref _probeState, failedState, expectedState))
-                {
-                    _ = taskCompletionSource?.TrySetException(ex);
-                }
-                else
-                {
-                    // Unexpected, the profiler is in a different state than us.
-                    StateMismatch(expectedState);
-                }
+                _ = taskCompletionSource?.TrySetException(ex);
             }
         }
 
