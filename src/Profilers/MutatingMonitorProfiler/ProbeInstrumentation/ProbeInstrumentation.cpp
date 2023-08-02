@@ -63,10 +63,11 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 HRESULT ProbeInstrumentation::InitBackgroundService()
 {
     m_probeManagementThread = thread(&ProbeInstrumentation::WorkerThread, this);
+    m_managedCallbackThread = thread(&ProbeInstrumentation::ManagedCallbackThread, this);
     return S_OK;
 }
 
-void ProbeInstrumentation::WorkerThread()
+void ProbeInstrumentation::ManagedCallbackThread()
 {
     HRESULT hr = m_pCorProfilerInfo->InitializeCurrentThread();
     if (FAILED(hr))
@@ -77,6 +78,75 @@ void ProbeInstrumentation::WorkerThread()
 
     while (true)
     {
+        MANAGED_CALLBACK_REQUEST request;
+        hr = m_managedCallbackQueue.BlockingDequeue(request);
+        if (hr != S_OK)
+        {
+            break;
+        }
+
+        switch (request.instruction)
+        {
+        case ProbeWorkerInstruction::REGISTER_PROBE:
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_probeManagementCallbacks.pProbeRegistrationCallback != nullptr)
+                {
+                    g_probeManagementCallbacks.pProbeRegistrationCallback(request.payload.hr);
+                }
+            }
+            break;
+
+        case ProbeWorkerInstruction::INSTALL_PROBES:
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_probeManagementCallbacks.pProbeInstallationCallback != nullptr)
+                {
+                    g_probeManagementCallbacks.pProbeInstallationCallback(request.payload.hr);
+                }
+            }
+            break;
+
+        case ProbeWorkerInstruction::FAULTING_PROBE:
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_probeManagementCallbacks.pProbeFaultCallback != nullptr)
+                {
+                    g_probeManagementCallbacks.pProbeFaultCallback(static_cast<ULONG64>(request.payload.functionId));
+                }
+            }
+            break;
+
+        case ProbeWorkerInstruction::UNINSTALL_PROBES:
+            {
+                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
+                if (g_probeManagementCallbacks.pProbeUninstallationCallback != nullptr)
+                {
+                    g_probeManagementCallbacks.pProbeUninstallationCallback(request.payload.hr);
+                }
+            }
+            break;
+
+        default:
+            m_pLogger->Log(LogLevel::Error, _LS("Unknown message"));
+            break;
+        }
+    }
+}
+
+
+void ProbeInstrumentation::WorkerThread()
+{
+    HRESULT hr = m_pCorProfilerInfo->InitializeCurrentThread();
+    if (FAILED(hr))
+    {
+        m_pLogger->Log(LogLevel::Error, _LS("Unable to initialize thread: 0x%08x"), hr);
+        return;
+    }
+
+    MANAGED_CALLBACK_REQUEST callbackRequest = {};
+    while (true)
+    {
         PROBE_WORKER_PAYLOAD payload;
         hr = g_probeManagementQueue.BlockingDequeue(payload);
         if (hr != S_OK)
@@ -84,6 +154,7 @@ void ProbeInstrumentation::WorkerThread()
             break;
         }
 
+        callbackRequest.instruction = payload.instruction;
         switch (payload.instruction)
         {
         case ProbeWorkerInstruction::REGISTER_PROBE:
@@ -92,13 +163,8 @@ void ProbeInstrumentation::WorkerThread()
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to register function probe: 0x%08x"), hr);
             }
-            {
-                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_probeManagementCallbacks.pProbeRegistrationCallback != nullptr)
-                {
-                    g_probeManagementCallbacks.pProbeRegistrationCallback(hr);
-                }
-            }
+            callbackRequest.payload.hr = hr;
+            m_managedCallbackQueue.Enqueue(callbackRequest);
             break;
 
         case ProbeWorkerInstruction::INSTALL_PROBES:
@@ -107,24 +173,14 @@ void ProbeInstrumentation::WorkerThread()
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to install probes: 0x%08x"), hr);
             }
-            {
-                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_probeManagementCallbacks.pProbeInstallationCallback != nullptr)
-                {
-                    g_probeManagementCallbacks.pProbeInstallationCallback(hr);
-                }
-            }
+            callbackRequest.payload.hr = hr;
+            m_managedCallbackQueue.Enqueue(callbackRequest);
             break;
 
         case ProbeWorkerInstruction::FAULTING_PROBE:
             m_pLogger->Log(LogLevel::Error, _LS("Function probe faulting in function: 0x%08x"), payload.functionId);
-            {
-                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_probeManagementCallbacks.pProbeFaultCallback != nullptr)
-                {
-                    g_probeManagementCallbacks.pProbeFaultCallback(static_cast<ULONG64>(payload.functionId));
-                }
-            }
+            callbackRequest.payload.functionId = payload.functionId;
+            m_managedCallbackQueue.Enqueue(callbackRequest);
             break;
 
         case ProbeWorkerInstruction::UNINSTALL_PROBES:
@@ -133,13 +189,8 @@ void ProbeInstrumentation::WorkerThread()
             {
                 m_pLogger->Log(LogLevel::Error, _LS("Failed to uninstall probes: 0x%08x"), hr);
             }
-            {
-                lock_guard<mutex> lock(g_probeManagementCallbacksMutex);
-                if (g_probeManagementCallbacks.pProbeUninstallationCallback != nullptr)
-                {
-                    g_probeManagementCallbacks.pProbeUninstallationCallback(hr);
-                }
-            }
+            callbackRequest.payload.hr = hr;
+            m_managedCallbackQueue.Enqueue(callbackRequest);
             break;
 
         default:
@@ -157,6 +208,8 @@ void ProbeInstrumentation::DisableIncomingRequests()
 void ProbeInstrumentation::ShutdownBackgroundService()
 {
     DisableIncomingRequests();
+    m_managedCallbackQueue.Complete();
+    m_probeManagementThread.join();
     m_probeManagementThread.join();
 }
 
