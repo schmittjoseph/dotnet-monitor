@@ -45,7 +45,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private static extern void UnregisterFunctionProbeCallbacks();
 
         private long _probeState;
-        private const long ProbeStateUninstalled = default(long);
+        private const long ProbeStateUninitialized = default(long);
+        private const long ProbeStateUninstalled = 1;
         private const long ProbeStateUninstalling = 2;
         private const long ProbeStateInstalling = 3;
         private const long ProbeStateInstalled = 4;
@@ -72,7 +73,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private void OnRegistration(int hresult)
         {
             TransitionStateFromHr(_probeRegistrationTaskSource, hresult,
-                expectedState: ProbeStateUninstalled,
+                expectedState: ProbeStateUninitialized,
                 succeededState: ProbeStateUninstalled,
                 failedState: ProbeStateUnrecoverable);
         }
@@ -154,7 +155,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void StopCapturingCore()
         {
-            if (_probeState == ProbeStateUninstalled)
+            if (_probeState != ProbeStateUninstalled)
             {
                 return;
             }
@@ -171,6 +172,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new ArgumentException(nameof(methods));
             }
 
+            await _probeRegistrationTaskSource.Task.WaitAsync(token).ConfigureAwait(false);
+
             if (ProbeStateUninstalled != Interlocked.CompareExchange(ref _probeState, ProbeStateInstalling, ProbeStateUninstalled))
             {
                 throw new InvalidOperationException();
@@ -178,8 +181,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
             try
             {
-                await _probeRegistrationTaskSource.Task.WaitAsync(token).ConfigureAwait(false);
-
                 Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
@@ -216,6 +217,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             }
             catch
             {
+                FunctionProbesStub.InstrumentedMethodCache = null;
                 _probeState = ProbeStateUninstalled;
                 _installationTaskSource = null;
                 throw;

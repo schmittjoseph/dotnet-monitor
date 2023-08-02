@@ -311,11 +311,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
                 }
 
-                await TryStopCapturingAsync(request.Payload.RequestId, stoppingToken).ConfigureAwait(false);
+                try
+                {
+                    await TryStopCapturingAsync(request.Payload.RequestId, stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+
+                }
                 _ = _initializedState.AllRequests.TryRemove(request.Payload.RequestId, out _);
                 _initializedState.ProbeManager.OnProbeFault -= onProbeFault;
             }
-
 
             if (IsAvailable())
             {

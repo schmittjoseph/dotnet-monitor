@@ -63,6 +63,15 @@ HRESULT ProbeInstrumentation::RegisterFunctionProbe(FunctionID enterProbeId)
 HRESULT ProbeInstrumentation::InitBackgroundService()
 {
     m_probeManagementThread = thread(&ProbeInstrumentation::WorkerThread, this);
+    //
+    // Create a dedicated thread for managed callbacks.
+    // Performing the callbacks will taint the calling thread,
+    // preventing it from using certain ICorProfiler APIs marked as "unsafe".
+    // 
+    // The unsafe ICorProfiler APIs will believe our thread is calling them asynchronously,
+    // failing the request with CORPROF_E_UNSUPPORTED_CALL_SEQUENCE,
+    // even if our thread has already been initialized with ICorProfiler.
+    //
     m_managedCallbackThread = thread(&ProbeInstrumentation::ManagedCallbackThread, this);
     return S_OK;
 }
@@ -499,7 +508,7 @@ STDAPI DLLEXPORT RegisterFunctionProbeCallbacks(
 
     //
     // Note: Require locking to access probe callbacks as it is
-    // used on another thread (in WorkerThread).
+    // used on another thread (in ManagedCallbackThread).
     //
     // A lock-free approach could be used to safely update and observe the value of the callback,
     // however that would introduce the edge case where the provided callback is unregistered
