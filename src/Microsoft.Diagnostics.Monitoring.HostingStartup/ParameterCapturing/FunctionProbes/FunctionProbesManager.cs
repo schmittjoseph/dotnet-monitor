@@ -52,13 +52,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private const long ProbeStateInstalled = 4;
         private const long ProbeStateUnrecoverable = 5;
 
-        private readonly TaskCompletionSource _probeRegistrationSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _probeRegistrationTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private TaskCompletionSource? _installationTaskSource;
         private TaskCompletionSource? _uninstallationTaskSource;
 
         private long _disposedState;
 
-        public Task InitializationTask { get { return _probeRegistrationSource.Task; } }
+        public Task InitializationTask { get { return _probeRegistrationTaskSource.Task; } }
         public event EventHandler<ulong>? OnProbeFault;
 
         public FunctionProbesManager(IFunctionProbes probes)
@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void OnRegistration(int hresult)
         {
-            TransitionStateFromHr(_probeRegistrationSource, hresult,
+            TransitionStateFromHr(_probeRegistrationTaskSource, hresult,
                 expectedState: ProbeStateUninitialized,
                 succeededState: ProbeStateUninstalled,
                 failedState: ProbeStateUnrecoverable);
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             _probeState = ProbeStateUnrecoverable;
             _ = _installationTaskSource?.TrySetException(ex);
             _ = _uninstallationTaskSource?.TrySetException(ex);
-            _ = _probeRegistrationSource?.TrySetException(ex);
+            _ = _probeRegistrationTaskSource?.TrySetException(ex);
         }
 
         public Task StopCapturingAsync()
