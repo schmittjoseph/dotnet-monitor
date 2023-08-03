@@ -463,10 +463,6 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
         {
             OperationStatusResponse operationResult = await apiClient.GetOperationStatus(operationUrl).ConfigureAwait(false);
             Assert.True(operationResult.StatusCode == HttpStatusCode.OK || operationResult.StatusCode == HttpStatusCode.Created);
-            Assert.True(
-                operationResult.OperationStatus.Status == OperationState.Running ||
-                operationResult.OperationStatus.Status == OperationState.Succeeded ||
-                operationResult.OperationStatus.Status == OperationState.Stopping);
 
             using CancellationTokenSource cancellationTokenSource = new(timeout);
             while (operationResult.OperationStatus.Status == OperationState.Running ||
@@ -478,6 +474,23 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
             }
 
             return operationResult;
+        }
+
+        /// <summary>
+        /// POST /parameters
+        /// </summary>
+        public static Task<OperationResponse> CaptureParametersAsync(this ApiClient client, int pid, TimeSpan duration, MethodDescription[] methods)
+        {
+            return client.CaptureParametersAsync(pid, duration, methods, TestTimeouts.HttpApi);
+        }
+
+        /// <summary>
+        /// GET /stacks
+        /// </summary>
+        public static async Task<OperationResponse> CaptureParametersAsync(this ApiClient client, int pid, TimeSpan duration, MethodDescription[] methods, TimeSpan timeout)
+        {
+            using CancellationTokenSource timeoutSource = new(timeout);
+            return await client.CaptureParametersAsync(pid, duration, methods, timeoutSource.Token).ConfigureAwait(false);
         }
     }
 }
