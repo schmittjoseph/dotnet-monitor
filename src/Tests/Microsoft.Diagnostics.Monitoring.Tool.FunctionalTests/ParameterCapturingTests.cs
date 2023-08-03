@@ -71,6 +71,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 },
                 configureApp: runner =>
                 {
+                    runner.EnableMonitorStartupHook = true;
                     runner.Architecture = targetArchitecture;
                 },
                 configureTool: (toolRunner) =>
