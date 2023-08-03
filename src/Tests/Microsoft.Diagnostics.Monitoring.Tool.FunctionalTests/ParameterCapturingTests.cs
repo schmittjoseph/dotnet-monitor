@@ -39,36 +39,68 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
         [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
         public async Task UnresolvableMethodsFailOperation(Architecture targetArchitecture)
         {
+            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            {
+                int processId = await appRunner.ProcessIdTask;
+
+                MethodDescription[] methods = new MethodDescription[]
+                {
+                    new MethodDescription()
+                    {
+                        AssemblyName = Guid.NewGuid().ToString("D"),
+                        TypeName = Guid.NewGuid().ToString("D"),
+                        MethodName = Guid.NewGuid().ToString("D")
+                    }
+                };
+
+                OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
+                Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+
+                OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
+                Assert.Equal(HttpStatusCode.OK, operationResult.StatusCode);
+                Assert.Equal(OperationState.Failed, operationResult.OperationStatus.Status);
+
+                await appRunner.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue);
+            });
+        }
+
+        [Theory]
+        [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
+        public async Task OperationSucceeds(Architecture targetArchitecture)
+        {
+            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            {
+                int processId = await appRunner.ProcessIdTask;
+
+                MethodDescription[] methods = new MethodDescription[]
+                {
+                    new MethodDescription()
+                    {
+                        AssemblyName = "System.Private.CoreLib",
+                        TypeName = "System.String",
+                        MethodName = "Concat"
+                    }
+                };
+
+                OperationResponse response = await apiClient.CaptureParametersAsync(processId, TimeSpan.FromSeconds(1), methods);
+                Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+
+                OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
+                Assert.Equal(HttpStatusCode.Created, operationResult.StatusCode);
+                Assert.Equal(OperationState.Succeeded, operationResult.OperationStatus.Status);
+
+                await appRunner.SendCommandAsync(TestAppScenarios.AspNet.Commands.Continue);
+            });
+        }
+
+        private async Task RunTestCaseCore(Architecture targetArchitecture, Func<AppRunner, ApiClient, Task> appValidate)
+        {
             await ScenarioRunner.SingleTarget(
                 _outputHelper,
                 _httpClientFactory,
-                DiagnosticPortConnectionMode.Connect,
-                TestAppScenarios.AsyncWait.Name,
-                appValidate: async (appRunner, apiClient) =>
-                {
-                    int processId = await appRunner.ProcessIdTask;
-
-                    MethodDescription[] methods = new MethodDescription[]
-                    {
-                        new MethodDescription()
-                        {
-                            AssemblyName = Guid.NewGuid().ToString("D"),
-                            TypeName = Guid.NewGuid().ToString("D"),
-                            MethodName = Guid.NewGuid().ToString("D")
-                        }
-                    };
-
-                    OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
-                    Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-
-                    // Wait for the operations to synchronize, this happens asynchronously from the http request returning
-                    // and may not be fast enough for this test on systems with limited resources.
-                    OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
-                    Assert.Equal(HttpStatusCode.OK, operationResult.StatusCode);
-                    Assert.Equal(OperationState.Failed, operationResult.OperationStatus.Status);
-
-                    await appRunner.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue);
-                },
+                DiagnosticPortConnectionMode.Listen,
+                TestAppScenarios.AspNet.Name,
+                appValidate: appValidate,
                 configureApp: runner =>
                 {
                     runner.EnableMonitorStartupHook = true;
