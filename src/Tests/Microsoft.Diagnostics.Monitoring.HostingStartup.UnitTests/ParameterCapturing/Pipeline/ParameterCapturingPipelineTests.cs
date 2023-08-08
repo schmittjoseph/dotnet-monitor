@@ -22,20 +22,29 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         private readonly Action<IList<MethodInfo>> _onStart;
         private readonly Action _onStop;
 
+        public event EventHandler<ulong> OnProbeFault;
+
         public TestFunctionProbesManager(Action<IList<MethodInfo>> onStart = null, Action onStop = null)
         {
             _onStart = onStart;
             _onStop = onStop;
         }
 
-        public void StartCapturing(IList<MethodInfo> methods)
+        public void TriggerFault(ulong uniquifier)
         {
-            _onStart?.Invoke(methods);
+            OnProbeFault?.Invoke(this, uniquifier);
         }
 
-        public void StopCapturing()
+        public Task StartCapturingAsync(IList<MethodInfo> methods, CancellationToken token)
+        {
+            _onStart?.Invoke(methods);
+            return Task.CompletedTask;
+        }
+
+        public Task StopCapturingAsync(CancellationToken token)
         {
             _onStop?.Invoke();
+            return Task.CompletedTask;
         }
 
         public void Dispose()
