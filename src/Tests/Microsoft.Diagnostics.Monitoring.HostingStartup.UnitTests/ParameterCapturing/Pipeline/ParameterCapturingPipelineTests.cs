@@ -10,7 +10,6 @@ using Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
