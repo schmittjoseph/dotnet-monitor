@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
                                     SampleMethods.StaticTestMethodSignatures.Basic(Random.Shared.Next());
                                     LogRecordEntry logEntry = logRecord.Events.First(e => e.Category == typeof(DotnetMonitor.ParameterCapture.UserCode).FullName);
                                     Assert.NotNull(logEntry);
-                                    break;
+                                    return 0;
                                 }
 
                             case TestAppScenarios.ParameterCapturing.Commands.DoNotExpectLogStatement:
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
 
                                     bool didFindLogs = logRecord.Events.Where(e => e.Category == typeof(DotnetMonitor.ParameterCapture.UserCode).FullName).Any();
                                     Assert.False(didFindLogs);
-                                    break;
+                                    return 0;
                                 }
                             case TestAppScenarios.ParameterCapturing.Commands.Continue:
                                 return 0;

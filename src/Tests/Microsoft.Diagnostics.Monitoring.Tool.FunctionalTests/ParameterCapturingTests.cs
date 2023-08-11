@@ -22,7 +22,7 @@ using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMoniker.Net70)]
+    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
     [Collection(DefaultCollectionFixture.Name)]
     public class ParameterCapturingTests
     {
