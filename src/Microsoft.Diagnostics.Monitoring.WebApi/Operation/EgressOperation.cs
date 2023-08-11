@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         private readonly IArtifactOperation _operation;
 
-        public EgressOperation(Func<Stream, CancellationToken, Task> action, string endpointName, string artifactName, IProcessInfo processInfo, string contentType, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
+        public EgressOperation(Func<Stream, TaskCompletionSource, CancellationToken, Task> action, string endpointName, string artifactName, IProcessInfo processInfo, string contentType, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
         {
             _egress = (service, token) => service.EgressAsync(endpointName, action, artifactName, contentType, processInfo.EndpointInfo, collectionRuleMetadata, token);
             EgressProviderName = endpointName;
@@ -32,19 +32,20 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             Tags = Utilities.SplitTags(tags);
         }
 
+        // JSFIX: mirrorStartCompletionSource
+        public EgressOperation(IArtifactOperation operation, TaskCompletionSource mirrorStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
+    : this(operation.ExecuteAsync, endpointName, operation.GenerateFileName(), processInfo, operation.ContentType, scope, tags, collectionRuleMetadata)
+        {
+            _operation = operation;
+        }
+
         public EgressOperation(IArtifactOperation operation, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
             : this(operation.ExecuteAsync, endpointName, operation.GenerateFileName(), processInfo, operation.ContentType, scope, tags, collectionRuleMetadata)
         {
             _operation = operation;
         }
 
-        public EgressOperation(IArtifactOperation operation, TaskCompletionSource<object> taskCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
-            : this((stream, token) => operation.ExecuteAsync(stream, taskCompletionSource, token), endpointName, operation.GenerateFileName(), processInfo, operation.ContentType, scope, tags, collectionRuleMetadata)
-        {
-            _operation = operation;
-        }
-
-        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, CancellationToken token)
+        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource startedCompletionSource, CancellationToken token)
         {
             ILogger<EgressOperation> logger = CreateLogger(serviceProvider);
 

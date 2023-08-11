@@ -21,9 +21,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         public bool IsStoppable { get { return _operation?.IsStoppable ?? false; } }
         public ISet<string> Tags { get; private set; }
 
+        private readonly TaskCompletionSource _startCompletionSource;
         private readonly IArtifactOperation _operation;
 
-        public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation = null)
+        public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation, TaskCompletionSource startCompletionSource)
         {
             _httpContext = context;
             _httpContext.Response.OnCompleted(() =>
@@ -33,15 +34,33 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             });
 
             _operation = operation;
+            _startCompletionSource = startCompletionSource;
             Tags = Utilities.SplitTags(tags);
 
             ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
         }
 
-        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, CancellationToken token)
+        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource startCompletionSource, CancellationToken token)
         {
             using CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, _httpContext.RequestAborted);
             using IDisposable registration = token.Register(_httpContext.Abort);
+
+            try
+            {
+                await _startCompletionSource.Task.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+                startCompletionSource.TrySetResult();
+            }
+            catch (Exception ex)
+            {
+                if (cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    startCompletionSource.TrySetCanceled(cancellationTokenSource.Token);
+                }
+                else
+                {
+                    startCompletionSource.TrySetException(ex);
+                }
+            }
 
             int statusCode = await _responseFinishedCompletionSource.Task.WaitAsync(cancellationTokenSource.Token);
 

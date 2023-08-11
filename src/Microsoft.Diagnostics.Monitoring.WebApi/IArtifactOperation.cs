@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         /// <returns></returns>
         Task ExecuteAsync(
             Stream outputStream,
-            TaskCompletionSource<object> startCompletionSource,
+            TaskCompletionSource startCompletionSource,
             CancellationToken token);
 
         /// <summary>

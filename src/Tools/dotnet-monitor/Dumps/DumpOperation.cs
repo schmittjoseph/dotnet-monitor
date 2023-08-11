@@ -36,9 +36,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 FormattableString.Invariant($"core_{Utils.GetFileNameTimeStampUtcNow()}");
         }
 
-        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource<object> startCompletionSource, CancellationToken token)
+        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource startCompletionSource, CancellationToken token)
         {
-            startCompletionSource?.TrySetResult(null);
+            startCompletionSource.TrySetResult();
 
             using Stream dumpStream = await _dumpService.DumpAsync(_endpointInfo, _dumpType, token);
 

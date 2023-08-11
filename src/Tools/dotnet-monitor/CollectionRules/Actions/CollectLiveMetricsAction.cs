@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
                 _metricsOperationFactory = serviceProvider.GetRequiredService<IMetricsOperationFactory>();
             }
 
-            protected override EgressOperation CreateArtifactOperation(TaskCompletionSource<object> startCompletionSource, CollectionRuleMetadata collectionRuleMetadata)
+            protected override EgressOperation CreateArtifactOperation(TaskCompletionSource startCompletionSource, CollectionRuleMetadata collectionRuleMetadata)
             {
                 EventMetricsProvider[] providers = Options.Providers;
                 EventMetricsMeter[] meters = Options.Meters;
