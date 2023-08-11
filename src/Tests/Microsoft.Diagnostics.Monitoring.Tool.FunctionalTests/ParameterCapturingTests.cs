@@ -22,7 +22,7 @@ using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkMonikerTrait(TargetFrameworkMoniker.Net70)]
     [Collection(DefaultCollectionFixture.Name)]
     public class ParameterCapturingTests
     {
@@ -115,9 +115,41 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
                 await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.ExpectLogStatement);
-                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.Continue);
             });
         }
+
+        [Theory]
+        [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
+        public async Task StopsProducingLogStatementsWhenCancelled(Architecture targetArchitecture)
+        {
+            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            {
+                int processId = await appRunner.ProcessIdTask;
+
+                MethodDescription[] methods = new MethodDescription[]
+                {
+                    new MethodDescription()
+                    {
+                        AssemblyName = "Microsoft.Diagnostics.Monitoring.UnitTestApp",
+                        TypeName = "SampleMethods.StaticTestMethodSignatures",
+                        MethodName = "Basic"
+                    }
+                };
+
+                OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
+                Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+
+                HttpStatusCode cancelResponse = await apiClient.CancelEgressOperation(response.OperationUri);
+                Assert.Equal(HttpStatusCode.OK, cancelResponse);
+
+                OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
+                Assert.Equal(HttpStatusCode.OK, operationResult.StatusCode);
+                Assert.Equal(OperationState.Cancelled, operationResult.OperationStatus.Status);
+
+                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.DoNotExpectLogStatement);
+            });
+        }
+
 
         private async Task RunTestCaseCore(Architecture targetArchitecture, Func<AppRunner, ApiClient, Task> appValidate)
         {

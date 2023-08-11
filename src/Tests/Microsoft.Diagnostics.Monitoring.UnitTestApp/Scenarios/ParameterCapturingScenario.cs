@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,7 +47,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
                 },
                 func: async logger =>
                 {
-                    while (true)
+                    while (!token.IsCancellationRequested)
                     {
                         string command = await ScenarioHelpers.WaitForCommandAsync(acceptableCommands, logger);
 
@@ -54,10 +55,14 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
                         {
                             case TestAppScenarios.ParameterCapturing.Commands.ExpectLogStatement:
                                 {
-                                    await Task.Delay(TimeSpan.FromSeconds(5));
-                                    logRecord.Clear();
-                                    SampleMethods.StaticTestMethodSignatures.Basic(Random.Shared.Next());
+                                    while (!token.IsCancellationRequested &&
+                                        !logRecord.Events.Where(e => e.Category == typeof(DotnetMonitor.ParameterCapture.Service).FullName).Any())
+                                    {
+                                        await Task.Delay(100).WaitAsync(token).ConfigureAwait(false);
+                                    }
+                                    token.ThrowIfCancellationRequested();
 
+                                    SampleMethods.StaticTestMethodSignatures.Basic(Random.Shared.Next());
                                     LogRecordEntry logEntry = logRecord.Events.First(e => e.Category == typeof(DotnetMonitor.ParameterCapture.UserCode).FullName);
                                     Assert.NotNull(logEntry);
                                     break;
@@ -70,14 +75,17 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
                                     logRecord.Clear();
                                     SampleMethods.StaticTestMethodSignatures.Basic(Random.Shared.Next());
 
-                                    LogRecordEntry logEntry = logRecord.Events.First(e => e.Category == typeof(DotnetMonitor.ParameterCapture.UserCode).FullName);
-                                    Assert.Null(logEntry);
+                                    bool didFindLogs = logRecord.Events.Where(e => e.Category == typeof(DotnetMonitor.ParameterCapture.UserCode).FullName).Any();
+                                    Assert.False(didFindLogs);
                                     break;
                                 }
                             case TestAppScenarios.ParameterCapturing.Commands.Continue:
                                 return 0;
                         }
                     }
+
+                    token.ThrowIfCancellationRequested();
+                    return 0;
                 }, token);
         }
 

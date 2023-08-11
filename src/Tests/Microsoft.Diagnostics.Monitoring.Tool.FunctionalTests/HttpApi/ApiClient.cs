@@ -567,7 +567,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
 
         public async Task<OperationResponse> CaptureParametersAsync(int processId, TimeSpan duration, MethodDescription[] methods, CancellationToken token)
         {
-            string uri = FormattableString.Invariant($"/parameters?pid={processId}&durationSeconds={duration.Seconds}");
+            bool isInfinite = (duration == Timeout.InfiniteTimeSpan);
+            string uri = FormattableString.Invariant($"/parameters?pid={processId}&durationSeconds={(isInfinite ? -1 : duration.Seconds)}");
             using HttpRequestMessage request = new(HttpMethod.Post, uri);
 
             string content = JsonSerializer.Serialize(methods, DefaultJsonSerializeOptions);
