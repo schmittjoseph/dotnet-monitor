@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
     internal class EgressOperation : IEgressOperation
     {
-        private readonly Func<IEgressService, CancellationToken, Task<EgressResult>> _egress;
+        private readonly Func<IEgressService, TaskCompletionSource, CancellationToken, Task<EgressResult>> _egress;
         private readonly KeyValueLogScope _scope;
         public EgressProcessInfo ProcessInfo { get; private set; }
         public string EgressProviderName { get; private set; }
@@ -22,26 +22,69 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         private readonly IArtifactOperation _operation;
 
-        public EgressOperation(Func<Stream, TaskCompletionSource, CancellationToken, Task> action, string endpointName, string artifactName, IProcessInfo processInfo, string contentType, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
+        // JSFIX: Commonize ctor
+        public EgressOperation(IArtifactOperation operation, TaskCompletionSource mirroredStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
         {
-            _egress = (service, token) => service.EgressAsync(endpointName, action, artifactName, contentType, processInfo.EndpointInfo, collectionRuleMetadata, token);
+            _egress = (service, startCompletionSource, token) => service.EgressAsync(
+                endpointName,
+                (Stream stream, CancellationToken token) =>
+                {
+                    // JSFIX: Helper method
+                    startCompletionSource.Task.ContinueWith(task =>
+                    {
+                        if (task.IsCompletedSuccessfully)
+                        {
+                            mirroredStartCompletionSource.TrySetResult();
+                        }
+                        else if (task.IsCanceled)
+                        {
+                            if (token.IsCancellationRequested)
+                            {
+                                mirroredStartCompletionSource.TrySetCanceled(token);
+                            }
+                            else
+                            {
+                                mirroredStartCompletionSource.TrySetCanceled();
+                            }
+                        }
+                        else if (task.IsFaulted)
+                        {
+                            mirroredStartCompletionSource.TrySetException(task.Exception);
+                        }
+
+                    }, token, TaskContinuationOptions.RunContinuationsAsynchronously, TaskScheduler.Default);
+                    return operation.ExecuteAsync(stream, startCompletionSource, token);
+                },
+                operation.GenerateFileName(),
+                operation.ContentType,
+                processInfo.EndpointInfo,
+                collectionRuleMetadata,
+                token);
+
             EgressProviderName = endpointName;
             _scope = scope;
 
             ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
             Tags = Utilities.SplitTags(tags);
-        }
-
-        // JSFIX: mirrorStartCompletionSource
-        public EgressOperation(IArtifactOperation operation, TaskCompletionSource mirrorStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
-    : this(operation.ExecuteAsync, endpointName, operation.GenerateFileName(), processInfo, operation.ContentType, scope, tags, collectionRuleMetadata)
-        {
             _operation = operation;
         }
 
         public EgressOperation(IArtifactOperation operation, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
-            : this(operation.ExecuteAsync, endpointName, operation.GenerateFileName(), processInfo, operation.ContentType, scope, tags, collectionRuleMetadata)
         {
+            _egress = (service, startCompletionSource, token) => service.EgressAsync(
+                endpointName,
+                (Stream stream, CancellationToken token) => operation.ExecuteAsync(stream, startCompletionSource, token),
+                operation.GenerateFileName(),
+                operation.ContentType,
+                processInfo.EndpointInfo,
+                collectionRuleMetadata,
+                token);
+
+            EgressProviderName = endpointName;
+            _scope = scope;
+
+            ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
+            Tags = Utilities.SplitTags(tags);
             _operation = operation;
         }
 
@@ -56,7 +99,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 IEgressService egressService = serviceProvider
                     .GetRequiredService<IEgressService>();
 
-                EgressResult egressResult = await _egress(egressService, token);
+                EgressResult egressResult = await _egress(egressService, startedCompletionSource, token);
 
                 logger.EgressedArtifact(egressResult.Value);
 
