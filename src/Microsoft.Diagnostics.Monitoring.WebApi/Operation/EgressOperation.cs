@@ -22,7 +22,6 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         private readonly IArtifactOperation _operation;
 
-
         public EgressOperation(IArtifactOperation operation, TaskCompletionSource<object> collectionRuleStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata)
         {
             _egress = (service, startCompletionSource, token) => service.EgressAsync(
