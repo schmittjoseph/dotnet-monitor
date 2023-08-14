@@ -49,10 +49,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                     TaskCompletionSource<object> startedCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     Task<ExecutionResult<EgressResult>> executeTask = egressRequest.EgressOperation.ExecuteAsync(_serviceProvider, startedCompletionSource, token);
 
-                    await startedCompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
+                    await startedCompletionSource.WithCancellation(token).ConfigureAwait(false);
                     _operationsStore.MarkOperationAsRunning(egressRequest.OperationId);
 
-                    ExecutionResult<EgressResult> result = await executeTask.WaitAsync(token).ConfigureAwait(false);
+                    ExecutionResult<EgressResult> result = await executeTask.WithCancellation(token).ConfigureAwait(false);
 
                     //It is possible that this operation never completes, due to infinite duration operations.
                     _operationsStore.CompleteOperation(egressRequest.OperationId, result);
