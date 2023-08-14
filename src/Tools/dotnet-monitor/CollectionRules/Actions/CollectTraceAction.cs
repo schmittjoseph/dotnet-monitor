@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
                 _counterOptions = serviceProvider.GetRequiredService<IOptionsMonitor<GlobalCounterOptions>>();
             }
 
-            protected override EgressOperation CreateArtifactOperation(TaskCompletionSource startCompletionSource,
+            protected override EgressOperation CreateArtifactOperation(TaskCompletionSource<object> startCompletionSource,
                 CollectionRuleMetadata collectionRuleMetadata)
             {
                 TimeSpan duration = Options.Duration.GetValueOrDefault(TimeSpan.Parse(CollectTraceOptionsDefaults.Duration));

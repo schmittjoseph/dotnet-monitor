@@ -29,13 +29,5 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 return await source.Task.ConfigureAwait(false);
             }
         }
-
-        public static async Task WithCancellation(this TaskCompletionSource source, CancellationToken token)
-        {
-            using (token.Register(source => ((TaskCompletionSource)source).TrySetCanceled(token), source))
-            {
-                await source.Task.ConfigureAwait(false);
-            }
-        }
     }
 }

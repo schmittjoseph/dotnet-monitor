@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _scope = scope;
         }
 
-        public OutputStreamResult(IArtifactOperation operation, TaskCompletionSource startCompletionSource, string fileDownloadName, KeyValueLogScope scope)
+        public OutputStreamResult(IArtifactOperation operation, TaskCompletionSource<object> startCompletionSource, string fileDownloadName, KeyValueLogScope scope)
             : this((Stream stream, CancellationToken token) => operation.ExecuteAsync(stream, startCompletionSource, token), operation.ContentType, fileDownloadName, scope)
         {
         }

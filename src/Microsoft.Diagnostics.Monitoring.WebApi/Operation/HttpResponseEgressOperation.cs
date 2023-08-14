@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         public bool IsStoppable { get { return _operation?.IsStoppable ?? false; } }
         public ISet<string> Tags { get; private set; }
 
-        private readonly TaskCompletionSource _startCompletionSource;
+        private readonly TaskCompletionSource<object> _startCompletionSource;
         private readonly IArtifactOperation _operation;
 
-        public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation, TaskCompletionSource startCompletionSource)
+        public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation, TaskCompletionSource<object> startCompletionSource)
         {
             _httpContext = context;
             _httpContext.Response.OnCompleted(() =>
@@ -40,15 +40,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
         }
 
-        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource startCompletionSource, CancellationToken token)
+        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource<object> startCompletionSource, CancellationToken token)
         {
             using CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, _httpContext.RequestAborted);
             using IDisposable registration = token.Register(_httpContext.Abort);
 
             try
             {
-                await _startCompletionSource.Task.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-                startCompletionSource.TrySetResult();
+                object result = await _startCompletionSource.Task.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+                startCompletionSource.TrySetResult(result);
             }
             catch (Exception ex)
             {

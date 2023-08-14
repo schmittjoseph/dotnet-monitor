@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             _operationFactory = ServiceProvider.GetRequiredService<IExceptionsOperationFactory>();
         }
 
-        protected override EgressOperation CreateArtifactOperation(TaskCompletionSource startCompletionSource, CollectionRuleMetadata collectionRuleMetadata)
+        protected override EgressOperation CreateArtifactOperation(TaskCompletionSource<object> startCompletionSource, CollectionRuleMetadata collectionRuleMetadata)
         {
             KeyValueLogScope scope = Utils.CreateArtifactScope(Utils.ArtifactType_Exceptions, EndpointInfo);
 

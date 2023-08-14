@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
 
             if (string.IsNullOrEmpty(providerName))
             {
-                TaskCompletionSource startCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                TaskCompletionSource<object> startCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 await RegisterCurrentHttpResponseAsOperation(processInfo, artifactType, tags, operation, startCompletionSource);
                 return new OutputStreamResult(
                     operation,
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             }
         }
 
-        private async Task RegisterCurrentHttpResponseAsOperation(IProcessInfo processInfo, string artifactType, string tags, IArtifactOperation operation, TaskCompletionSource startCompletionSource)
+        private async Task RegisterCurrentHttpResponseAsOperation(IProcessInfo processInfo, string artifactType, string tags, IArtifactOperation operation, TaskCompletionSource<object> startCompletionSource)
         {
             // While not strictly a Location redirect, use the same header as externally egressed operations for consistency.
             HttpContext.Response.Headers["Location"] = await RegisterOperation(

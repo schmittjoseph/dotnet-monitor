@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             }
 
             protected override async Task<CollectionRuleActionResult> ExecuteCoreAsync(
-                TaskCompletionSource startCompletionSource,
+                TaskCompletionSource<object> startCompletionSource,
                 CollectionRuleMetadata collectionRuleMetadata,
                 CancellationToken token)
             {
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
                     throw new CollectionRuleActionException(new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Strings.ErrorMessage_UnableToStartProcess, process.StartInfo.FileName, process.StartInfo.Arguments)));
                 }
 
-                startCompletionSource.TrySetResult();
+                startCompletionSource.TrySetResult(null);
 
                 // Wait for process to exit; cancellation is handled by the exitedSource
                 await exitedSource.Task.ConfigureAwait(false);

@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
     internal class EgressOperation : IEgressOperation
     {
-        private readonly Func<IEgressService, TaskCompletionSource, CancellationToken, Task<EgressResult>> _egress;
+        private readonly Func<IEgressService, TaskCompletionSource<object>, CancellationToken, Task<EgressResult>> _egress;
         private readonly KeyValueLogScope _scope;
         public EgressProcessInfo ProcessInfo { get; private set; }
         public string EgressProviderName { get; private set; }
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         private readonly IArtifactOperation _operation;
 
         // JSFIX: Commonize ctor
-        public EgressOperation(IArtifactOperation operation, TaskCompletionSource mirroredStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
+        public EgressOperation(IArtifactOperation operation, TaskCompletionSource<object> mirroredStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
         {
             _egress = (service, startCompletionSource, token) => service.EgressAsync(
                 endpointName,
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                     {
                         if (task.IsCompletedSuccessfully)
                         {
-                            mirroredStartCompletionSource.TrySetResult();
+                            mirroredStartCompletionSource.TrySetResult(task.Result);
                         }
                         else if (task.IsCanceled)
                         {
@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _operation = operation;
         }
 
-        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource startedCompletionSource, CancellationToken token)
+        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource<object> startedCompletionSource, CancellationToken token)
         {
             ILogger<EgressOperation> logger = CreateLogger(serviceProvider);
 

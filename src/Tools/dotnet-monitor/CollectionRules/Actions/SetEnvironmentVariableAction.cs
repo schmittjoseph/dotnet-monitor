@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             }
 
             protected override async Task<CollectionRuleActionResult> ExecuteCoreAsync(
-                TaskCompletionSource startCompletionSource,
+                TaskCompletionSource<object> startCompletionSource,
                 CollectionRuleMetadata collectionRuleMetadata,
                 CancellationToken token)
             {
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
                     _logger.SettingEnvironmentVariable(_options.Name, EndpointInfo.ProcessId);
                     await client.SetEnvironmentVariableAsync(_options.Name, _options.Value, token);
 
-                    if (!startCompletionSource.TrySetResult())
+                    if (!startCompletionSource.TrySetResult(null))
                     {
                         throw new InvalidOperationException();
                     }

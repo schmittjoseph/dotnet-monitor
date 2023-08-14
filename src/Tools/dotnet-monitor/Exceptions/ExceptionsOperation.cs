@@ -48,9 +48,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
         public bool IsStoppable => false;
 
-        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource startCompletionSource, CancellationToken token)
+        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource<object> startCompletionSource, CancellationToken token)
         {
-            startCompletionSource.TrySetResult();
+            startCompletionSource.TrySetResult(null);
 
 
             IReadOnlyList<IExceptionInstance> exceptions = _store.GetSnapshot();

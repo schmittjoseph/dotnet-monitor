@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         public EgressProcessInfo ProcessInfo { get; }
 
-        Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource startingTaskCompletionSource, CancellationToken token);
+        Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource<object> startingTaskCompletionSource, CancellationToken token);
 
         Task StopAsync(CancellationToken token);
 

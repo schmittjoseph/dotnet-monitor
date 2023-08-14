@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             }
 
             protected override async Task<CollectionRuleActionResult> ExecuteCoreAsync(
-                TaskCompletionSource startCompletionSource,
+                TaskCompletionSource<object> startCompletionSource,
                 CollectionRuleMetadata collectionRuleMetadata,
                 CancellationToken token)
             {
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
                     _logger.LoadingProfiler(_options.Clsid, _options.Path, EndpointInfo.ProcessId);
                     await client.SetStartupProfilerAsync(_options.Clsid, _options.Path, token);
 
-                    if (!startCompletionSource.TrySetResult())
+                    if (!startCompletionSource.TrySetResult(null))
                     {
                         throw new InvalidOperationException();
                     }

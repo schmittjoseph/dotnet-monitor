@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         {
             ThrowIfDisposed();
 
-            TaskCompletionSource startCompleteSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object> startCompleteSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             CancellationToken disposalToken = _disposalTokenSource.Token;
             _completionTask = Task.Run(() => ExecuteAsync(startCompleteSource, collectionRuleMetadata, disposalToken), disposalToken);
@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         }
 
         private async Task<CollectionRuleActionResult> ExecuteAsync(
-            TaskCompletionSource startCompletionSource,
+            TaskCompletionSource<object> startCompletionSource,
             CollectionRuleMetadata collectionRuleMetadata,
             CancellationToken token)
         {
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             }
         }
 
-        private static bool TrySetExceptionReturnFalse(TaskCompletionSource source, Exception ex, CancellationToken token)
+        private static bool TrySetExceptionReturnFalse(TaskCompletionSource<object> source, Exception ex, CancellationToken token)
         {
             if (ex is OperationCanceledException)
             {
@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         }
 
         protected abstract Task<CollectionRuleActionResult> ExecuteCoreAsync(
-            TaskCompletionSource startCompletionSource,
+            TaskCompletionSource<object> startCompletionSource,
             CollectionRuleMetadata collectionRuleMetadata,
             CancellationToken token);
     }

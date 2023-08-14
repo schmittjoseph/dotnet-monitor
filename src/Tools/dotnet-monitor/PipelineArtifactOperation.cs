@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             Register = register;
         }
 
-        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource startCompletionSource, CancellationToken token)
+        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource<object> startCompletionSource, CancellationToken token)
         {
             await using T pipeline = CreatePipeline(outputStream);
 
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             Logger.StartCollectArtifact(_artifactType);
 
             // Signal that the artifact operation has started
-            startCompletionSource.TrySetResult();
+            startCompletionSource.TrySetResult(null);
 
             await runTask;
         }
