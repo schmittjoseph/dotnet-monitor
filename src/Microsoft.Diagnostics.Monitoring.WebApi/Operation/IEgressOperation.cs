@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
-    internal interface IEgressOperation
+    internal interface IEgressOperation : IStartable
     {
         public bool IsStoppable { get; }
 
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         public EgressProcessInfo ProcessInfo { get; }
 
-        Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource<object> startingTaskCompletionSource, CancellationToken token);
+        Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, CancellationToken token);
 
         Task StopAsync(CancellationToken token);
 

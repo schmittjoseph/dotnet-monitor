@@ -26,24 +26,12 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             }
         }
 
-        public static Task MirrorStateOnCompletion<T>(this TaskCompletionSource<T> source, TaskCompletionSource<T> destination)
+        public static async Task WithCancellation(this TaskCompletionSource source, CancellationToken token)
         {
-            return source.Task.ContinueWith(completedTask =>
+            using (token.Register(source => ((TaskCompletionSource)source).TrySetCanceled(token), source))
             {
-                if (completedTask.IsFaulted)
-                {
-                    _ = destination.TrySetException(completedTask.Exception);
-                }
-                else if (completedTask.IsCanceled)
-                {
-                    _ = destination.TrySetCanceled();
-                }
-                else
-                {
-                    _ = destination.TrySetResult(completedTask.Result);
-                }
-            },
-            CancellationToken.None, TaskContinuationOptions.RunContinuationsAsynchronously, TaskScheduler.Default);
+                await source.Task.ConfigureAwait(false);
+            }
         }
     }
 }

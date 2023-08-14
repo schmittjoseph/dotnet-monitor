@@ -46,10 +46,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
                 try
                 {
-                    TaskCompletionSource<object> startedCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                    Task<ExecutionResult<EgressResult>> executeTask = egressRequest.EgressOperation.ExecuteAsync(_serviceProvider, startedCompletionSource, token);
+                    Task<ExecutionResult<EgressResult>> executeTask = egressRequest.EgressOperation.ExecuteAsync(_serviceProvider, token);
 
-                    await startedCompletionSource.WithCancellation(token).ConfigureAwait(false);
+                    await egressRequest.EgressOperation.Started.WithCancellation(token).ConfigureAwait(false);
                     _operationsStore.MarkOperationAsRunning(egressRequest.OperationId);
 
                     ExecutionResult<EgressResult> result = await executeTask.WithCancellation(token).ConfigureAwait(false);

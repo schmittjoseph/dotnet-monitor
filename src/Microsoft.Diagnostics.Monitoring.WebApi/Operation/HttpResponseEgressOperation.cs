@@ -21,10 +21,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         public bool IsStoppable { get { return _operation?.IsStoppable ?? false; } }
         public ISet<string> Tags { get; private set; }
 
-        private readonly TaskCompletionSource<object> _operationStartCompletionSource;
+        public Task Started => _operation.Started;
+
         private readonly IArtifactOperation _operation;
 
-        public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation, TaskCompletionSource<object> startCompletionSource)
+        public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation)
         {
             _httpContext = context;
             _httpContext.Response.OnCompleted(() =>
@@ -34,20 +35,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             });
 
             _operation = operation;
-            _operationStartCompletionSource = startCompletionSource;
             Tags = Utilities.SplitTags(tags);
 
             ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
         }
 
-        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource<object> startCompletionSource, CancellationToken token)
+        public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, CancellationToken token)
         {
             using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token, _httpContext.RequestAborted);
             using IDisposable registration = token.Register(_httpContext.Abort);
-
-            // Since this HttpResponseEgressOperation is just a shim for an already existing IArtifactOperation (_operation)
-            // we need to mirror its state, including when it starts.
-            await _operationStartCompletionSource.MirrorStateOnCompletion(startCompletionSource).WithCancellation(cts.Token).ConfigureAwait(false);
 
             int statusCode = await _responseFinishedCompletionSource.Task.WithCancellation(cts.Token).ConfigureAwait(false);
 
