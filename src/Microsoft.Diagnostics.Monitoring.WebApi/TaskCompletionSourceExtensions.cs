@@ -4,11 +4,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-#if UNITTEST
-namespace Microsoft.Diagnostics.Monitoring.TestCommon
-#else
-namespace Microsoft.Diagnostics.Tools.Monitor
-#endif
+namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
     internal static class TaskCompletionSourceExtensions
     {
@@ -28,6 +24,32 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             {
                 return await source.Task.ConfigureAwait(false);
             }
+        }
+
+        public static Task MirrorStateOnContinuation<T>(this TaskCompletionSource<T> source, TaskCompletionSource<T> destination, CancellationToken token)
+        {
+            return source.Task.ContinueWith(async task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    destination.TrySetResult(await task);
+                }
+                else if (task.IsCanceled)
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        destination.TrySetCanceled(token);
+                    }
+                    else
+                    {
+                        destination.TrySetCanceled();
+                    }
+                }
+                else if (task.IsFaulted)
+                {
+                    destination.TrySetException(task.Exception);
+                }
+            }, token, TaskContinuationOptions.RunContinuationsAsynchronously, TaskScheduler.Default);
         }
     }
 }
