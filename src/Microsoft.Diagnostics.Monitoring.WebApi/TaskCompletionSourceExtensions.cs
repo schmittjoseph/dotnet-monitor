@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             }
         }
 
-        public static Task MirrorStateOnContinuation<T>(this TaskCompletionSource<T> source, TaskCompletionSource<T> destination, CancellationToken token)
+        public static Task MirrorStateOnCompletion<T>(this TaskCompletionSource<T> source, TaskCompletionSource<T> destination, CancellationToken token)
         {
             return source.Task.ContinueWith(async task =>
             {

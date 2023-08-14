@@ -29,30 +29,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 endpointName,
                 (Stream stream, CancellationToken token) =>
                 {
-                    // JSFIX: Helper method
-                    startCompletionSource.Task.ContinueWith(task =>
-                    {
-                        if (task.IsCompletedSuccessfully)
-                        {
-                            mirroredStartCompletionSource.TrySetResult(task.Result);
-                        }
-                        else if (task.IsCanceled)
-                        {
-                            if (token.IsCancellationRequested)
-                            {
-                                mirroredStartCompletionSource.TrySetCanceled(token);
-                            }
-                            else
-                            {
-                                mirroredStartCompletionSource.TrySetCanceled();
-                            }
-                        }
-                        else if (task.IsFaulted)
-                        {
-                            mirroredStartCompletionSource.TrySetException(task.Exception);
-                        }
-
-                    }, token, TaskContinuationOptions.RunContinuationsAsynchronously, TaskScheduler.Default);
+                    _ = startCompletionSource.MirrorStateOnCompletion(mirroredStartCompletionSource, token);
                     return operation.ExecuteAsync(stream, startCompletionSource, token);
                 },
                 operation.GenerateFileName(),
