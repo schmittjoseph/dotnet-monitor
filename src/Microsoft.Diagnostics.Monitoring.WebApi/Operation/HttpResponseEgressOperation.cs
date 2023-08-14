@@ -46,10 +46,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             using IDisposable registration = token.Register(_httpContext.Abort);
 
             // Since this HttpResponseEgressOperation is just a shim for an already existing IArtifactOperation (_operation)
-            // we need to mirror it's state, including when it starts.
+            // we need to mirror its state, including when it starts.
             await _operationStartCompletionSource.MirrorStateOnCompletion(startCompletionSource).WithCancellation(cts.Token).ConfigureAwait(false);
 
-            int statusCode = await _responseFinishedCompletionSource.WithCancellation(cts.Token).ConfigureAwait(false);
+            int statusCode = await _responseFinishedCompletionSource.Task.WithCancellation(cts.Token).ConfigureAwait(false);
 
             return statusCode >= (int)HttpStatusCode.OK && statusCode < (int)HttpStatusCode.Ambiguous
                 ? ExecutionResult<EgressResult>.Empty()

@@ -22,8 +22,24 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         private readonly IArtifactOperation _operation;
 
-        private EgressOperation(IArtifactOperation operation, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags)
+
+        public EgressOperation(IArtifactOperation operation, TaskCompletionSource<object> collectionRuleStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata)
         {
+            _egress = (service, startCompletionSource, token) => service.EgressAsync(
+                endpointName,
+                (Stream stream, CancellationToken token) =>
+                {
+                    // CollectionRules already have a concept of a start completion source outside of the one used by the egress service.
+                    // Keep the two in sync.
+                    _ = startCompletionSource.MirrorStateOnCompletion(collectionRuleStartCompletionSource);
+                    return operation.ExecuteAsync(stream, startCompletionSource, token);
+                },
+                operation.GenerateFileName(),
+                operation.ContentType,
+                processInfo.EndpointInfo,
+                collectionRuleMetadata,
+                token);
+
             EgressProviderName = endpointName;
             _scope = scope;
 
@@ -32,25 +48,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _operation = operation;
         }
 
-        public EgressOperation(IArtifactOperation operation, TaskCompletionSource<object> mirroredStartCompletionSource, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
-            : this(operation, endpointName, processInfo, scope, tags)
-        {
-            _egress = (service, startCompletionSource, token) => service.EgressAsync(
-                endpointName,
-                (Stream stream, CancellationToken token) =>
-                {
-                    _ = startCompletionSource.MirrorStateOnCompletion(mirroredStartCompletionSource);
-                    return operation.ExecuteAsync(stream, startCompletionSource, token);
-                },
-                operation.GenerateFileName(),
-                operation.ContentType,
-                processInfo.EndpointInfo,
-                collectionRuleMetadata,
-                token);
-        }
-
-        public EgressOperation(IArtifactOperation operation, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags, CollectionRuleMetadata collectionRuleMetadata = null)
-            : this(operation, endpointName, processInfo, scope, tags)
+        public EgressOperation(IArtifactOperation operation, string endpointName, IProcessInfo processInfo, KeyValueLogScope scope, string tags)
         {
             _egress = (service, startCompletionSource, token) => service.EgressAsync(
                 endpointName,
@@ -58,8 +56,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                 operation.GenerateFileName(),
                 operation.ContentType,
                 processInfo.EndpointInfo,
-                collectionRuleMetadata,
+                collectionRuleMetadata: null,
                 token);
+
+            EgressProviderName = endpointName;
+            _scope = scope;
+
+            ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
+            Tags = Utilities.SplitTags(tags);
+            _operation = operation;
         }
 
         public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, TaskCompletionSource<object> startedCompletionSource, CancellationToken token)
