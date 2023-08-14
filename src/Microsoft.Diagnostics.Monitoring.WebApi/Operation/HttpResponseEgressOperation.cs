@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         public bool IsStoppable { get { return _operation?.IsStoppable ?? false; } }
         public ISet<string> Tags { get; private set; }
 
-        private readonly TaskCompletionSource<object> _startCompletionSource;
+        private readonly TaskCompletionSource<object> _operationStartCompletionSource;
         private readonly IArtifactOperation _operation;
 
         public HttpResponseEgressOperation(HttpContext context, IProcessInfo processInfo, string tags, IArtifactOperation operation, TaskCompletionSource<object> startCompletionSource)
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             });
 
             _operation = operation;
-            _startCompletionSource = startCompletionSource;
+            _operationStartCompletionSource = startCompletionSource;
             Tags = Utilities.SplitTags(tags);
 
             ProcessInfo = new EgressProcessInfo(processInfo.ProcessName, processInfo.EndpointInfo.ProcessId, processInfo.EndpointInfo.RuntimeInstanceCookie);
@@ -45,7 +45,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token, _httpContext.RequestAborted);
             using IDisposable registration = token.Register(_httpContext.Abort);
 
-            await _startCompletionSource.MirrorStateOnCompletion(startCompletionSource).WithCancellation(cts.Token).ConfigureAwait(false);
+            // Since this HttpResponseEgressOperation is just a shim for an already existing IArtifactOperation (_operation)
+            // we need to mirror it's state, including when it starts.
+            await _operationStartCompletionSource.MirrorStateOnCompletion(startCompletionSource).WithCancellation(cts.Token).ConfigureAwait(false);
 
             int statusCode = await _responseFinishedCompletionSource.WithCancellation(cts.Token).ConfigureAwait(false);
 
