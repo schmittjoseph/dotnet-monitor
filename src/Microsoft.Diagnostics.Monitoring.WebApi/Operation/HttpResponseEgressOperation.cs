@@ -42,10 +42,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         public async Task<ExecutionResult<EgressResult>> ExecuteAsync(IServiceProvider serviceProvider, CancellationToken token)
         {
-            using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token, _httpContext.RequestAborted);
+            using CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, _httpContext.RequestAborted);
             using IDisposable registration = token.Register(_httpContext.Abort);
 
-            int statusCode = await _responseFinishedCompletionSource.Task.WithCancellation(cts.Token).ConfigureAwait(false);
+            int statusCode = await _responseFinishedCompletionSource.Task.WaitAsync(cancellationTokenSource.Token);
 
             return statusCode >= (int)HttpStatusCode.OK && statusCode < (int)HttpStatusCode.Ambiguous
                 ? ExecutionResult<EgressResult>.Empty()
