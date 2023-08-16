@@ -5,6 +5,29 @@
             "Egress": "artifacts"
         }
     },
+    "DefaultProcess": {
+        "Filters": [
+            {
+                "ProcessName": "Mvc"
+            }
+        ]
+    },
+    "DiagnosticPort": {
+        "ConnectionMode": "Listen",
+        "EndpointName": "diag.sock"
+    },
+    "InProcessFeatures": {
+        "Enabled": true,
+        "ParameterCapturing": {
+            "Enabled": true
+        },
+        "Exceptions": {
+            "Enabled": false
+        },
+        "CallStacks": {
+            "Enabled": false
+        }
+    },
     "Egress": {
         "FileSystem": {
             "artifacts": {
