@@ -35,11 +35,12 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
             _outputHelper = outputHelper;
         }
 
+#if NET7_0_OR_GREATER
         [Theory]
         [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
-        public async Task UnresolvableMethodsFailOperation(Architecture targetArchitecture)
+        public async Task UnresolvableMethodsFailsOperation(Architecture targetArchitecture)
         {
-            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            await RunTestCaseCore(TestAppScenarios.ParameterCapturing.SubScenarios.AspNetApp, targetArchitecture, async (appRunner, apiClient) =>
             {
                 int processId = await appRunner.ProcessIdTask;
 
@@ -66,28 +67,20 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 
         [Theory]
         [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
-        public async Task OperationSucceeds(Architecture targetArchitecture)
+        public async Task NonAspNetAppFailsOperation(Architecture targetArchitecture)
         {
-            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            await RunTestCaseCore(TestAppScenarios.ParameterCapturing.SubScenarios.NonAspNetApp, targetArchitecture, async (appRunner, apiClient) =>
             {
                 int processId = await appRunner.ProcessIdTask;
 
-                MethodDescription[] methods = new MethodDescription[]
-                {
-                    new MethodDescription()
-                    {
-                        AssemblyName = "System.Private.CoreLib",
-                        TypeName = "System.String",
-                        MethodName = "Concat"
-                    }
-                };
+                MethodDescription[] methods = GetValidConfiguration();
 
-                OperationResponse response = await apiClient.CaptureParametersAsync(processId, TimeSpan.FromSeconds(1), methods);
+                OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
                 Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
                 OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
-                Assert.Equal(HttpStatusCode.Created, operationResult.StatusCode);
-                Assert.Equal(OperationState.Succeeded, operationResult.OperationStatus.Status);
+                Assert.Equal(HttpStatusCode.OK, operationResult.StatusCode);
+                Assert.Equal(OperationState.Failed, operationResult.OperationStatus.Status);
 
                 await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.Continue);
             });
@@ -97,19 +90,11 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
         [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
         public async Task DoesProduceLogStatements(Architecture targetArchitecture)
         {
-            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            await RunTestCaseCore(TestAppScenarios.ParameterCapturing.SubScenarios.ExpectLogStatement, targetArchitecture, async (appRunner, apiClient) =>
             {
                 int processId = await appRunner.ProcessIdTask;
 
-                MethodDescription[] methods = new MethodDescription[]
-                {
-                    new MethodDescription()
-                    {
-                        AssemblyName = "Microsoft.Diagnostics.Monitoring.UnitTestApp",
-                        TypeName = "SampleMethods.StaticTestMethodSignatures",
-                        MethodName = "Basic"
-                    }
-                };
+                MethodDescription[] methods = GetValidConfiguration();
 
                 OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
                 Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -117,47 +102,54 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 OperationStatusResponse operationStatus = await apiClient.WaitForOperationToStart(response.OperationUri);
                 Assert.Equal(OperationState.Running, operationStatus.OperationStatus.Status);
 
-                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.ExpectLogStatement);
+                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.Continue);
             });
         }
 
         [Theory]
         [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
-        public async Task StopsProducingLogStatementsWhenCancelled(Architecture targetArchitecture)
+        public async Task StopsProducingLogStatementsAfterOperationCompleted(Architecture targetArchitecture)
         {
-            await RunTestCaseCore(targetArchitecture, async (appRunner, apiClient) =>
+            await RunTestCaseCore(TestAppScenarios.ParameterCapturing.SubScenarios.DoNotExpectLogStatement, targetArchitecture, async (appRunner, apiClient) =>
             {
                 int processId = await appRunner.ProcessIdTask;
 
-                MethodDescription[] methods = new MethodDescription[]
-                {
-                    new MethodDescription()
-                    {
-                        AssemblyName = "Microsoft.Diagnostics.Monitoring.UnitTestApp",
-                        TypeName = "SampleMethods.StaticTestMethodSignatures",
-                        MethodName = "Basic"
-                    }
-                };
+                MethodDescription[] methods = GetValidConfiguration();
 
-                OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
+                OperationResponse response = await apiClient.CaptureParametersAsync(processId, TimeSpan.FromSeconds(2), methods);
                 Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
-                OperationStatusResponse operationStatus = await apiClient.WaitForOperationToStart(response.OperationUri);
-                Assert.Equal(OperationState.Running, operationStatus.OperationStatus.Status);
+                OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
+                Assert.Equal(HttpStatusCode.Created, operationResult.StatusCode);
+                Assert.Equal(OperationState.Succeeded, operationResult.OperationStatus.Status);
 
-                HttpStatusCode cancelResponse = await apiClient.CancelEgressOperation(response.OperationUri);
-                Assert.Equal(HttpStatusCode.OK, cancelResponse);
+                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.Continue);
+            });
+        }
+#else // !NET7_0_OR_GREATER
+        [Theory(Skip = "Pending https://github.com/dotnet/dotnet-monitor/pull/5169")]
+        [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
+        public async Task Net6AppFailsOperation(Architecture targetArchitecture)
+        {
+            await RunTestCaseCore(TestAppScenarios.ParameterCapturing.SubScenarios.AspNetApp, targetArchitecture, async (appRunner, apiClient) =>
+            {
+                int processId = await appRunner.ProcessIdTask;
+
+                MethodDescription[] methods = GetValidConfiguration();
+
+                OperationResponse response = await apiClient.CaptureParametersAsync(processId, TimeSpan.FromSeconds(1), methods);
+                Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
                 OperationStatusResponse operationResult = await apiClient.PollOperationToCompletion(response.OperationUri);
                 Assert.Equal(HttpStatusCode.OK, operationResult.StatusCode);
-                Assert.Equal(OperationState.Cancelled, operationResult.OperationStatus.Status);
+                Assert.Equal(OperationState.Failed, operationResult.OperationStatus.Status);
 
-                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.DoNotExpectLogStatement);
+                await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.Continue);
             });
         }
+#endif // !NET7_0_OR_GREATER
 
-
-        private async Task RunTestCaseCore(Architecture targetArchitecture, Func<AppRunner, ApiClient, Task> appValidate)
+        private async Task RunTestCaseCore(string subScenarioName, Architecture targetArchitecture, Func<AppRunner, ApiClient, Task> appValidate)
         {
             await ScenarioRunner.SingleTarget(
                 _outputHelper,
@@ -178,7 +170,22 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                         Enabled = true
                     };
                 },
-                profilerLogLevel: LogLevel.Trace);
+                profilerLogLevel: LogLevel.Trace,
+                subScenarioName: subScenarioName);
         }
+
+        private static MethodDescription[] GetValidConfiguration()
+        {
+            return new MethodDescription[]
+            {
+                    new MethodDescription()
+                    {
+                        AssemblyName = "Microsoft.Diagnostics.Monitoring.UnitTestApp",
+                        TypeName = "SampleMethods.StaticTestMethodSignatures",
+                        MethodName = "Basic"
+                    }
+            };
+        }
+
     }
 }
