@@ -114,6 +114,9 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
                 Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
+                OperationStatusResponse operationStatus = await apiClient.WaitForOperationToStart(response.OperationUri);
+                Assert.Equal(OperationState.Running, operationStatus.OperationStatus.Status);
+
                 await appRunner.SendCommandAsync(TestAppScenarios.ParameterCapturing.Commands.ExpectLogStatement);
             });
         }
@@ -138,6 +141,9 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 
                 OperationResponse response = await apiClient.CaptureParametersAsync(processId, Timeout.InfiniteTimeSpan, methods);
                 Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+
+                OperationStatusResponse operationStatus = await apiClient.WaitForOperationToStart(response.OperationUri);
+                Assert.Equal(OperationState.Running, operationStatus.OperationStatus.Status);
 
                 HttpStatusCode cancelResponse = await apiClient.CancelEgressOperation(response.OperationUri);
                 Assert.Equal(HttpStatusCode.OK, cancelResponse);
