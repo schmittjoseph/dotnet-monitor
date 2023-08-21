@@ -62,47 +62,29 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; is unsupported, it does not have a function id..
+        /// </summary>
+        internal static string ErrorMessage_FunctionDoesNotHaveIdFormatString {
+            get {
+                return ResourceManager.GetString("ErrorMessage_FunctionDoesNotHaveIdFormatString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Mismatch probe state. Expected &apos;{0}&apos;, was &apos;{1}&apos;..
+        /// </summary>
+        internal static string ErrorMessage_ProbeStateMismatchFormatString {
+            get {
+                return ResourceManager.GetString("ErrorMessage_ProbeStateMismatchFormatString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to create an ILogger instance in the target process..
         /// </summary>
         internal static string FeatureUnsupported_NoLogger {
             get {
                 return ResourceManager.GetString("FeatureUnsupported_NoLogger", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to null.
-        /// </summary>
-        internal static string NullArgumentValue {
-            get {
-                return ResourceManager.GetString("NullArgumentValue", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to in.
-        /// </summary>
-        internal static string ParameterModifier_In {
-            get {
-                return ResourceManager.GetString("ParameterModifier_In", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to out.
-        /// </summary>
-        internal static string ParameterModifier_Out {
-            get {
-                return ResourceManager.GetString("ParameterModifier_Out", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ref.
-        /// </summary>
-        internal static string ParameterModifier_RefOrRefLike {
-            get {
-                return ResourceManager.GetString("ParameterModifier_RefOrRefLike", resourceCulture);
             }
         }
         
@@ -125,15 +107,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to this.
+        ///   Looks up a localized string similar to Parameter capturing encountered an internal error when processing &apos;{method}&apos;, stopping..
         /// </summary>
-        internal static string ThisParameterName {
+        internal static string StoppingParameterCapturingDueToProbeFault {
             get {
-                return ResourceManager.GetString("ThisParameterName", resourceCulture);
+                return ResourceManager.GetString("StoppingParameterCapturingDueToProbeFault", resourceCulture);
             }
         }
-        
-        /// <summary>
+
         ///   Looks up a localized string similar to Too many requests.
         /// </summary>
         internal static string TooManyRequestsErrorMessage {
@@ -143,38 +124,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to unknown.
-        /// </summary>
-        internal static string UnknownArgumentValue {
-            get {
-                return ResourceManager.GetString("UnknownArgumentValue", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to &lt;unknown_name_at_position_{0}&gt;.
-        /// </summary>
-        internal static string UnknownParameterNameFormatString {
-            get {
-                return ResourceManager.GetString("UnknownParameterNameFormatString", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Unable to resolve one or more methods: {0}.
         /// </summary>
         internal static string UnresolvedMethodsFormatString {
             get {
                 return ResourceManager.GetString("UnresolvedMethodsFormatString", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to unsupported.
-        /// </summary>
-        internal static string UnsupportedParameter {
-            get {
-                return ResourceManager.GetString("UnsupportedParameter", resourceCulture);
             }
         }
     }

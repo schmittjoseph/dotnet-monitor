@@ -482,7 +482,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
             Assert.True(operationResult.StatusCode == HttpStatusCode.OK || operationResult.StatusCode == HttpStatusCode.Created);
 
             using CancellationTokenSource cancellationTokenSource = new(timeout);
-            while (operationResult.OperationStatus.Status == OperationState.Running ||
+            while (operationResult.OperationStatus.Status == OperationState.Starting ||
+                operationResult.OperationStatus.Status == OperationState.Running ||
                 operationResult.OperationStatus.Status == OperationState.Stopping)
             {
                 cancellationTokenSource.Token.ThrowIfCancellationRequested();
@@ -509,5 +510,27 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
             using CancellationTokenSource timeoutSource = new(timeout);
             return await client.CaptureParametersAsync(pid, duration, methods, timeoutSource.Token).ConfigureAwait(false);
         }
+
+        public static Task<OperationStatusResponse> WaitForOperationToStart(this ApiClient apiClient, Uri operationUrl)
+        {
+            return apiClient.WaitForOperationToStart(operationUrl, TestTimeouts.OperationTimeout);
+        }
+
+        public static async Task<OperationStatusResponse> WaitForOperationToStart(this ApiClient apiClient, Uri operationUrl, TimeSpan timeout)
+        {
+            OperationStatusResponse operationResult = await apiClient.GetOperationStatus(operationUrl).ConfigureAwait(false);
+            Assert.True(operationResult.StatusCode == HttpStatusCode.OK || operationResult.StatusCode == HttpStatusCode.Created);
+
+            using CancellationTokenSource cancellationTokenSource = new(timeout);
+            while (operationResult.OperationStatus.Status == OperationState.Starting)
+            {
+                cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationTokenSource.Token).ConfigureAwait(false);
+                operationResult = await apiClient.GetOperationStatus(operationUrl).ConfigureAwait(false);
+            }
+
+            return operationResult;
+        }
+
     }
 }
