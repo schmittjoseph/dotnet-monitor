@@ -88,6 +88,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
                 public const string CaptureNativeIntegers = nameof(CaptureNativeIntegers);
                 public const string CaptureValueTypes = nameof(CaptureValueTypes);
                 public const string CaptureTypeRefValueTypes = nameof(CaptureTypeRefValueTypes);
+                public const string CaptureTypeSpecValueTypes = nameof(CaptureTypeSpecValueTypes);
                 public const string CaptureImplicitThis = nameof(CaptureImplicitThis);
                 public const string CaptureExplicitThis = nameof(CaptureExplicitThis);
 

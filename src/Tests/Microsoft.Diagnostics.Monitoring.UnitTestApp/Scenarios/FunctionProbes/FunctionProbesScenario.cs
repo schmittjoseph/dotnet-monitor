@@ -39,6 +39,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
                 { TestAppScenarios.FunctionProbes.SubScenarios.CaptureNativeIntegers, Test_CaptureNativeIntegersAsync},
                 { TestAppScenarios.FunctionProbes.SubScenarios.CaptureValueTypes, Test_CaptureValueTypesAsync},
                 { TestAppScenarios.FunctionProbes.SubScenarios.CaptureTypeRefValueTypes, Test_CaptureTypeRefValueTypesAsync},
+                { TestAppScenarios.FunctionProbes.SubScenarios.CaptureTypeRefValueTypes, Test_CaptureTypeSpecValueTypesAsync},
                 { TestAppScenarios.FunctionProbes.SubScenarios.CaptureImplicitThis, Test_CaptureImplicitThisAsync},
                 { TestAppScenarios.FunctionProbes.SubScenarios.CaptureExplicitThis, Test_CaptureExplicitThisAsync},
                 { TestAppScenarios.FunctionProbes.SubScenarios.CaptureNoParameters, Test_CaptureNoParametersAsync},
@@ -161,6 +162,15 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.FunctionProbes
             await RunStaticMethodTestCaseAsync(probeManager, probeProxy, method, new object[]
             {
                 TypeCode.DateTime
+            }, token);
+        }
+
+        private static async Task Test_CaptureTypeSpecValueTypesAsync(FunctionProbesManager probeManager, PerFunctionProbeProxy probeProxy, CancellationToken token)
+        {
+            MethodInfo method = typeof(StaticTestMethodSignatures).GetMethod(nameof(StaticTestMethodSignatures.ValueType_TypeSpec));
+            await RunStaticMethodTestCaseAsync(probeManager, probeProxy, method, new object[]
+            {
+                (bool?) true
             }, token);
         }
 

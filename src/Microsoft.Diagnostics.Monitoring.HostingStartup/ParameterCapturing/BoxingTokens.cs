@@ -120,7 +120,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     if (paramType.IsGenericType)
                     {
                         // Typespec
-                        boxingTokens.Add(UnsupportedParameterToken);
+                        if (formalParameterPosition >= 0)
+                        {
+                            // value-type type specs are supported by the signature decoder
+                            boxingTokens.Add(ancillaryBoxingTokens.Value?[formalParameterPosition] ?? UnsupportedParameterToken);
+                        }
+                        else
+                        {
+                            boxingTokens.Add(UnsupportedParameterToken);
+                        }
                     }
                     else if (paramType.Assembly != method.Module.Assembly)
                     {
@@ -172,7 +180,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 MethodDefinitionHandle methodDefHandle = (MethodDefinitionHandle)MetadataTokens.Handle(method.MetadataToken);
                 MethodDefinition methodDef = mdReader.GetMethodDefinition(methodDefHandle);
 
-                MethodSignature<uint> methodSignature = methodDef.DecodeSignature(new BoxingTokensSignatureProvider(), genericContext: null);
+                MethodSignature<uint> methodSignature = methodDef.DecodeSignature(new BoxingTokensSignatureProvider(mdReader), genericContext: null);
 
                 return methodSignature.ParameterTypes.ToArray();
             }
