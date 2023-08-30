@@ -1,15 +1,19 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter;
+
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
     internal sealed class LogEmittingProbes : IFunctionProbes
     {
         private readonly ParameterCapturingLogger _logger;
+        private readonly ObjectFormatterCache _objectFormatterCache;
 
-        public LogEmittingProbes(ParameterCapturingLogger logger)
+        public LogEmittingProbes(ParameterCapturingLogger logger, ObjectFormatterCache objectFormatterCache)
         {
             _logger = logger;
+            _objectFormatterCache = objectFormatterCache;
         }
 
         public void EnterProbe(ulong uniquifier, object[] args)
@@ -53,10 +57,23 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     continue;
                 }
 
-                argValues[fmtIndex++] = PrettyPrinter.FormatObject(args[i]);
+                argValues[fmtIndex++] = FormatObject(args[i]);
             }
 
             _logger.Log(instrumentedMethod.CaptureMode, instrumentedMethod.MethodWithParametersTemplateString, argValues);
         }
+
+        private string FormatObject(object obj)
+        {
+            try
+            {
+                return _objectFormatterCache.GetFormatter(obj.GetType())(obj);
+            }
+            catch
+            {
+                return PrettyPrinter.Tokens.Parameters.Values.Exception;
+            }
+        }
+
     }
 }
