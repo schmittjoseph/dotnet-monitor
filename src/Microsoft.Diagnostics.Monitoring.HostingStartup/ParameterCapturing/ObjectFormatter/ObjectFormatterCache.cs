@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Diagnostics;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {

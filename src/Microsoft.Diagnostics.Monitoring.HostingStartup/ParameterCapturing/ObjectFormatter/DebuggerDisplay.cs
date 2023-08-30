@@ -170,13 +170,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             List<Type> encompassingTypes = new();
 
             Type? currentType = objType;
-            while (currentType != null)
+            while (currentType != null && currentType != typeof(object))
             {
                 encompassingTypes.Add(currentType);
 
                 foreach (CustomAttributeData attr in currentType.CustomAttributes)
                 {
-                    if (attr.AttributeType == typeof(DebuggerDisplayAttribute) && attr.ConstructorArguments.Count > 0)
+                    if (attr.AttributeType == typeof(System.Diagnostics.DebuggerDisplayAttribute))
                     {
                         string? value = attr.ConstructorArguments[0].Value?.ToString();
                         if (value == null)
