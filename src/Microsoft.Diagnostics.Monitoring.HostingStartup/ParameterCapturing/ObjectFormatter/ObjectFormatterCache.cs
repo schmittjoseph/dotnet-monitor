@@ -8,6 +8,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 {
     internal sealed class ObjectFormatterCache : IDisposable
     {
+        private const int CacheSizeLimit = 1000;
+
         private readonly IMemoryCache _cache;
         private readonly bool _useDebuggerDisplayAttribute;
 
@@ -15,7 +17,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         {
             _cache = new MemoryCache(new MemoryCacheOptions()
             {
-                SizeLimit = 200
+                SizeLimit = CacheSizeLimit
             });
             _useDebuggerDisplayAttribute = useDebuggerDisplayAttribute;
         }
@@ -26,7 +28,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 return formatter;
             }
-
 
             ObjectFormatter.GeneratedFormatter generatedformatter = ObjectFormatter.GetFormatter(objType, _useDebuggerDisplayAttribute);
             foreach (Type type in generatedformatter.EncompassingTypes)
