@@ -10,20 +10,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 {
     internal static class DebuggerDisplay
     {
-        private delegate object? BoundEvaluator(object instanceObj);
+        internal delegate object? BoundEvaluator(object instanceObj);
 
-        private record DebuggerDisplayAttribute(string Value, IEnumerable<Type> EncompassingTypes);
-        private record ExpressionEvaluator(BoundEvaluator Evaluator, Type ReturnType);
-        private record Expression(string ExpressionString, FormatSpecifier FormatSpecifier);
+        internal record DebuggerDisplayAttribute(string Value, IEnumerable<Type> EncompassingTypes);
+        internal record ExpressionEvaluator(BoundEvaluator Evaluator, Type ReturnType);
+        internal record Expression(string ExpressionString, FormatSpecifier FormatSpecifier);
 
         // ref: https://learn.microsoft.com/visualstudio/debugger/format-specifiers-in-csharp#format-specifiers
-        [Flags] private enum FormatSpecifier
+        [Flags]
+        internal enum FormatSpecifier
         {
             None = 0,
             NoQuotes = 1
         }
 
-        private record ParsedDebuggerDisplay(string FormatString, Expression[] Expressions);
+        internal record ParsedDebuggerDisplay(string FormatString, Expression[] Expressions);
 
         public static ObjectFormatter.GeneratedFormatter? GetDebuggerDisplayFormatter(Type? objType)
         {
@@ -53,7 +54,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             return new ObjectFormatter.GeneratedFormatter(formatter, attribute.EncompassingTypes);
         }
 
-        private static ObjectFormatter.Formatter? BindParsedDebuggerDisplay(Type objType, ParsedDebuggerDisplay debuggerDisplay)
+        internal static ObjectFormatter.Formatter? BindParsedDebuggerDisplay(Type objType, ParsedDebuggerDisplay debuggerDisplay)
         {
             if (debuggerDisplay.Expressions.Length == 0)
             {
@@ -105,7 +106,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             };
         }
 
-        private static ExpressionEvaluator? BindExpression(Type objType, ReadOnlySpan<char> expression)
+        internal static ExpressionEvaluator? BindExpression(Type objType, ReadOnlySpan<char> expression)
         {
             int nestedObjIndex = expression.IndexOf('.');
             if (nestedObjIndex != -1)
@@ -165,7 +166,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
         }
 
-        private static DebuggerDisplayAttribute? GetDebuggerDisplayAttribute(Type objType)
+        internal static DebuggerDisplayAttribute? GetDebuggerDisplayAttribute(Type objType)
         {
             List<Type> encompassingTypes = new();
 
@@ -194,7 +195,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             return null;
         }
 
-        static ParsedDebuggerDisplay? ParseDebuggerDisplay(string expression)
+        internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(string expression)
         {
             StringBuilder fmtString = new();
             List<Expression> subExpressions = new();
@@ -290,7 +291,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 : null;
         }
 
-        private static FormatSpecifier ConvertFormatSpecifier(IEnumerable<string> specifiers)
+        internal static FormatSpecifier ConvertFormatSpecifier(IEnumerable<string> specifiers)
         {
             FormatSpecifier formatSpecifier = FormatSpecifier.None;
 
