@@ -3,15 +3,17 @@
 
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {
+    [DebuggerDisplay("Count = {_cache.Count}, UseDebuggerDisplayAttribute={_useDebuggerDisplayAttribute}")]
     internal sealed class ObjectFormatterCache : IObjectFormatterCache, IDisposable
     {
         private const int CacheSizeLimit = 1024;
 
-        private readonly IMemoryCache _cache;
+        private readonly MemoryCache _cache;
         private readonly bool _useDebuggerDisplayAttribute;
 
         public ObjectFormatterCache(bool useDebuggerDisplayAttribute)
@@ -20,6 +22,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 SizeLimit = CacheSizeLimit
             });
+
             _useDebuggerDisplayAttribute = useDebuggerDisplayAttribute;
         }
 

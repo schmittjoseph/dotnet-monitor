@@ -12,12 +12,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         public delegate string Formatter(object obj);
         public record GeneratedFormatter(Formatter Formatter, IEnumerable<Type> EncompassingTypes);
 
-        private static string IConvertibleFormatter(object obj) => ((IConvertible)obj).ToString(CultureInfo.InvariantCulture);
-        private static string IFormattableFormatter(object obj) => ((IFormattable)obj).ToString(format: null, CultureInfo.InvariantCulture);
-        private static string GeneralFormatter(object obj) => string.Concat(
+        private static string WrapValue(string value) => string.Concat(
             MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedStart,
-            obj.ToString() ?? string.Empty,
+            value,
             MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedEnd);
+
+        private static string IConvertibleFormatter(object obj) => ((IConvertible)obj).ToString(CultureInfo.InvariantCulture);
+
+        private static string IFormattableFormatter(object obj) => WrapValue(((IFormattable)obj).ToString(format: null, CultureInfo.InvariantCulture));
+
+        private static string GeneralFormatter(object obj) => WrapValue(obj.ToString() ?? string.Empty);
 
         public static GeneratedFormatter GetFormatter(Type objType, bool useDebuggerDisplayAttribute)
         {
@@ -30,11 +34,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 }
             }
 
-            if (objType is IConvertible)
+            if (objType.IsAssignableTo(typeof(IConvertible)))
             {
+                if (objType == typeof(string))
+                {
+                    return new GeneratedFormatter(GeneralFormatter, new[] { objType });
+                }
                 return new GeneratedFormatter(IConvertibleFormatter, new[] { objType });
             }
-            else if (objType is IFormattable)
+            else if (objType.IsAssignableTo(typeof(IFormatProvider)))
             {
                 return new GeneratedFormatter(IFormattableFormatter, new[] { objType });
             }
