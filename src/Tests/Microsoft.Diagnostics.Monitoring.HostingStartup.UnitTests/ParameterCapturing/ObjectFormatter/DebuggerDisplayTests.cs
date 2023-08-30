@@ -42,6 +42,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
             public static void WithArgs(int i) { }
 
+            public string GetCountAsString()
+            {
+                return Count.ToString();
+            }
+
             public void NoReturnType() => Count++;
         }
 
@@ -116,7 +121,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         }
 
         [Theory]
-        [InlineData("Recursion()", true, 10)]
+        [InlineData("GetCountAsString()", true, "10")]
         [InlineData("DoesntExist()", false, null)]
         [InlineData("WithArgs(Count)", false, null)]
         [InlineData("Count", true, 10)]
