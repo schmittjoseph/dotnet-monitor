@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         public static ObjectFormatter.GeneratedFormatter? GetDebuggerDisplayFormatter(Type? objType)
         {
-            if (objType == null)
+            if (objType == null || objType.IsInterface)
             {
                 return null;
             }
