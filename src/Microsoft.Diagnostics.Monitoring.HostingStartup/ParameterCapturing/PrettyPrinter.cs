@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal static class PrettyPrinter
     {
-        private static class Tokens
+        internal static class Tokens
         {
             private static class Internal
             {
