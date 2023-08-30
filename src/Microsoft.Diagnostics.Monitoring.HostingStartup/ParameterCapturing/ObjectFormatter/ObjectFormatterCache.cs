@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 {
     internal sealed class ObjectFormatterCache : IDisposable
     {
-        private const int CacheSizeLimit = 1000;
+        private const int CacheSizeLimit = 1024;
 
         private readonly IMemoryCache _cache;
         private readonly bool _useDebuggerDisplayAttribute;
