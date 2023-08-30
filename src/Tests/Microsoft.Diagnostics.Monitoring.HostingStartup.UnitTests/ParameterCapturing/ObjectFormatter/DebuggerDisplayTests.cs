@@ -39,6 +39,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
             public DebuggerDisplayClass RecursionProp { get; }
             public DebuggerDisplayClass Recursion() => this;
+
+            public static void WithArgs(int i) { }
+
             public void NoReturnType() => Count++;
         }
 
@@ -93,6 +96,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [InlineData("Test: {methodName(ArgName, SecondArg),raw,nq}", "Test: {0}", "methodName(ArgName, SecondArg)")]
         // Multiple expressions
         [InlineData("Test: {prop1} - {prop2} - {method()}", "Test: {0} - {1} - {2}", "prop1", "prop2", "method()")]
+        // Complex expressions
+        [InlineData("Test: {propertyName - 2}", "Test: {0}", "propertyName - 2")]
         public void ParseDebuggerDisplay(string debuggerDisplay, string formatString, params string[] expressions)
         {
             // Act
@@ -104,13 +109,37 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
                 Assert.Null(parsed);
                 return;
             }
-            else
-            {
-                Assert.NotNull(parsed);
-            }
 
+            Assert.NotNull(parsed);
             Assert.Equal(parsed.FormatString, formatString);
             Assert.Equal(parsed.Expressions.Select(p => p.ExpressionString), expressions);
+        }
+
+        [Theory]
+        [InlineData("Recursion()", true, 10)]
+        [InlineData("DoesntExist()", false, null)]
+        [InlineData("WithArgs(Count)", false, null)]
+        [InlineData("Count", true, 10)]
+        [InlineData("NoReturnType()", true, null)]
+        // Chained expression with implicit this type change
+        [InlineData("Recursion().RecursionProp.MyUri.Host", true, "www.bing.com")]
+        public void BindExpression(string expression, bool doesBind, object expected)
+        {
+            // Arrange
+            DebuggerDisplayClass obj = new("https://www.bing.com/abc");
+
+            // Act
+            ExpressionEvaluator evaluator = DebuggerDisplay.BindExpression(obj.GetType(), expression);
+            object result = evaluator?.Evaluator(obj);
+
+            if (!doesBind)
+            {
+                Assert.Null(evaluator);
+                return;
+            }
+
+            Assert.NotNull(evaluator);
+            Assert.Equal(expected, result);
         }
     }
 }
