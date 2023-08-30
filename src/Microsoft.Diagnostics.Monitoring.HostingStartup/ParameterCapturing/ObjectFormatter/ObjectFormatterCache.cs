@@ -3,10 +3,11 @@
 
 using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {
-    internal sealed class ObjectFormatterCache : IDisposable
+    internal sealed class ObjectFormatterCache : IObjectFormatterCache, IDisposable
     {
         private const int CacheSizeLimit = 1024;
 
@@ -20,6 +21,20 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 SizeLimit = CacheSizeLimit
             });
             _useDebuggerDisplayAttribute = useDebuggerDisplayAttribute;
+        }
+
+        public void CacheMethodParameters(MethodInfo method)
+        {
+            if (method.HasImplicitThis() && method.DeclaringType != null)
+            {
+                _ = GetFormatter(method.DeclaringType);
+            }
+
+            ParameterInfo[] parameters = method.GetParameters();
+            foreach (ParameterInfo parameter in parameters)
+            {
+                _ = GetFormatter(parameter.ParameterType);
+            }
         }
 
         public ObjectFormatter.Formatter GetFormatter(Type objType)

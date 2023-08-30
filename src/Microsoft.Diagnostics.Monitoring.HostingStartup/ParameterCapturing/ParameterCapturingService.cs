@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 _parameterCapturingLogger = new(userLogger, systemLogger);
                 LogEmittingProbes probes = new(_parameterCapturingLogger, _formatterCache);
 
-                FunctionProbesManager probeManager = new(probes);
+                FunctionProbesManager probeManager = new(probes, _formatterCache);
 
                 _pipeline = new ParameterCapturingPipeline(probeManager, this);
             }

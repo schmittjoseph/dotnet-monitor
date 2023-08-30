@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.Profiler;
 using System;
@@ -64,14 +65,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private readonly CancellationTokenSource _disposalTokenSource = new();
         private readonly CancellationToken _disposalToken;
 
+        private readonly IObjectFormatterCache? _formatterCache;
+
         private long _disposedState;
 
         public event EventHandler<InstrumentedMethod>? OnProbeFault;
 
-        public FunctionProbesManager(IFunctionProbes probes)
+        public FunctionProbesManager(IFunctionProbes probes, IObjectFormatterCache? formatterCache = null)
         {
             ProfilerResolver.InitializeResolver<FunctionProbesManager>();
 
+            _formatterCache = formatterCache;
             _disposalToken = _disposalTokenSource.Token;
 
             //
@@ -260,6 +264,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                         // Duplicate, ignore
                         continue;
                     }
+
+                    _formatterCache?.CacheMethodParameters(method);
 
                     functionIds.Add(functionId);
                     argumentCounts.Add((uint)methodBoxingTokens.Length);
