@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         public ObjectFormatter.Formatter GetFormatter(Type objType)
         {
-            if (_cache.TryGetValue(objType, out ObjectFormatter.Formatter formatter))
+            if (_cache.TryGetValue(objType, out ObjectFormatter.Formatter formatter) && formatter != null)
             {
                 return formatter;
             }
@@ -32,7 +32,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             ObjectFormatter.GeneratedFormatter generatedformatter = ObjectFormatter.GetFormatter(objType, _useDebuggerDisplayAttribute);
             foreach (Type type in generatedformatter.EncompassingTypes)
             {
-                _cache.CreateEntry(type).Value = generatedformatter.Formatter;
+                _cache.CreateEntry(type)
+                    .SetValue(generatedformatter);
             }
 
             return generatedformatter.Formatter;
