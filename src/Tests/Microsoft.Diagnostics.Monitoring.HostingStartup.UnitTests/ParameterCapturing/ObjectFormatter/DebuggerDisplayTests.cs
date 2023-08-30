@@ -137,6 +137,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             ExpressionEvaluator evaluator = DebuggerDisplay.BindExpression(obj.GetType(), expression);
             object result = evaluator?.Evaluator(obj);
 
+            // Assert
             if (!doesBind)
             {
                 Assert.Null(evaluator);
