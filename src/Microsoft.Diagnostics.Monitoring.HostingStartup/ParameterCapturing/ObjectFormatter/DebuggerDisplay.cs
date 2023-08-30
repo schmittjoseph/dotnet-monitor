@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         // ref: https://learn.microsoft.com/visualstudio/debugger/format-specifiers-in-csharp#format-specifiers
         [Flags]
-        internal enum FormatSpecifier
+        public enum FormatSpecifier
         {
             None = 0,
             NoQuotes = 1
@@ -299,7 +299,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 if (string.Equals(specifier, "nq", StringComparison.Ordinal))
                 {
-                    formatSpecifier &= FormatSpecifier.NoQuotes;
+                    formatSpecifier |= FormatSpecifier.NoQuotes;
                 }
             }
 

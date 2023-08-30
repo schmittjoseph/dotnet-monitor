@@ -146,5 +146,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             Assert.NotNull(evaluator);
             Assert.Equal(expected, result);
         }
+
+        [Theory]
+        [InlineData(FormatSpecifier.None)]
+        [InlineData(FormatSpecifier.NoQuotes, "nq")]
+        [InlineData(FormatSpecifier.None, "NQ")]
+        [InlineData(FormatSpecifier.NoQuotes, "nq", "raw")]
+        // JSFIX: Visibility
+
+        internal void ConvertFormatSpecifier(FormatSpecifier expected, params string[] specifiers)
+        {
+            Assert.Equal(expected, DebuggerDisplay.ConvertFormatSpecifier(specifiers));
+        }
     }
 }
