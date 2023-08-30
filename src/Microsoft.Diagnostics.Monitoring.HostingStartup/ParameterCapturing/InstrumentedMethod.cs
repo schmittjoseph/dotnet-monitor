@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             FunctionId = method.GetFunctionId();
             SupportedParameters = BoxingTokens.AreParametersSupported(boxingTokens);
-            MethodWithParametersTemplateString = PrettyPrinter.ConstructTemplateStringFromMethod(method, SupportedParameters);
+            MethodWithParametersTemplateString = MethodTemplateStringGenerator.GenerateTemplateString(method, SupportedParameters);
             foreach (bool isParameterSupported in SupportedParameters)
             {
                 if (isParameterSupported)

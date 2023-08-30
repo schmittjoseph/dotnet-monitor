@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                     object? evaluationResult = boundExpressions[i].Evaluator(obj);
                     if (evaluationResult == null)
                     {
-                        evaluationResults[i] = PrettyPrinter.Tokens.Parameters.Values.Null;
+                        evaluationResults[i] = MethodTemplateStringGenerator.Tokens.Parameters.Values.Null;
                         continue;
                     }
 
@@ -93,9 +93,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                     if ((formatSpecificer & FormatSpecifier.NoQuotes) != 0)
                     {
                         formattedEvaluationResult = string.Concat(
-                            PrettyPrinter.Tokens.Parameters.Values.WrappedStart,
+                            MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedStart,
                             formattedEvaluationResult,
-                            PrettyPrinter.Tokens.Parameters.Values.WrappedEnd);
+                            MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedEnd);
                     }
 
                     evaluationResults[i] = formattedEvaluationResult;

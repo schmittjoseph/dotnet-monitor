@@ -15,9 +15,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         private static string IConvertibleFormatter(object obj) => ((IConvertible)obj).ToString(CultureInfo.InvariantCulture);
         private static string IFormattableFormatter(object obj) => ((IFormattable)obj).ToString(format: null, CultureInfo.InvariantCulture);
         private static string GeneralFormatter(object obj) => string.Concat(
-            PrettyPrinter.Tokens.Parameters.Values.WrappedStart,
+            MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedStart,
             obj.ToString() ?? string.Empty,
-            PrettyPrinter.Tokens.Parameters.Values.WrappedEnd);
+            MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedEnd);
 
         public static GeneratedFormatter GetFormatter(Type objType, bool useDebuggerDisplayAttribute)
         {

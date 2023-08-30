@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             }
             catch
             {
-                return PrettyPrinter.Tokens.Parameters.Values.Exception;
+                return MethodTemplateStringGenerator.Tokens.Parameters.Values.Exception;
             }
         }
 
