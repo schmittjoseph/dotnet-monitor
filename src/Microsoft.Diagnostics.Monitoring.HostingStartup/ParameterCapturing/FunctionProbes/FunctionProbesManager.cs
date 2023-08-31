@@ -243,7 +243,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             try
             {
                 Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
-                ObjectFormatterCache newObjectFormatterCache = new();
+                ObjectFormatterCache newObjectFormatterCache = new(useDebuggerDisplayAttribute: true);
 
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);

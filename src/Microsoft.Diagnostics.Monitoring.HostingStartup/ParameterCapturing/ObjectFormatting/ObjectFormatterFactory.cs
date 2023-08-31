@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters;
 using System;
 using System.Collections.Generic;
 
@@ -15,8 +16,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
     internal static class ObjectFormatterFactory
     {
-        public static FormatterFactoryResult GetFormatter(Type objType)
+        public static FormatterFactoryResult GetFormatter(Type objType, bool useDebuggerDisplayAttribute = false)
         {
+            if (useDebuggerDisplayAttribute)
+            {
+                FormatterFactoryResult? factoryResult = DebuggerDisplayFormatter.GetDebuggerDisplayFormatter(objType);
+                if (factoryResult != null)
+                {
+                    return factoryResult;
+                }
+            }
+
             if (objType.IsAssignableTo(typeof(IConvertible)))
             {
                 return new FormatterFactoryResult(RuntimeFormatters.IConvertibleFormatter, new[] { objType });
