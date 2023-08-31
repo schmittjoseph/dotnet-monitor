@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [InlineData("{{invalid_expression}}", null)]
         // Method expressions
         [InlineData("Test: {methodName()}", "Test: {0}", "methodName()")]
-        [InlineData("Test: {methodName(ArgName, SecondArg)}", "methodName(ArgName, SecondArg)")]
+        [InlineData("Test: {methodName(ArgName, SecondArg)}", "Test: {0}", "methodName(ArgName, SecondArg)")]
         // Property expressions
         [InlineData("Test: {propertyName}", "Test: {0}", "propertyName")]
         // Chained expressions
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void ParseDebuggerDisplay(string debuggerDisplay, string formatString, params string[] expressions)
         {
             // Act
-            ParsedDebuggerDisplay parsed = DebuggerDisplayFormatter.ParseDebuggerDisplay(debuggerDisplay);
+            ParsedDebuggerDisplay parsed = DebuggerDisplayFormatter.ParseDebuggerDisplay(debuggerDisplay.AsMemory());
 
             // Assert
             if (formatString == null)
@@ -115,8 +115,28 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             }
 
             Assert.NotNull(parsed);
-            Assert.Equal(parsed.FormatString, formatString);
-            Assert.Equal(parsed.Expressions.Select(p => p.ExpressionString), expressions);
+            Assert.Equal(formatString, parsed.FormatString);
+            Assert.Equal(expressions, parsed.Expressions.Select(p => p.ExpressionString.ToString()));
+        }
+
+        [Theory]
+        [InlineData("{MyFunc(A,B),nq,raw}", "MyFunc(A,B)", FormatSpecifier.NoQuotes)]
+        [InlineData("{a}", "a", FormatSpecifier.None)]
+        internal void ParseExpression_FormatSpecifier(string rawExpression, string expressionString, FormatSpecifier formatSpecifier)
+        {
+            // Act
+            Expression expression = DebuggerDisplayFormatter.ParseExpression(rawExpression.AsMemory(), out _);
+
+            // Assert
+            if (expressionString == null)
+            {
+                Assert.Null(expression);
+                return;
+            }
+
+            Assert.NotNull(expression);
+            Assert.Equal(expressionString, expression.ExpressionString.ToString());
+            Assert.Equal(formatSpecifier, expression.FormatSpecifier);
         }
 
         [Theory]
@@ -147,16 +167,5 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             Assert.Equal(expected, result);
         }
 
-        [Theory]
-        [InlineData(FormatSpecifier.None)]
-        [InlineData(FormatSpecifier.NoQuotes, "nq")]
-        [InlineData(FormatSpecifier.None, "NQ")]
-        [InlineData(FormatSpecifier.NoQuotes, "nq", "raw")]
-        // JSFIX: Visibility
-
-        internal void ConvertFormatSpecifier(FormatSpecifier expected, params string[] specifiers)
-        {
-            Assert.Equal(expected, DebuggerDisplayFormatter.ConvertFormatSpecifier(specifiers));
-        }
     }
 }

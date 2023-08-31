@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         internal record DebuggerDisplayAttributeValue(string Value, IEnumerable<Type> EncompassingTypes);
         internal delegate object? BoundEvaluator(object instanceObj);
         internal record ExpressionEvaluator(BoundEvaluator Evaluator, Type ReturnType);
-        internal record Expression(string ExpressionString, FormatSpecifier FormatSpecifier);
+        internal record Expression(ReadOnlyMemory<char> ExpressionString, FormatSpecifier FormatSpecifier);
 
         internal record ParsedDebuggerDisplay(string FormatString, Expression[] Expressions);
 
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 return null;
             }
 
-            ParsedDebuggerDisplay? parsedDebuggerDiplay = ParseDebuggerDisplay(attribute.Value);
+            ParsedDebuggerDisplay? parsedDebuggerDiplay = ParseDebuggerDisplay(attribute.Value.AsMemory());
             if (parsedDebuggerDiplay == null)
             {
                 return null;
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
             for (int i = 0; i < debuggerDisplay.Expressions.Length; i++)
             {
-                ExpressionEvaluator? evaluator = BindExpression(objType, debuggerDisplay.Expressions[i].ExpressionString);
+                ExpressionEvaluator? evaluator = BindExpression(objType, debuggerDisplay.Expressions[i].ExpressionString.Span);
                 if (evaluator == null)
                 {
                     return null;
@@ -178,115 +178,148 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             return null;
         }
 
-        internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(string expression)
+        internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(ReadOnlyMemory<char> expression)
         {
             StringBuilder fmtString = new();
             List<Expression> subExpressions = new();
 
-            StringBuilder expressionBuilder = new();
-            List<string> formatSpecifiers = new();
-            StringBuilder formatSpecifierBuilder = new();
+            ReadOnlySpan<char> expressionSpan = expression.Span;
 
-            bool inFormatSpecifier = false;
-
-            void stageFormatSpecifier()
+            for (int i = 0; i < expressionSpan.Length; i++)
             {
-                inFormatSpecifier = false;
-                if (formatSpecifierBuilder.Length != 0)
-                {
-                    formatSpecifiers.Add(formatSpecifierBuilder.ToString());
-                    formatSpecifierBuilder.Clear();
-                }
-            }
-
-            void stageExpression()
-            {
-                stageFormatSpecifier();
-
-                subExpressions.Add(new Expression(expressionBuilder.ToString(), ConvertFormatSpecifier(formatSpecifiers)));
-                formatSpecifiers.Clear();
-            }
-
-            void startExpression()
-            {
-                expressionBuilder.Clear();
-                fmtString.Append('{');
-                fmtString.Append(subExpressions.Count);
-                fmtString.Append('}');
-            }
-
-            int expressionDepth = 0;
-            for (int i = 0; i < expression.Length; i++)
-            {
-                char c = expression[i];
+                char c = expressionSpan[i];
                 switch (c)
                 {
-                    case '}':
-                        expressionDepth--;
-                        if (expressionDepth < 0)
-                        {
-                            return null;
-                        }
-
-                        stageExpression();
-
-                        break;
-
                     case '{':
-                        expressionDepth++;
-                        if (expressionDepth > 1)
+                        Expression? parsedExpression = ParseExpression(expression.Slice(i), out int charsRead);
+                        if (parsedExpression == null)
                         {
                             return null;
                         }
+                        i += charsRead;
 
-                        startExpression();
+                        fmtString.Append('{');
+                        fmtString.Append(subExpressions.Count);
+                        fmtString.Append('}');
+
+                        subExpressions.Add(parsedExpression);
 
                         break;
-                    case ',':
-                        if (expressionDepth == 0)
-                        {
-                            goto default;
-                        }
+                    case '}':
+                        // Malformed
+                        return null;
 
-                        stageFormatSpecifier();
-                        break;
                     default:
-                        StringBuilder strBuilder;
-                        if (expressionDepth == 0)
-                        {
-                            strBuilder = fmtString;
-                        }
-                        else if (inFormatSpecifier)
-                        {
-                            strBuilder = formatSpecifierBuilder;
-                        }
-                        else
-                        {
-                            strBuilder = expressionBuilder;
-                        }
-
-                        strBuilder.Append(c);
+                        fmtString.Append(c);
                         break;
                 }
             }
 
-            return expressionDepth == 0
-                ? new ParsedDebuggerDisplay(fmtString.ToString(), subExpressions.ToArray())
-                : null;
+            return new ParsedDebuggerDisplay(fmtString.ToString(), subExpressions.ToArray());
         }
 
-        internal static FormatSpecifier ConvertFormatSpecifier(IEnumerable<string> specifiers)
+        internal static Expression? ParseExpression(ReadOnlyMemory<char> expression, out int length)
+        {
+            length = 0;
+            if (expression.Length == 0)
+            {
+                return null;
+            }
+
+            ReadOnlySpan<char> spanExpression = expression.Span;
+
+            if (spanExpression[0] != '{')
+            {
+                return null;
+            }
+
+            int parenthesisDepth = 0;
+            int formatSpecifiersStart = -1;
+
+            // Find the format specifier (if any) and split on that.
+            for (int i = 1; i < expression.Length; i++)
+            {
+                length++;
+                char c = spanExpression[i];
+                switch (c)
+                {
+                    case '(':
+                        parenthesisDepth++;
+                        break;
+                    case ')':
+                        parenthesisDepth--;
+                        if (parenthesisDepth < 0)
+                        {
+                            return null;
+                        }
+                        break;
+                    case '{':
+                        return null;
+
+                    case '}':
+                        // End of expression or malformed
+                        if (formatSpecifiersStart != -1)
+                        {
+                            return new Expression(
+                                expression.Slice(1, formatSpecifiersStart - 1),
+                                ConvertFormatSpecifier(spanExpression.Slice(formatSpecifiersStart, i - formatSpecifiersStart)));
+                        }
+
+                        return new Expression(
+                            expression.Slice(1, length - 1),
+                            FormatSpecifier.None);
+
+                    case ',':
+                        if (parenthesisDepth == 0 && formatSpecifiersStart == -1)
+                        {
+                            formatSpecifiersStart = i;
+                        }
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+
+            return null;
+
+        }
+
+        internal static FormatSpecifier ConvertFormatSpecifier(ReadOnlySpan<char> specifiers)
         {
             FormatSpecifier formatSpecifier = FormatSpecifier.None;
 
-            foreach (var specifier in specifiers)
+            void parseSpecifier(ReadOnlySpan<char> specifier)
             {
-                if (string.Equals(specifier, "nq", StringComparison.Ordinal))
+                if (specifier.Length == 0)
+                {
+                    return;
+                }
+
+                if (specifier.Equals("nq", StringComparison.Ordinal))
                 {
                     formatSpecifier |= FormatSpecifier.NoQuotes;
                 }
             }
 
+            int startIndex = 0;
+            int length = 0;
+            for (int i = 0; i < specifiers.Length; i++)
+            {
+                char c = specifiers[i];
+
+                if (c == ',')
+                {
+                    parseSpecifier(specifiers.Slice(startIndex, length));
+                    startIndex = i + 1;
+                    length = 0;
+                    continue;
+                }
+
+                length++;
+            }
+
+            parseSpecifier(specifiers.Slice(startIndex, length));
             return formatSpecifier;
         }
     }
