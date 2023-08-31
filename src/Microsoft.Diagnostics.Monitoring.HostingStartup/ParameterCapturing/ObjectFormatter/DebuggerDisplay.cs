@@ -238,8 +238,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
 
             int expressionDepth = 0;
-            foreach (char c in expression)
+            for (int i = 0; i < expression.Length; i++)
             {
+                char c = expression[i];
                 switch (c)
                 {
                     case '}':

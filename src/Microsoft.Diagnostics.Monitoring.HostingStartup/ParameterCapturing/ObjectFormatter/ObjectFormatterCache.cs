@@ -1,28 +1,21 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {
     [DebuggerDisplay("Count = {_cache.Count}, UseDebuggerDisplayAttribute={_useDebuggerDisplayAttribute}")]
-    internal sealed class ObjectFormatterCache : IObjectFormatterCache, IDisposable
+    internal sealed class ObjectFormatterCache : IObjectFormatterCache
     {
-        private const int CacheSizeLimit = 1024;
-
-        private readonly MemoryCache _cache;
+        private readonly ConcurrentDictionary<Type, ObjectFormatter.Formatter> _cache = new();
         private readonly bool _useDebuggerDisplayAttribute;
 
         public ObjectFormatterCache(bool useDebuggerDisplayAttribute)
         {
-            _cache = new MemoryCache(new MemoryCacheOptions()
-            {
-                SizeLimit = CacheSizeLimit
-            });
-
             _useDebuggerDisplayAttribute = useDebuggerDisplayAttribute;
         }
 
@@ -42,24 +35,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         public ObjectFormatter.Formatter GetFormatter(Type objType)
         {
-            if (_cache.TryGetValue(objType, out ObjectFormatter.Formatter formatter) && formatter != null)
+            if (_cache.TryGetValue(objType, out ObjectFormatter.Formatter? formatter) && formatter != null)
             {
                 return formatter;
             }
 
-            ObjectFormatter.GeneratedFormatter generatedformatter = ObjectFormatter.GetFormatter(objType, _useDebuggerDisplayAttribute);
-            foreach (Type type in generatedformatter.EncompassingTypes)
+            ObjectFormatter.GeneratedFormatter generatedFormatter = ObjectFormatter.GetFormatter(objType, _useDebuggerDisplayAttribute);
+            foreach (Type type in generatedFormatter.EncompassingTypes)
             {
-                _cache.CreateEntry(type)
-                    .SetValue(generatedformatter);
+                _cache[type] = generatedFormatter.Formatter;
             }
 
-            return generatedformatter.Formatter;
-        }
-
-        public void Dispose()
-        {
-            _cache.Dispose();
+            return generatedFormatter.Formatter;
         }
     }
 }
