@@ -8,12 +8,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
     internal sealed class LogEmittingProbes : IFunctionProbes
     {
         private readonly ParameterCapturingLogger _logger;
-        private readonly ObjectFormatterCache _objectFormatterCache;
 
-        public LogEmittingProbes(ParameterCapturingLogger logger, ObjectFormatterCache objectFormatterCache)
+        public LogEmittingProbes(ParameterCapturingLogger logger)
         {
             _logger = logger;
-            _objectFormatterCache = objectFormatterCache;
         }
 
         public void EnterProbe(ulong uniquifier, object[] args)
@@ -34,10 +32,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 return;
             }
 
-            var methodCache = FunctionProbesStub.InstrumentedMethodCache;
-            if (methodCache == null ||
+            FunctionProbesCache? cache = FunctionProbesStub.Cache;
+            if (cache == null ||
                 args == null ||
-                !methodCache.TryGetValue(uniquifier, out InstrumentedMethod? instrumentedMethod) ||
+                !cache.InstrumentedMethods.TryGetValue(uniquifier, out InstrumentedMethod? instrumentedMethod) ||
                 args.Length != instrumentedMethod?.SupportedParameters.Length)
             {
                 return;
@@ -57,17 +55,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                     continue;
                 }
 
-                argValues[fmtIndex++] = FormatObject(args[i]);
+                argValues[fmtIndex++] = FormatObject(cache.ObjectFormatterCache, args[i]);
             }
 
             _logger.Log(instrumentedMethod.CaptureMode, instrumentedMethod.MethodWithParametersTemplateString, argValues);
         }
 
-        private string FormatObject(object obj)
+        private static string FormatObject(ObjectFormatterCache objectFormatterCache, object obj)
         {
             try
             {
-                return _objectFormatterCache.GetFormatter(obj.GetType())(obj);
+                return objectFormatterCache.GetFormatter(obj.GetType())(obj);
             }
             catch
             {

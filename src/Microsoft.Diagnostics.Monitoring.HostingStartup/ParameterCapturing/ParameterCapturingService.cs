@@ -3,7 +3,6 @@
 
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Eventing;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes;
-using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter;
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Pipeline;
 using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing;
@@ -30,7 +29,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private readonly ParameterCapturingEventSource _eventSource = new();
         private readonly ParameterCapturingPipeline? _pipeline;
         private readonly ParameterCapturingLogger? _parameterCapturingLogger;
-        private readonly ObjectFormatterCache? _formatterCache;
 
         private readonly ILogger? _logger;
 
@@ -59,11 +57,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 ILogger systemLogger = services.GetService<ILogger<DotnetMonitor.ParameterCapture.SystemCode>>()
                     ?? throw new NotSupportedException(ParameterCapturingStrings.FeatureUnsupported_NoLogger);
 
-                _formatterCache = new ObjectFormatterCache(useDebuggerDisplayAttribute: true);
                 _parameterCapturingLogger = new(userLogger, systemLogger);
-                LogEmittingProbes probes = new(_parameterCapturingLogger, _formatterCache);
+                LogEmittingProbes probes = new(_parameterCapturingLogger);
 
-                FunctionProbesManager probeManager = new(probes, _formatterCache);
+                FunctionProbesManager probeManager = new(probes);
 
                 _pipeline = new ParameterCapturingPipeline(probeManager, this);
             }
@@ -229,7 +226,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             _pipeline?.Dispose();
             _parameterCapturingLogger?.Dispose();
-            _formatterCache?.Dispose();
 
             base.Dispose();
         }

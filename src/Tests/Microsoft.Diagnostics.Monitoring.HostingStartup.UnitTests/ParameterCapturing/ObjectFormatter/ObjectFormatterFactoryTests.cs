@@ -4,18 +4,17 @@
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using SampleMethods;
-using System;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing
 {
     [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
-    public class ObjectFormatterTests
+    public class ObjectFormatterFactoryTests
     {
         private readonly ITestOutputHelper _outputHelper;
 
-        public ObjectFormatterTests(ITestOutputHelper outputHelper)
+        public ObjectFormatterFactoryTests(ITestOutputHelper outputHelper)
         {
             _outputHelper = outputHelper;
         }
@@ -28,7 +27,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void GetFormatter_ReturnsCorrectFormatter(object obj, string expected)
         {
             // Arrange
-            var formatter = ObjectFormatter.GetFormatter(obj.GetType(), useDebuggerDisplayAttribute: false);
+            var formatter = ObjectFormatterFactory.GetFormatter(obj.GetType());
 
             // Act
             string actual = formatter.Formatter(obj);

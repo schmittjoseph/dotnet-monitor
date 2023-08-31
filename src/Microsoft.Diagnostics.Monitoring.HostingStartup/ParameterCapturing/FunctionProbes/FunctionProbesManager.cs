@@ -65,17 +65,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         private readonly CancellationTokenSource _disposalTokenSource = new();
         private readonly CancellationToken _disposalToken;
 
-        private readonly IObjectFormatterCache? _formatterCache;
-
         private long _disposedState;
 
         public event EventHandler<InstrumentedMethod>? OnProbeFault;
 
-        public FunctionProbesManager(IFunctionProbes probes, IObjectFormatterCache? formatterCache = null)
+        public FunctionProbesManager(IFunctionProbes probes)
         {
             ProfilerResolver.InitializeResolver<FunctionProbesManager>();
 
-            _formatterCache = formatterCache;
             _disposalToken = _disposalTokenSource.Token;
 
             //
@@ -127,9 +124,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
         private void OnFault(ulong uniquifier)
         {
-            var methodCache = FunctionProbesStub.InstrumentedMethodCache;
-            if (methodCache == null ||
-                !methodCache.TryGetValue(uniquifier, out InstrumentedMethod? instrumentedMethod))
+            FunctionProbesCache? cache = FunctionProbesStub.Cache;
+            if (cache == null ||
+                !cache.InstrumentedMethods.TryGetValue(uniquifier, out InstrumentedMethod? instrumentedMethod))
             {
                 //
                 // The probe fault occurred in a method that is no longer actively instrumented, ignore.
@@ -221,7 +218,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 return;
             }
 
-            FunctionProbesStub.InstrumentedMethodCache = null;
+            FunctionProbesStub.Cache = null;
             RequestFunctionProbeUninstallation();
         }
 
@@ -246,6 +243,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             try
             {
                 Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
+                ObjectFormatterCache newObjectFormatterCache = new();
+
                 List<ulong> functionIds = new(methods.Count);
                 List<uint> argumentCounts = new(methods.Count);
                 List<uint> boxingTokens = new();
@@ -265,14 +264,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                         continue;
                     }
 
-                    _formatterCache?.CacheMethodParameters(method);
+                    newObjectFormatterCache.CacheMethodParameters(method);
 
                     functionIds.Add(functionId);
                     argumentCounts.Add((uint)methodBoxingTokens.Length);
                     boxingTokens.AddRange(methodBoxingTokens);
                 }
 
-                FunctionProbesStub.InstrumentedMethodCache = new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache);
+                FunctionProbesStub.Cache = new FunctionProbesCache(new ReadOnlyDictionary<ulong, InstrumentedMethod>(newMethodCache), newObjectFormatterCache);
 
                 _installationTaskSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 RequestFunctionProbeInstallation(
@@ -283,7 +282,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
             }
             catch
             {
-                FunctionProbesStub.InstrumentedMethodCache = null;
+                FunctionProbesStub.Cache = null;
                 _probeState = ProbeStateUninstalled;
                 _installationTaskSource = null;
                 throw;

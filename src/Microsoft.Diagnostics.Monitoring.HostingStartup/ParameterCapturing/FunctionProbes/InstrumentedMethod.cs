@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
+namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.FunctionProbes
 {
     internal enum ParameterCaptureMode
     {
