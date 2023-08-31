@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter.DebuggerDisplay;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {
@@ -88,22 +89,26 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         continue;
                     }
 
-                    string formattedEvaluationResult = evaluatorFormatters[i](evaluationResult);
-                    FormatSpecifier formatSpecificer = debuggerDisplay.Expressions[i].FormatSpecifier;
-
-                    if ((formatSpecificer & FormatSpecifier.NoQuotes) != 0)
-                    {
-                        formattedEvaluationResult = string.Concat(
-                            MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedStart,
-                            formattedEvaluationResult,
-                            MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedEnd);
-                    }
-
-                    evaluationResults[i] = formattedEvaluationResult;
+                    evaluationResults[i] = ApplyFormatSpecifiers(
+                        evaluatorFormatters[i](evaluationResult),
+                        debuggerDisplay.Expressions[i].FormatSpecifier);
                 }
 
                 return string.Format(debuggerDisplay.FormatString, evaluationResults);
             };
+        }
+
+        internal static string ApplyFormatSpecifiers(string result, FormatSpecifier formatSpecifier)
+        {
+            if ((formatSpecifier & FormatSpecifier.NoQuotes) != 0)
+            {
+                result = string.Concat(
+                    MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedStart,
+                    result,
+                    MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedEnd);
+            }
+
+            return result;
         }
 
         internal static ExpressionEvaluator? BindExpression(Type objType, ReadOnlySpan<char> expression)
