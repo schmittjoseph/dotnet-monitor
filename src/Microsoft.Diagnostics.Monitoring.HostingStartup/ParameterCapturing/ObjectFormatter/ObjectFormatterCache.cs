@@ -36,13 +36,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 return formatter;
             }
 
-            GeneratedFormatter generatedFormatter = ObjectFormatterFactory.GetFormatter(objType);
-            foreach (Type type in generatedFormatter.EncompassingTypes)
+            FormatterFactoryResult factoryResult = ObjectFormatterFactory.GetFormatter(objType);
+            foreach (Type type in factoryResult.MatchingTypes)
             {
-                _cache[type] = generatedFormatter.Formatter;
+                _cache[type] = factoryResult.Formatter;
             }
 
-            return generatedFormatter.Formatter;
+            return factoryResult.Formatter;
         }
     }
 }

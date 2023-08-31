@@ -8,7 +8,12 @@ using System.Globalization;
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {
     public delegate string ObjectFormatter(object obj);
-    public record GeneratedFormatter(ObjectFormatter Formatter, IEnumerable<Type> EncompassingTypes);
+    /// <summary>
+    /// The results from FormatterFactoryResult.
+    /// </summary>
+    /// <param name="Formatter">The object formatter.</param>
+    /// <param name="MatchingTypes">Known types that this formatter will work against (including the requested type).</param>
+    public record FormatterFactoryResult(ObjectFormatter Formatter, IEnumerable<Type> MatchingTypes);
 
     internal static class ObjectFormatterFactory
     {
@@ -48,7 +53,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             NoQuotes = 1
         }
 
-        public static GeneratedFormatter GetFormatter(Type objType, FormatSpecifier formatSpecifier = FormatSpecifier.None)
+        public static FormatterFactoryResult GetFormatter(Type objType, FormatSpecifier formatSpecifier = FormatSpecifier.None)
         {
             if (objType.IsAssignableTo(typeof(IConvertible)))
             {
@@ -57,15 +62,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                     formatSpecifier |= FormatSpecifier.NoQuotes;
                 }
 
-                return new GeneratedFormatter((obj) => IConvertibleFormatter(obj, formatSpecifier), new[] { objType });
+                return new FormatterFactoryResult((obj) => IConvertibleFormatter(obj, formatSpecifier), new[] { objType });
             }
             else if (objType.IsAssignableTo(typeof(IFormatProvider)))
             {
-                return new GeneratedFormatter((obj) => IFormattableFormatter(obj, formatSpecifier), new[] { objType });
+                return new FormatterFactoryResult((obj) => IFormattableFormatter(obj, formatSpecifier), new[] { objType });
             }
             else
             {
-                return new GeneratedFormatter((obj) => GeneralFormatter(obj, formatSpecifier), new[] { objType });
+                return new FormatterFactoryResult((obj) => GeneralFormatter(obj, formatSpecifier), new[] { objType });
             }
         }
     }
