@@ -79,7 +79,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         continue;
                     }
 
-                    evaluationResults[i] = evaluatorFormatters[i](evaluationResult, debuggerDisplay.Expressions[i].FormatSpecifier);
+                    evaluationResults[i] = ObjectFormatter.FormatObject(
+                        evaluatorFormatters[i],
+                        evaluationResult,
+                        debuggerDisplay.Expressions[i].FormatSpecifier);
                 }
 
                 return string.Format(debuggerDisplay.FormatString, evaluationResults);
