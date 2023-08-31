@@ -7,13 +7,22 @@ using System.Globalization;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatter
 {
-    public delegate string ObjectFormatter(object obj);
+    internal delegate string ObjectFormatter(object obj);
+
     /// <summary>
     /// The results from FormatterFactoryResult.
     /// </summary>
     /// <param name="Formatter">The object formatter.</param>
     /// <param name="MatchingTypes">Known types that this formatter will work against (including the requested type).</param>
-    public record FormatterFactoryResult(ObjectFormatter Formatter, IEnumerable<Type> MatchingTypes);
+    internal record FormatterFactoryResult(ObjectFormatter Formatter, IEnumerable<Type> MatchingTypes);
+
+
+    [Flags]
+    internal enum FormatSpecifier
+    {
+        None = 0,
+        NoQuotes = 1
+    }
 
     internal static class ObjectFormatterFactory
     {
@@ -44,13 +53,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             return (formatSpecifier & FormatSpecifier.NoQuotes) == 0
                 ? WrapValue(formatted)
                 : formatted;
-        }
-
-        [Flags]
-        public enum FormatSpecifier
-        {
-            None = 0,
-            NoQuotes = 1
         }
 
         public static FormatterFactoryResult GetFormatter(Type objType, FormatSpecifier formatSpecifier = FormatSpecifier.None)

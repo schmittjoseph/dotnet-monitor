@@ -35,5 +35,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             // Assert
             Assert.Equal(expected, actual);
         }
+
+        [Theory]
+        [InlineData("test", FormatSpecifier.NoQuotes, "test")]
+        internal void GetFormatter_RespectsFormatSpecifier(object obj, FormatSpecifier formatSpecifier, string expected)
+        {
+            // Arrange
+            var formatter = ObjectFormatterFactory.GetFormatter(obj.GetType(), formatSpecifier);
+
+            // Act
+            string actual = formatter.Formatter(obj);
+
+            // Assert
+            Assert.Equal(expected, actual);
+        }
     }
 }
