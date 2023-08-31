@@ -17,11 +17,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             value,
             MethodTemplateStringGenerator.Tokens.Parameters.Values.WrappedEnd);
 
-
         private static string IConvertibleFormatter(object obj, FormatSpecifier formatSpecifier)
         {
             string formatted = ((IConvertible)obj).ToString(CultureInfo.InvariantCulture);
-            return (formatSpecifier & FormatSpecifier.NoQuotes) != 0
+            return (formatSpecifier & FormatSpecifier.NoQuotes) == 0
                 ? WrapValue(formatted)
                 : formatted;
         }
@@ -29,7 +28,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         private static string IFormattableFormatter(object obj, FormatSpecifier formatSpecifier)
         {
             string formatted = ((IFormattable)obj).ToString(format: null, CultureInfo.InvariantCulture);
-            return (formatSpecifier & FormatSpecifier.NoQuotes) != 0
+            return (formatSpecifier & FormatSpecifier.NoQuotes) == 0
                 ? WrapValue(formatted)
                 : formatted;
         }
@@ -37,7 +36,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         private static string GeneralFormatter(object obj, FormatSpecifier formatSpecifier)
         {
             string formatted = obj.ToString() ?? string.Empty;
-            return (formatSpecifier & FormatSpecifier.NoQuotes) != 0
+            return (formatSpecifier & FormatSpecifier.NoQuotes) == 0
                 ? WrapValue(formatted)
                 : formatted;
         }
@@ -55,7 +54,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 if (objType != typeof(string))
                 {
-                    formatSpecifier &= FormatSpecifier.NoQuotes;
+                    formatSpecifier |= FormatSpecifier.NoQuotes;
                 }
 
                 return new GeneratedFormatter((obj) => IConvertibleFormatter(obj, formatSpecifier), new[] { objType });
