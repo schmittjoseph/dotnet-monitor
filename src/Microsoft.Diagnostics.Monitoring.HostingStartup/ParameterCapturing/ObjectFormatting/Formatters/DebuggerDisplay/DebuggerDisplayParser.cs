@@ -1,0 +1,166 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay
+{
+    internal static class DebuggerDisplayParser
+    {
+        internal record ParsedDebuggerDisplay(string FormatString, Expression[] Expressions);
+        internal record Expression(ReadOnlyMemory<char> ExpressionString, FormatSpecifier FormatSpecifier);
+
+        internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(ReadOnlyMemory<char> value)
+        {
+            StringBuilder fmtString = new();
+            List<Expression> expressions = new();
+
+            ReadOnlySpan<char> displaySpan = value.Span;
+
+            for (int i = 0; i < displaySpan.Length; i++)
+            {
+                char c = displaySpan[i];
+                switch (c)
+                {
+                    case '{':
+                        Expression? parsedExpression = ParseExpression(value.Slice(i), out int charsRead);
+                        if (parsedExpression == null)
+                        {
+                            return null;
+                        }
+                        i += charsRead;
+
+                        fmtString.Append('{');
+                        fmtString.Append(expressions.Count);
+                        fmtString.Append('}');
+
+                        expressions.Add(parsedExpression);
+
+                        break;
+                    case '}':
+                        // Malformed
+                        return null;
+
+                    default:
+                        fmtString.Append(c);
+                        break;
+                }
+            }
+
+            return new ParsedDebuggerDisplay(fmtString.ToString(), expressions.ToArray());
+        }
+
+        internal static Expression? ParseExpression(ReadOnlyMemory<char> expression, out int charsRead)
+        {
+            charsRead = 0;
+            if (expression.Length == 0)
+            {
+                return null;
+            }
+
+            ReadOnlySpan<char> spanExpression = expression.Span;
+
+            if (spanExpression[0] != '{')
+            {
+                return null;
+            }
+
+
+            int formatSpecifiersStart = -1;
+
+            int parenthesisDepth = 0;
+            for (int i = 1; i < spanExpression.Length; i++)
+            {
+                charsRead++;
+                char c = spanExpression[i];
+                switch (c)
+                {
+                    case '(':
+                        parenthesisDepth++;
+                        break;
+
+                    case ')':
+                        if (parenthesisDepth-- < 0)
+                        {
+                            return null;
+                        }
+                        break;
+
+                    case '{':
+                        return null;
+
+                    case '}':
+                        // End of expression or malformed
+                        if (parenthesisDepth != 0)
+                        {
+                            return null;
+                        }
+
+                        if (formatSpecifiersStart != -1)
+                        {
+                            return new Expression(
+                                expression.Slice(1, formatSpecifiersStart - 1),
+                                ParseFormatSpecifiers(spanExpression.Slice(formatSpecifiersStart, i - formatSpecifiersStart)));
+                        }
+
+                        return new Expression(
+                            expression.Slice(1, charsRead - 1),
+                            FormatSpecifier.None);
+
+                    case ',':
+                        if (parenthesisDepth == 0 && formatSpecifiersStart == -1)
+                        {
+                            formatSpecifiersStart = i;
+                        }
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+
+            return null;
+
+        }
+
+        internal static FormatSpecifier ParseFormatSpecifiers(ReadOnlySpan<char> specifiers)
+        {
+            FormatSpecifier formatSpecifier = FormatSpecifier.None;
+
+            void parseSpecifier(ReadOnlySpan<char> specifier)
+            {
+                if (specifier.Length == 0)
+                {
+                    return;
+                }
+
+                if (specifier.Equals("nq", StringComparison.Ordinal))
+                {
+                    formatSpecifier |= FormatSpecifier.NoQuotes;
+                }
+            }
+
+            int startIndex = 0;
+            int length = 0;
+            for (int i = 0; i < specifiers.Length; i++)
+            {
+                char c = specifiers[i];
+
+                if (c == ',')
+                {
+                    parseSpecifier(specifiers.Slice(startIndex, length));
+                    startIndex = i + 1;
+                    length = 0;
+                    continue;
+                }
+
+                length++;
+            }
+
+            parseSpecifier(specifiers.Slice(startIndex, length));
+            return formatSpecifier;
+        }
+    }
+}

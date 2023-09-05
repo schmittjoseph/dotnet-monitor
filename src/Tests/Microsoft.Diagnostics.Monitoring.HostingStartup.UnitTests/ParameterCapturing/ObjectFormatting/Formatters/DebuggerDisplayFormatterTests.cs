@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting;
-using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters;
+using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
-using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplayFormatter;
+using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay.DebuggerDisplayParser;
+using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay.ExpressionBinder;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing.ObjectFormatting.Formatters
 {
@@ -105,7 +106,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void ParseDebuggerDisplay(string debuggerDisplay, string formatString, params string[] expressions)
         {
             // Act
-            ParsedDebuggerDisplay parsed = DebuggerDisplayFormatter.ParseDebuggerDisplay(debuggerDisplay.AsMemory());
+            ParsedDebuggerDisplay parsed = DebuggerDisplayParser.ParseDebuggerDisplay(debuggerDisplay.AsMemory());
 
             // Assert
             if (formatString == null)
@@ -128,7 +129,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         internal void ParseExpression(string rawExpression, string expressionString, FormatSpecifier formatSpecifier)
         {
             // Act
-            Expression expression = DebuggerDisplayFormatter.ParseExpression(rawExpression.AsMemory(), out _);
+            Expression expression = DebuggerDisplayParser.ParseExpression(rawExpression.AsMemory(), out _);
 
             // Assert
             if (expressionString == null)
@@ -153,7 +154,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         internal void ParseFormatSpecifiers(string specifiersString, FormatSpecifier expectedSpecifier)
         {
             // Act
-            FormatSpecifier actualSpecifier = DebuggerDisplayFormatter.ParseFormatSpecifiers(specifiersString);
+            FormatSpecifier actualSpecifier = DebuggerDisplayParser.ParseFormatSpecifiers(specifiersString);
 
             // Assert
             Assert.Equal(expectedSpecifier, actualSpecifier);
@@ -174,7 +175,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             DebuggerDisplayClass obj = new("https://www.bing.com/abc");
 
             // Act
-            ExpressionEvaluator evaluator = DebuggerDisplayFormatter.BindExpression(obj.GetType(), expression);
+            ExpressionEvaluator evaluator = ExpressionBinder.BindExpression(obj.GetType(), expression);
             object result = evaluator?.Evaluator(obj);
 
             // Assert
