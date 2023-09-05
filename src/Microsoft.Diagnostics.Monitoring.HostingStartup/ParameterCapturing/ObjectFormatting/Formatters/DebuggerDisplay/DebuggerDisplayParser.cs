@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
                         break;
                     case '}':
-                        // Malformed
+                        // Malformed if observed here since above ParseExpression will chomp the expression's terminating '}'.
                         return null;
 
                     default:
@@ -61,17 +61,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
 
             ReadOnlySpan<char> spanExpression = expression.Span;
-
             if (spanExpression[0] != '{')
             {
                 return null;
             }
-
+            spanExpression = spanExpression[1..];
 
             int formatSpecifiersStart = -1;
 
             int parenthesisDepth = 0;
-            for (int i = 1; i < spanExpression.Length; i++)
+            for (int i = 0; i < spanExpression.Length; i++)
             {
                 charsRead++;
                 char c = spanExpression[i];
