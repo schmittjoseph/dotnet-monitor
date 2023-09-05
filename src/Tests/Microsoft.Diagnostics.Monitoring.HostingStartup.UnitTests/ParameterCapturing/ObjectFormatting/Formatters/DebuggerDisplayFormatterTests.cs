@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void ParseDebuggerDisplay(string debuggerDisplay, string formatString, params string[] expressions)
         {
             // Act
-            ParsedDebuggerDisplay parsed = DebuggerDisplayParser.ParseDebuggerDisplay(debuggerDisplay.AsMemory());
+            ParsedDebuggerDisplay parsed = DebuggerDisplayParser.ParseDebuggerDisplay(debuggerDisplay);
 
             // Assert
             if (formatString == null)

@@ -12,20 +12,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         internal record ParsedDebuggerDisplay(string FormatString, Expression[] Expressions);
         internal record Expression(ReadOnlyMemory<char> ExpressionString, FormatSpecifier FormatSpecifier);
 
-        internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(ReadOnlyMemory<char> value)
+        internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(string debuggerDisplay)
         {
             StringBuilder fmtString = new();
             List<Expression> expressions = new();
 
-            ReadOnlySpan<char> displaySpan = value.Span;
-
-            for (int i = 0; i < displaySpan.Length; i++)
+            for (int i = 0; i < debuggerDisplay.Length; i++)
             {
-                char c = displaySpan[i];
+                char c = debuggerDisplay[i];
                 switch (c)
                 {
                     case '{':
-                        Expression? parsedExpression = ParseExpression(value.Slice(i), out int charsRead);
+                        Expression? parsedExpression = ParseExpression(debuggerDisplay.AsMemory(i), out int charsRead);
                         if (parsedExpression == null)
                         {
                             return null;
