@@ -218,9 +218,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             return new ParsedDebuggerDisplay(fmtString.ToString(), subExpressions.ToArray());
         }
 
-        internal static Expression? ParseExpression(ReadOnlyMemory<char> expression, out int length)
+        internal static Expression? ParseExpression(ReadOnlyMemory<char> expression, out int charsRead)
         {
-            length = 0;
+            charsRead = 0;
             if (expression.Length == 0)
             {
                 return null;
@@ -233,13 +233,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 return null;
             }
 
-            int parenthesisDepth = 0;
+
             int formatSpecifiersStart = -1;
 
-            // Find the format specifier (if any) and split on that.
-            for (int i = 1; i < expression.Length; i++)
+            int parenthesisDepth = 0;
+            for (int i = 1; i < spanExpression.Length; i++)
             {
-                length++;
+                charsRead++;
                 char c = spanExpression[i];
                 switch (c)
                 {
@@ -272,7 +272,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         }
 
                         return new Expression(
-                            expression.Slice(1, length - 1),
+                            expression.Slice(1, charsRead - 1),
                             FormatSpecifier.None);
 
                     case ',':
