@@ -98,12 +98,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         if (formatSpecifiersStart != -1)
                         {
                             return new Expression(
-                                expression.Slice(1, formatSpecifiersStart - 1),
-                                ParseFormatSpecifiers(spanExpression.Slice(formatSpecifiersStart, i - formatSpecifiersStart)));
+                                expression[1..(formatSpecifiersStart + 1)],
+                                ParseFormatSpecifiers(spanExpression[formatSpecifiersStart..i]));
                         }
 
                         return new Expression(
-                            expression.Slice(1, charsRead - 1),
+                            expression[1..charsRead],
                             FormatSpecifier.None);
 
                     case ',':
