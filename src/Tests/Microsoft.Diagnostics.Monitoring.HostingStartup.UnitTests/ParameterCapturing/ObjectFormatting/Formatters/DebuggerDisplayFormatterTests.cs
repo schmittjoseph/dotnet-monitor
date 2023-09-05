@@ -143,6 +143,24 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         }
 
         [Theory]
+        [InlineData("nq,raw", FormatSpecifier.NoQuotes)]
+        [InlineData(",,,,nq", FormatSpecifier.NoQuotes)]
+        [InlineData(",,,,", FormatSpecifier.None)]
+        [InlineData("", FormatSpecifier.None)]
+        [InlineData("nq,nq", FormatSpecifier.NoQuotes)]
+        [InlineData("nqa", FormatSpecifier.None)]
+        [InlineData("NQ", FormatSpecifier.None)]
+        internal void ParseFormatSpecifiers(string specifiersString, FormatSpecifier expectedSpecifier)
+        {
+            // Act
+            FormatSpecifier actualSpecifier = DebuggerDisplayFormatter.ParseFormatSpecifiers(specifiersString);
+
+            // Assert
+            Assert.Equal(expectedSpecifier, actualSpecifier);
+        }
+
+
+        [Theory]
         [InlineData("GetCountAsString()", true, "10")]
         [InlineData("DoesntExist()", false, null)]
         [InlineData("WithArgs(Count)", false, null)]

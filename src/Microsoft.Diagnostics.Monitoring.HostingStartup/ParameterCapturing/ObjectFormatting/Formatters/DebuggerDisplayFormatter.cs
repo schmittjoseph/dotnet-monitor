@@ -268,7 +268,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         {
                             return new Expression(
                                 expression.Slice(1, formatSpecifiersStart - 1),
-                                ConvertFormatSpecifier(spanExpression.Slice(formatSpecifiersStart, i - formatSpecifiersStart)));
+                                ParseFormatSpecifiers(spanExpression.Slice(formatSpecifiersStart, i - formatSpecifiersStart)));
                         }
 
                         return new Expression(
@@ -291,7 +291,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         }
 
-        internal static FormatSpecifier ConvertFormatSpecifier(ReadOnlySpan<char> specifiers)
+        internal static FormatSpecifier ParseFormatSpecifiers(ReadOnlySpan<char> specifiers)
         {
             FormatSpecifier formatSpecifier = FormatSpecifier.None;
 
