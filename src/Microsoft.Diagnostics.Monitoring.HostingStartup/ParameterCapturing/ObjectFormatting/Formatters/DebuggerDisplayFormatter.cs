@@ -246,18 +246,24 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                     case '(':
                         parenthesisDepth++;
                         break;
+
                     case ')':
-                        parenthesisDepth--;
-                        if (parenthesisDepth < 0)
+                        if (parenthesisDepth-- < 0)
                         {
                             return null;
                         }
                         break;
+
                     case '{':
                         return null;
 
                     case '}':
                         // End of expression or malformed
+                        if (parenthesisDepth != 0)
+                        {
+                            return null;
+                        }
+
                         if (formatSpecifiersStart != -1)
                         {
                             return new Expression(

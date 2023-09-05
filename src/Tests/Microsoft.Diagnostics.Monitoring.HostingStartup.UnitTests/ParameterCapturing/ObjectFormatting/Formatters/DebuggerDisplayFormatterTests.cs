@@ -121,8 +121,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
         [Theory]
         [InlineData("{MyFunc(A,B),nq,raw}", "MyFunc(A,B)", FormatSpecifier.NoQuotes)]
+        [InlineData("{(MyFunc(A,B)?.ToString()),nq,raw}", "(MyFunc(A,B)?.ToString())", FormatSpecifier.NoQuotes)]
+        [InlineData("{)(a)}", null, FormatSpecifier.None)]
+        [InlineData("{((a)}", null, FormatSpecifier.None)]
         [InlineData("{a}", "a", FormatSpecifier.None)]
-        internal void ParseExpression_FormatSpecifier(string rawExpression, string expressionString, FormatSpecifier formatSpecifier)
+        internal void ParseExpression(string rawExpression, string expressionString, FormatSpecifier formatSpecifier)
         {
             // Act
             Expression expression = DebuggerDisplayFormatter.ParseExpression(rawExpression.AsMemory(), out _);
