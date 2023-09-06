@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay.DebuggerDisplayParser;
 
@@ -45,15 +46,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             List<Type> encompassingTypes = new();
 
             Type? currentType = objType;
-            while (currentType != null && currentType != typeof(object))
+            while (currentType != null)
             {
                 encompassingTypes.Add(currentType);
 
                 foreach (CustomAttributeData attr in currentType.CustomAttributes)
                 {
-                    if (attr.AttributeType == typeof(System.Diagnostics.DebuggerDisplayAttribute))
+                    if (attr.AttributeType == typeof(DebuggerDisplayAttribute) &&
+                        attr.ConstructorArguments.Count > 0 &&
+                        attr.ConstructorArguments[0].ArgumentType == typeof(string))
                     {
-                        string? value = attr.ConstructorArguments[0].Value?.ToString();
+                        string? value = (string?)attr.ConstructorArguments[0].Value;
                         if (value == null)
                         {
                             continue;
@@ -66,6 +69,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 currentType = currentType.BaseType;
             }
 
+            encompassingTypes.Clear();
             return null;
         }
     }
