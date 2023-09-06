@@ -50,22 +50,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 encompassingTypes.Add(currentType);
 
-                foreach (CustomAttributeData attr in currentType.CustomAttributes)
+                DebuggerDisplayAttribute? attribute = currentType.GetCustomAttribute<DebuggerDisplayAttribute>(inherit: false);
+                if (attribute?.Value != null)
                 {
-                    if (attr.AttributeType == typeof(DebuggerDisplayAttribute) &&
-                        attr.ConstructorArguments.Count > 0 &&
-                        attr.ConstructorArguments[0].ArgumentType == typeof(string))
-                    {
-                        string? value = (string?)attr.ConstructorArguments[0].Value;
-                        if (value == null)
-                        {
-                            continue;
-                        }
-
-                        return new DebuggerDisplayAttributeValue(value, encompassingTypes);
-                    }
+                    return new DebuggerDisplayAttributeValue(attribute.Value, encompassingTypes);
                 }
-
                 currentType = currentType.BaseType;
             }
 
