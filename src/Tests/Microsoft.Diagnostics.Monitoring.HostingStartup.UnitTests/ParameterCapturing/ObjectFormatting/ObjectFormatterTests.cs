@@ -56,6 +56,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
             // Assert
             Assert.Equal(FormatSpecifier.NoQuotes, actualSpecifier);
-        } 
+        }
     }
 }
