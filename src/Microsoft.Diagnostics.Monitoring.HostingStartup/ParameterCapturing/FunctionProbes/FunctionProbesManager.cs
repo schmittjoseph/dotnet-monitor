@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
 
             OnProbeFault?.Invoke(this, instrumentedMethod);
         }
-
+        
         private void TransitionStateFromHr(TaskCompletionSource? taskCompletionSource, int hresult, long expectedState, long succeededState, long failedState)
         {
             Exception? ex = Marshal.GetExceptionForHR(hresult);
@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
                 throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, ParameterCapturingStrings.ErrorMessage_ProbeStateMismatchFormatString, ProbeStateUninstalled, _probeState));
             }
 
-            ObjectFormatterCache newObjectFormatterCache = new();
+            ObjectFormatterCache newObjectFormatterCache = new(useDebuggerDisplayAttribute: false);
             Dictionary<ulong, InstrumentedMethod> newMethodCache = new(methods.Count);
             try
             {
