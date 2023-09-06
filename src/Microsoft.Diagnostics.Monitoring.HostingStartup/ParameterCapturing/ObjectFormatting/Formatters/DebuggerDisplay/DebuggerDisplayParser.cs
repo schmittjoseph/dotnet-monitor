@@ -137,6 +137,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 {
                     formatSpecifier |= FormatSpecifier.NoQuotes;
                 }
+                else if (specifier.Equals("nse", StringComparison.Ordinal))
+                {
+                    formatSpecifier |= FormatSpecifier.NoSideEffects;
+                }
             }
 
             int startIndex = 0;

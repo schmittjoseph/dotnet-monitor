@@ -145,10 +145,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
         [Theory]
         [InlineData("nq,raw", FormatSpecifier.NoQuotes)]
-        [InlineData(",,,,nq", FormatSpecifier.NoQuotes)]
+        [InlineData(",nse,,,nq", FormatSpecifier.NoQuotes | FormatSpecifier.NoSideEffects)]
         [InlineData(",,,,", FormatSpecifier.None)]
         [InlineData("", FormatSpecifier.None)]
-        [InlineData("nq,nq", FormatSpecifier.NoQuotes)]
+        [InlineData("nq,nse,nse,nq", FormatSpecifier.NoQuotes | FormatSpecifier.NoSideEffects)]
         [InlineData("nqa", FormatSpecifier.None)]
         [InlineData("NQ", FormatSpecifier.None)]
         internal void ParseFormatSpecifiers(string specifiersString, FormatSpecifier expectedSpecifier)

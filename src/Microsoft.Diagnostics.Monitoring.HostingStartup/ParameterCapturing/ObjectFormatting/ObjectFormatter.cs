@@ -11,7 +11,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
     internal enum FormatSpecifier
     {
         None = 0,
-        NoQuotes = 1
+        NoQuotes = 1,
+        NoSideEffects = 2
     }
 
     internal static class ObjectFormatter
@@ -29,6 +30,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
 
             public const string Exception = Internal.Prefix + "exception_thrown" + Internal.Postfix;
+            public const string CannotFormatWithoutSideEffects = Internal.Prefix + "cannot_format_side_effect_free" + Internal.Postfix;
         }
 
         public static string WrapValue(string value) => string.Concat(
@@ -39,6 +41,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         public static string FormatObject(ObjectFormatterFunc formatterFunc, object obj, FormatSpecifier formatSpecifier = FormatSpecifier.None)
         {
+            if ((formatSpecifier & FormatSpecifier.NoSideEffects) != 0)
+            {
+                return Tokens.CannotFormatWithoutSideEffects;
+            }
+
             try
             {
                 return formatterFunc(obj, formatSpecifier);
