@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
 
             public const string Exception = Internal.Prefix + "exception_thrown" + Internal.Postfix;
-            public const string CannotFormatWithoutSideEffects = Internal.Prefix + "cannot_format_side_effect_free" + Internal.Postfix;
+            public const string CannotFormatWithoutSideEffects = Internal.Prefix + "cannot_format_without_side_effects" + Internal.Postfix;
         }
 
         public static string WrapValue(string value) => string.Concat(
