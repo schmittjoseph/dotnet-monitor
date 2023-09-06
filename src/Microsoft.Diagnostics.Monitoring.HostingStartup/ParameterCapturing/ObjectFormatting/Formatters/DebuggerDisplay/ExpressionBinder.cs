@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay.DebuggerDisplayParser;
+using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplay.DebuggerDisplayParser;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggeDisplay
 {
@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
     {
         internal delegate object? BoundEvaluator(object instanceObj);
         internal record ExpressionEvaluator(BoundEvaluator Evaluator, Type ReturnType);
-  
+
         internal static ObjectFormatterFunc? BindParsedDebuggerDisplay(Type objType, ParsedDebuggerDisplay debuggerDisplay)
         {
             if (debuggerDisplay.Expressions.Length == 0)
