@@ -63,6 +63,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 return null;
             }
+            expression = expression[1..];
             spanExpression = spanExpression[1..];
 
             int formatSpecifiersStart = -1;
@@ -98,12 +99,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         if (formatSpecifiersStart != -1)
                         {
                             return new Expression(
-                                expression[1..(formatSpecifiersStart + 1)],
+                                expression[..formatSpecifiersStart],
                                 ParseFormatSpecifiers(spanExpression[formatSpecifiersStart..i]));
                         }
 
                         return new Expression(
-                            expression[1..charsRead],
+                            expression[..(charsRead - 1)],
                             FormatSpecifier.None);
 
                     case ',':
