@@ -62,7 +62,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             // Act
             string formattedResult = factoryResult.Formatter(testObj);
 
-
             // Assert
             Assert.Equal(FormattableString.Invariant($"Count = {testObj.Count}"), formattedResult);
         }
