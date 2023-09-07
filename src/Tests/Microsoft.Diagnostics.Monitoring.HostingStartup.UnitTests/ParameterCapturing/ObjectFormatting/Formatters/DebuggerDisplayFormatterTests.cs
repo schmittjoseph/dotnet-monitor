@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [System.Diagnostics.DebuggerDisplay("test")]
         private class DebuggerDisplayClass
         {
+            public static Uri StaticProperty { get; set; } = new Uri("http://www.bing.com/static");
             public int Count { get; set; } = 10;
 
             public Uri MyUri { get; }
@@ -77,7 +78,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         public void GetDebuggerDisplayAttribute_EncompassingTypes(Type type, int? expectedEncompassedTypes)
         {
             // Act
-            int? actual = DebuggerDisplayFormatter.GetDebuggerDisplayAttribute(type)?.EncompassingTypes?.Count();
+            int? actual = DebuggerDisplayFormatter.GetDebuggerDisplayAttribute(type)?.EncompassingTypes?.Count;
 
             // Assert
             Assert.Equal(expectedEncompassedTypes, actual);
@@ -169,6 +170,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [InlineData("NoReturnType()", true, null)]
         // Chained expression with implicit this type change
         [InlineData("Recursion().RecursionProp.MyUri.Host", true, "www.bing.com")]
+        // Chained expression with static property
+        [InlineData("Recursion().StaticProperty.Host", true, "www.bing.com")]
         public void BindExpression(string expression, bool doesBind, object expected)
         {
             // Arrange
@@ -176,7 +179,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
             // Act
             ExpressionEvaluator evaluator = ExpressionBinder.BindExpression(obj.GetType(), expression);
-            object result = evaluator?.Evaluator(obj);
+            object result = evaluator?.Evaluate(obj);
 
             // Assert
             if (!doesBind)

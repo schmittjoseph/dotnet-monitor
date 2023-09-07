@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
     {
         internal record DebuggerDisplayAttributeValue(string Value, IList<Type> EncompassingTypes);
 
-        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType, ObjectFormatterCache cache)
+        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType)
         {
             if (objType == null || objType.IsInterface)
             {
@@ -33,12 +33,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             // precomputed result.
             //
 
-            // JSFIX: need a better option like trygetvalue
-            ObjectFormatterFunc func = cache.GetFormatter(attribute.EncompassingTypes[^1]);
-            if (func != null)
-            {
-                return new FormatterFactoryResult(func, attribute.EncompassingTypes);
-            }
+
 
             ParsedDebuggerDisplay? parsedDebuggerDiplay = DebuggerDisplayParser.ParseDebuggerDisplay(attribute.Value);
             if (parsedDebuggerDiplay == null)
