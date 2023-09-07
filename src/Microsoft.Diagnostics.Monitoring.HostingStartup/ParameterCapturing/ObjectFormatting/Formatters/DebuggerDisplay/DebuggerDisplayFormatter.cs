@@ -11,9 +11,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 {
     internal static class DebuggerDisplayFormatter
     {
-        internal record DebuggerDisplayAttributeValue(string Value, IEnumerable<Type> EncompassingTypes);
+        internal record DebuggerDisplayAttributeValue(string Value, IList<Type> EncompassingTypes);
 
-        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType)
+        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType, ObjectFormatterCache cache)
         {
             if (objType == null || objType.IsInterface)
             {
@@ -24,6 +24,20 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             if (attribute == null)
             {
                 return null;
+            }
+
+            //
+            // We found an attribute.
+            // The last encompassing type will be the source of the attribute.
+            // Check if we've already processed this base type, and if so return the
+            // precomputed result.
+            //
+
+            // JSFIX: need a better option like trygetvalue
+            ObjectFormatterFunc func = cache.GetFormatter(attribute.EncompassingTypes[^1]);
+            if (func != null)
+            {
+                return new FormatterFactoryResult(func, attribute.EncompassingTypes);
             }
 
             ParsedDebuggerDisplay? parsedDebuggerDiplay = DebuggerDisplayParser.ParseDebuggerDisplay(attribute.Value);
@@ -50,15 +64,21 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             {
                 encompassingTypes.Add(currentType);
 
-                DebuggerDisplayAttribute? attribute = currentType.GetCustomAttribute<DebuggerDisplayAttribute>(inherit: false);
-                if (attribute?.Value != null)
+                try
                 {
-                    return new DebuggerDisplayAttributeValue(attribute.Value, encompassingTypes);
+                    DebuggerDisplayAttribute? attribute = currentType.GetCustomAttribute<DebuggerDisplayAttribute>(inherit: false);
+                    if (attribute?.Value != null)
+                    {
+                        return new DebuggerDisplayAttributeValue(attribute.Value, encompassingTypes);
+                    }
+                }
+                catch
+                {
+
                 }
                 currentType = currentType.BaseType;
             }
 
-            encompassingTypes.Clear();
             return null;
         }
     }

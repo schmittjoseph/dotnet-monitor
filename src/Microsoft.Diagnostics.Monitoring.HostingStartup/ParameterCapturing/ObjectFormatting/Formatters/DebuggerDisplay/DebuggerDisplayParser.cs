@@ -14,6 +14,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         internal static ParsedDebuggerDisplay? ParseDebuggerDisplay(string debuggerDisplay)
         {
+            //
+            // A debugger display value is a string with evaluatable expressions inside it.
+            // This method will transformthe debugger display into a standard format string
+            // and extract the expressions.
+            //
+            // Simplified example:
+            // Input: "Count = {Count}, Info = {DebuggerInfo()}"
+            // Output: FormatString="Count = {0}, Info = {1}", Expressions=["Count", "DebuggerInfo()"]
+            //
             StringBuilder fmtString = new();
             List<Expression> expressions = new();
 
@@ -23,12 +32,16 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 switch (c)
                 {
                     case '{':
+                        // Encountered the start of an expression, try to parse it and replace it with a standard format item.
                         Expression? parsedExpression = ParseExpression(debuggerDisplay.AsMemory(i), out int charsRead);
-                        if (parsedExpression == null)
+                        if (parsedExpression == null || charsRead == 0)
                         {
                             return null;
                         }
-                        i += charsRead;
+
+                        // Skip past the parsed expression, account for the fact that '{' gets read twice
+                        // (once by this method, and once by ParseExpression).
+                        i += (charsRead - 1);
 
                         fmtString.Append('{');
                         fmtString.Append(expressions.Count);
@@ -38,7 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
                         break;
                     case '}':
-                        // Malformed if observed here since above ParseExpression will chomp the expression's terminating '}'.
+                        // Malformed if observed here since above ParseExpression will read the expression's terminating '}'.
                         return null;
 
                     default:
@@ -52,12 +65,26 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         internal static Expression? ParseExpression(ReadOnlyMemory<char> expression, out int charsRead)
         {
+            //
+            // An expression inside a debugger display:
+            // - Is encapsulated inside curly braces {..},
+            // - Has no escape sequence for curly braces
+            // - Is followed by one or more format specifiers (delimited by a comma (,))
+            //
+            // This method is given the start of an expression, and is responsible for reading up until
+            // the end of the expression.
+            //
+            // Simplified example:
+            // Input: "{DebuggerInfo(),nq,nse}"
+            // Output: ExpressionString="DebuggerInfo()", FormatSpecifier=FormatSpecifier.NoQuotes | FormatSpecifier.NoSideEffects
+            //
             charsRead = 0;
-            if (expression.Length == 0)
+            if (expression.IsEmpty)
             {
                 return null;
             }
 
+            // Ensure the first char is the start of an expression and read past it
             ReadOnlySpan<char> spanExpression = expression.Span;
             if (spanExpression[0] != '{')
             {
@@ -66,13 +93,22 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             expression = expression[1..];
             spanExpression = spanExpression[1..];
 
+            // Keep track of where the format specifiers start so we know what span of chars to parse for it.
             int formatSpecifiersStart = -1;
 
+            //
+            // Keep track of the depth of parenthesis. This is used to:
+            // - Identify malformed expressions (the parenthesis will be unbalanced).
+            // - Identify when a comma denotes the start of the format specifiers
+            //   e.g. "MyFunc(A, B),nq" -- nq is the format specifier since it's not encapsulated by any parenthesis.
+            //
             int parenthesisDepth = 0;
+
             for (int i = 0; i < spanExpression.Length; i++)
             {
                 charsRead++;
                 char c = spanExpression[i];
+
                 switch (c)
                 {
                     case '(':
@@ -82,11 +118,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                     case ')':
                         if (parenthesisDepth-- < 0)
                         {
+                            // Unbalanced parenthesis, malformed expression
                             return null;
                         }
                         break;
 
                     case '{':
+                        // Malformed, the start of this expression has been processed already
                         return null;
 
                     case '}':
@@ -120,11 +158,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
 
             return null;
-
         }
 
         internal static FormatSpecifier ParseFormatSpecifiers(ReadOnlySpan<char> specifiers)
         {
+            //
+            // Format specifiers in an expression consist of one or more well-known tokens delimited by a comma.
+            // - If multiple specifiers are set, they are all used.
+            // - Format specifier tokens are case sensitive.
+            //
             FormatSpecifier formatSpecifier = FormatSpecifier.None;
 
             void parseSpecifier(ReadOnlySpan<char> specifier)

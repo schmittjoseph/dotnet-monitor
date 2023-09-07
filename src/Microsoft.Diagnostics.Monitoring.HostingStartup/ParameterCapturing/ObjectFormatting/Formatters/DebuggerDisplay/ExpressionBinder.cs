@@ -11,10 +11,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
     internal static class ExpressionBinder
     {
         internal delegate object? BoundEvaluator(object instanceObj);
-        internal record ExpressionEvaluator(BoundEvaluator Evaluator, Type ReturnType);
+        internal record ExpressionEvaluator(BoundEvaluator Evaluate, Type ReturnType);
 
         internal static ObjectFormatterFunc? BindParsedDebuggerDisplay(Type objType, ParsedDebuggerDisplay debuggerDisplay)
         {
+            //
+            // To construct an ObjectFormatterFunc from a parsed debugger display:
+            // - Succesfully bind all expressions in the debugger display.
+            // - Get object formatters for the results of each bound expression.
+            //
+            // At this point the ObjectFormatterFunc simply needs to evaluate each bound expression
+            // and format its results using the debugger display's format string.
+            //
+
             if (debuggerDisplay.Expressions.Length == 0)
             {
                 return (_, _) => debuggerDisplay.FormatString;
@@ -22,7 +31,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
             ExpressionEvaluator[] boundExpressions = new ExpressionEvaluator[debuggerDisplay.Expressions.Length];
             ObjectFormatterFunc[] evaluatorFormatters = new ObjectFormatterFunc[debuggerDisplay.Expressions.Length];
-
             for (int i = 0; i < debuggerDisplay.Expressions.Length; i++)
             {
                 ExpressionEvaluator? evaluator = BindExpression(objType, debuggerDisplay.Expressions[i].ExpressionString.Span);
@@ -40,7 +48,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 string[] evaluationResults = new string[boundExpressions.Length];
                 for (int i = 0; i < boundExpressions.Length; i++)
                 {
-                    object? evaluationResult = boundExpressions[i].Evaluator(obj);
+                    object? evaluationResult = boundExpressions[i].Evaluate(obj);
                     if (evaluationResult == null)
                     {
                         evaluationResults[i] = ObjectFormatter.Tokens.Null;
@@ -59,10 +67,22 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         internal static ExpressionEvaluator? BindExpression(Type objType, ReadOnlySpan<char> expression)
         {
-            ReadOnlySpan<char> unboundExpression = expression;
+            //
+            // An expression consists of one or more chained evaluators e.g. "a.b.c.d()", where the chain is [ "a", "b", "c", "d()"].
+            // Each segment of the chain must be bound indivually and the segments composed into a single evaluator.
+            //
             List<ExpressionEvaluator> evaluatorChain = new();
 
+            //
+            // Keep track of the current chain context type, which represents the type of the object
+            // that the current segment of the chain binds against.
+            //
             Type chainedContextType = objType;
+
+            //
+            // Read the expression chain one segment at a time until the entire chain has been processed.
+            //
+            ReadOnlySpan<char> unboundExpression = expression;
             while (!unboundExpression.IsEmpty)
             {
                 int chainedExpressionIndex = unboundExpression.IndexOf('.');
@@ -92,23 +112,30 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
         private static ExpressionEvaluator? BindSingleExpression(ReadOnlySpan<char> expression, Type objType)
         {
+            //
+            // NOTE: Complex expressions are not supported (e.g. "Count + 1").
+            // This includes expressions with additional parenthesis that are otherwise supported, e.g. "(Count)".
+            //
+            // The following expressions are supported:
+            // - A property.
+            // - A method without parameters.
+            //
+
             try
             {
+                MethodInfo? method = null;
+
+                //
+                // Check if the expression is a parameter-less method. If not, try to bind it as a property.
+                // This means any complex expressions, or methods with parameters, will try to bind as a property
+                // and fail.
+                //
                 if (expression.EndsWith("()", StringComparison.Ordinal))
                 {
-                    MethodInfo? method = objType.GetMethod(
+                    method = objType.GetMethod(
                         expression[..^2].ToString(),
                         BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static,
                         Array.Empty<Type>());
-
-                    if (method == null)
-                    {
-                        return null;
-                    }
-
-                    return new ExpressionEvaluator(
-                        (obj) => method.Invoke(obj, parameters: null),
-                        method.ReturnType);
                 }
                 else
                 {
@@ -118,18 +145,38 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         return null;
                     }
 
-                    return new ExpressionEvaluator(property.GetValue, property.PropertyType);
+                    //
+                    // Directly use the property's Get method instead of directly using ".GetValue(..)"
+                    // so that we can identify if it's static or not.
+                    //
+                    method = property.GetGetMethod(nonPublic: true);
                 }
+
+                if (method == null)
+                {
+                    return null;
+                }
+
+                return new ExpressionEvaluator(
+                    method.HasImplicitThis()
+                        ? (obj) => method.Invoke(obj, parameters: null)
+                        : (_) => method.Invoke(obj: null, parameters: null),
+                    method.ReturnType);
             }
             catch
             {
                 return null;
             }
-
         }
 
         private static ExpressionEvaluator? CollapseChainedEvaluators(List<ExpressionEvaluator> chain)
         {
+            //
+            // Collapse a chain of one or more evaluators into a single evaluatorl
+            // - The input to the chain is the implicit this of the object (if applicable).
+            // - The output of the chain is the result of the last evaluator.
+            //
+
             if (chain.Count == 0)
             {
                 return null;
@@ -144,14 +191,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 (obj) =>
                 {
                     object? chainedResult = obj;
-                    foreach (ExpressionEvaluator evaluator in chain)
+                    foreach (ExpressionEvaluator chainedEvaluator in chain)
                     {
                         if (chainedResult == null)
                         {
                             return null;
                         }
 
-                        chainedResult = evaluator.Evaluator(chainedResult);
+                        chainedResult = chainedEvaluator.Evaluate(chainedResult);
                     }
 
                     return chainedResult;

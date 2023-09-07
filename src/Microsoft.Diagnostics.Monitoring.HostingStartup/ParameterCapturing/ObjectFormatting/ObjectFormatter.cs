@@ -7,6 +7,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 {
     internal delegate string ObjectFormatterFunc(object obj, FormatSpecifier formatSpecifier = FormatSpecifier.None);
 
+    // A subset of https://learn.microsoft.com/visualstudio/debugger/format-specifiers-in-csharp#format-specifiers
     [Flags]
     internal enum FormatSpecifier
     {
