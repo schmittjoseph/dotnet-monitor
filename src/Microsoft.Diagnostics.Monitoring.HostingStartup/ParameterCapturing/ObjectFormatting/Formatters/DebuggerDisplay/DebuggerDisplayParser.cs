@@ -84,14 +84,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                 return null;
             }
 
-            // Ensure the first char is the start of an expression and read past it
+            // Ensure the first char is the start of an expression.
             ReadOnlySpan<char> spanExpression = expression.Span;
             if (spanExpression[0] != '{')
             {
                 return null;
             }
-            expression = expression[1..];
-            spanExpression = spanExpression[1..];
+            const int expressionStartIndex = 1;
+            charsRead++;
 
             // Keep track of where the format specifiers start so we know what span of chars to parse for it.
             int formatSpecifiersStart = -1;
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             //
             int parenthesisDepth = 0;
 
-            for (int i = 0; i < spanExpression.Length; i++)
+            for (int i = expressionStartIndex; i < spanExpression.Length; i++)
             {
                 charsRead++;
                 char c = spanExpression[i];
@@ -137,12 +137,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
                         if (formatSpecifiersStart != -1)
                         {
                             return new Expression(
-                                expression[..formatSpecifiersStart],
+                                expression[expressionStartIndex..formatSpecifiersStart],
                                 ParseFormatSpecifiers(spanExpression[formatSpecifiersStart..i]));
                         }
 
                         return new Expression(
-                            expression[..(charsRead - 1)],
+                            expression[expressionStartIndex..i],
                             FormatSpecifier.None);
 
                     case ',':
