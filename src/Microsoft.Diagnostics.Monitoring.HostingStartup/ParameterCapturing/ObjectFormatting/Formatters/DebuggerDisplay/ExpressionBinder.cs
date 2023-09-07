@@ -79,9 +79,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             //
             Type chainedContextType = objType;
 
-            //
             // Read the expression chain one segment at a time until the entire chain has been processed.
-            //
             ReadOnlySpan<char> unboundExpression = expression;
             while (!unboundExpression.IsEmpty)
             {
