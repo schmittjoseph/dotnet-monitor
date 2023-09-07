@@ -38,6 +38,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             }
         }
 
+        public bool TryGetFormatter(Type objType, out ObjectFormatterFunc? formatter)
+        {
+            return _cache.TryGetValue(objType, out formatter);
+        }
+
         public ObjectFormatterFunc GetFormatter(Type objType)
         {
             if (_cache.TryGetValue(objType, out ObjectFormatterFunc? formatter) && formatter != null)

@@ -121,13 +121,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
             try
             {
-                MethodInfo? method = null;
-
                 //
                 // Check if the expression is a parameter-less method. If not, try to bind it as a property.
                 // This means any complex expressions, or methods with parameters, will try to bind as a property
                 // and fail.
                 //
+                MethodInfo? method = null;
                 if (expression.EndsWith("()", StringComparison.Ordinal))
                 {
                     method = objType.GetMethod(

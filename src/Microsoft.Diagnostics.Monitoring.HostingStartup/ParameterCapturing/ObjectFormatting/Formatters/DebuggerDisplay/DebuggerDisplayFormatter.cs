@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
     {
         internal record DebuggerDisplayAttributeValue(string Value, IList<Type> EncompassingTypes);
 
-        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType)
+        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType, ObjectFormatterCache? formatterCache)
         {
             if (objType == null || objType.IsInterface)
             {
@@ -29,11 +29,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
             //
             // We found an attribute.
             // The last encompassing type will be the source of the attribute.
-            // Check if we've already processed this base type, and if so return the
-            // precomputed result.
+            // Check if we've already processed this base type, and if so return the precomputed result.
             //
-
-
+            if (formatterCache != null &&
+                formatterCache.TryGetFormatter(attribute.EncompassingTypes[^1], out ObjectFormatterFunc? precachedFormatter) &&
+                precachedFormatter != null)
+            {
+                return new FormatterFactoryResult(precachedFormatter, attribute.EncompassingTypes);
+            }
 
             ParsedDebuggerDisplay? parsedDebuggerDiplay = DebuggerDisplayParser.ParseDebuggerDisplay(attribute.Value);
             if (parsedDebuggerDiplay == null)

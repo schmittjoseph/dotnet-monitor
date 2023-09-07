@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting
 {
     /// <summary>
-    /// The results from FormatterFactoryResult.
+    /// The results from GetFormatter.
     /// </summary>
     /// <param name="Formatter">The object formatter.</param>
     /// <param name="MatchingTypes">Known types that this formatter will work against (including the requested type).</param>
@@ -16,11 +16,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
 
     internal static class ObjectFormatterFactory
     {
-        public static FormatterFactoryResult GetFormatter(Type objType, bool useDebuggerDisplayAttribute = false)
+        public static FormatterFactoryResult GetFormatter(Type objType, bool useDebuggerDisplayAttribute, ObjectFormatterCache? formatterCache = null)
         {
             if (useDebuggerDisplayAttribute)
             {
-                FormatterFactoryResult? factoryResult = DebuggerDisplayFormatter.GetDebuggerDisplayFormatter(objType);
+                FormatterFactoryResult? factoryResult = DebuggerDisplayFormatter.GetDebuggerDisplayFormatter(objType, formatterCache);
                 if (factoryResult != null)
                 {
                     return factoryResult;
