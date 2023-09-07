@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
     {
         internal record DebuggerDisplayAttributeValue(string Value, IList<Type> EncompassingTypes);
 
-        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType, ObjectFormatterCache? formatterCache)
+        public static FormatterFactoryResult? GetDebuggerDisplayFormatter(Type? objType, ObjectFormatterCache? formatterCache = null)
         {
             if (objType == null || objType.IsInterface)
             {
