@@ -5,85 +5,15 @@ using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectF
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplay;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplay.DebuggerDisplayParser;
-using static Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplay.ExpressionBinder;
 
-namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing.ObjectFormatting.Formatters
+namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplay
 {
     [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
-    public class DebuggerDisplayFormatterTests
+    public class DebuggerDisplayParserTests
     {
-        private readonly ITestOutputHelper _outputHelper;
-
-        public DebuggerDisplayFormatterTests(ITestOutputHelper outputHelper)
-        {
-            _outputHelper = outputHelper;
-        }
-
-        [DebuggerDisplay("test")]
-        private class DebuggerDisplayClass
-        {
-            public static Uri StaticProperty { get; set; } = new Uri("http://www.bing.com/static");
-            public int Count { get; set; } = 10;
-
-            public Uri MyUri { get; }
-
-            public DebuggerDisplayClass(string uri)
-            {
-                RecursionProp = this;
-                MyUri = new Uri(uri);
-            }
-
-            public DebuggerDisplayClass RecursionProp { get; }
-            public DebuggerDisplayClass Recursion() => this;
-
-            public static void WithArgs(int i) { }
-
-            public string GetCountAsString()
-            {
-                return Count.ToString();
-            }
-
-            public void NoReturnType() => Count++;
-        }
-
-        private sealed class DerivedWithBaseDebuggerDisplay : DebuggerDisplayClass
-        {
-            public DerivedWithBaseDebuggerDisplay(string uri) : base(uri) { }
-        }
-
-        private sealed class NoDebuggerDisplay { }
-
-        [Theory]
-        [InlineData(typeof(NoDebuggerDisplay), null)]
-        [InlineData(typeof(DebuggerDisplayClass), "test")]
-        [InlineData(typeof(DerivedWithBaseDebuggerDisplay), "test")]
-        public void GetDebuggerDisplayAttribute(Type type, string expected)
-        {
-            // Act
-            string actual = DebuggerDisplayFormatter.GetDebuggerDisplayAttribute(type)?.Value;
-
-            // Assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Theory]
-        [InlineData(typeof(NoDebuggerDisplay), null)]
-        [InlineData(typeof(DebuggerDisplayClass), 1)]
-        [InlineData(typeof(DerivedWithBaseDebuggerDisplay), 2)]
-        public void GetDebuggerDisplayAttribute_EncompassingTypes(Type type, int? expectedEncompassedTypes)
-        {
-            // Act
-            int? actual = DebuggerDisplayFormatter.GetDebuggerDisplayAttribute(type)?.EncompassingTypes?.Count;
-
-            // Assert
-            Assert.Equal(expectedEncompassedTypes, actual);
-        }
-
         [Theory]
         // No expressions
         [InlineData("no_expressions", "no_expressions")]
@@ -160,37 +90,5 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             // Assert
             Assert.Equal(expectedSpecifier, actualSpecifier);
         }
-
-
-        [Theory]
-        [InlineData("GetCountAsString()", true, "10")]
-        [InlineData("DoesntExist()", false, null)]
-        [InlineData("WithArgs(Count)", false, null)]
-        [InlineData("Count", true, 10)]
-        [InlineData("NoReturnType()", true, null)]
-        // Chained expression with implicit this type change
-        [InlineData("Recursion().RecursionProp.MyUri.Host", true, "www.bing.com")]
-        // Chained expression with static property
-        [InlineData("Recursion().StaticProperty.Host", true, "www.bing.com")]
-        public void BindExpression(string expression, bool doesBind, object expected)
-        {
-            // Arrange
-            DebuggerDisplayClass obj = new("https://www.bing.com/abc");
-
-            // Act
-            ExpressionEvaluator evaluator = ExpressionBinder.BindExpression(obj.GetType(), expression);
-            object result = evaluator?.Evaluate(obj);
-
-            // Assert
-            if (!doesBind)
-            {
-                Assert.Null(evaluator);
-                return;
-            }
-
-            Assert.NotNull(evaluator);
-            Assert.Equal(expected, result);
-        }
-
     }
 }
