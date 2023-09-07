@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Obj
         private static ExpressionEvaluator? CollapseChainedEvaluators(List<ExpressionEvaluator> chain)
         {
             //
-            // Collapse a chain of one or more evaluators into a single evaluatorl
+            // Collapse a chain of one or more evaluators into a single evaluator
             // - The input to the chain is the implicit this of the object (if applicable).
             // - The output of the chain is the result of the last evaluator.
             //
