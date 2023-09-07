@@ -5,6 +5,7 @@ using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectF
 using Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.ObjectFormatting.Formatters.DebuggerDisplay;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -23,8 +24,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             _outputHelper = outputHelper;
         }
 
-        // Test chained evaluations with implicit-this-type switching mid-chain.
-        [System.Diagnostics.DebuggerDisplay("test")]
+        [DebuggerDisplay("test")]
         private class DebuggerDisplayClass
         {
             public static Uri StaticProperty { get; set; } = new Uri("http://www.bing.com/static");
