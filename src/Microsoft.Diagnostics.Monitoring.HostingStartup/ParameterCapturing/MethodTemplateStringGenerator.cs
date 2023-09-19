@@ -7,6 +7,24 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
+    internal sealed class MethodTemplateString
+    {
+        public string ModuleName { get; }
+        public string TypeName { get; }
+        public string MethodName { get; }
+
+        public string TemplateString { get; }
+
+        public MethodTemplateString(string moduleName, string typeName, string methodName, string parametersTemplate)
+        {
+            ModuleName = moduleName;
+            TypeName = typeName;
+            MethodName = methodName;
+
+            TemplateString = FormattableString.Invariant($"{TypeName}.{MethodName}({parametersTemplate})");
+        }
+    }
+
     internal static class MethodTemplateStringGenerator
     {
         private static class Tokens
@@ -20,7 +38,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             public static class Types
             {
                 public const char ArityDelimiter = '`';
-                public const char Separator = '.';
                 public const string Unknown = Internal.Prefix + "unknown" + Internal.Postfix;
             }
 
@@ -54,35 +71,31 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
         }
 
-        public static string GenerateTemplateString(MethodInfo method)
+        public static MethodTemplateString GenerateTemplateString(MethodInfo method)
         {
-            StringBuilder fmtStringBuilder = new();
+            StringBuilder declaringTypeBuilder = new();
+            StringBuilder methodNameBuilder = new();
+            StringBuilder parametersTemplateBuilder = new();
 
             // Declaring type name
             // For a generic declaring type, trim the arity information and replace it with the known generic argument names.
             string declaringTypeName = method.DeclaringType?.FullName?.Split(Tokens.Types.ArityDelimiter)?[0] ?? Tokens.Types.Unknown;
-            fmtStringBuilder.Append(declaringTypeName);
-            EmitGenericArguments(fmtStringBuilder, method.DeclaringType?.GetGenericArguments());
+            declaringTypeBuilder.Append(declaringTypeName);
+            EmitGenericArguments(declaringTypeBuilder, method.DeclaringType?.GetGenericArguments());
 
             // Method name
-            if (fmtStringBuilder.Length != 0)
-            {
-                fmtStringBuilder.Append(Tokens.Types.Separator);
-            }
-            fmtStringBuilder.Append(method.Name);
-            EmitGenericArguments(fmtStringBuilder, method.GetGenericArguments());
+            methodNameBuilder.Append(method.Name);
+            EmitGenericArguments(methodNameBuilder, method.GetGenericArguments());
 
             // Method parameters
-            fmtStringBuilder.Append(Tokens.Parameters.Start);
-
-            int parameterIndex = 0;
+              int parameterIndex = 0;
             ParameterInfo[] explicitParameters = method.GetParameters();
 
             // Implicit this
             if (method.HasImplicitThis())
             {
                 EmitParameter(
-                    fmtStringBuilder,
+                    parametersTemplateBuilder,
                     method.DeclaringType,
                     Tokens.Parameters.Names.ImplicitThis);
                 parameterIndex++;
@@ -92,12 +105,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 if (parameterIndex != 0)
                 {
-                    fmtStringBuilder.Append(Tokens.Parameters.Separator);
+                    parametersTemplateBuilder.Append(Tokens.Parameters.Separator);
                 }
 
                 string name = paramInfo.Name ?? Tokens.Parameters.Names.Unknown;
                 EmitParameter(
-                    fmtStringBuilder,
+                    parametersTemplateBuilder,
                     paramInfo.ParameterType,
                     name,
                     paramInfo);
@@ -105,9 +118,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 parameterIndex++;
             }
 
-            fmtStringBuilder.Append(Tokens.Parameters.End);
-
-            return fmtStringBuilder.ToString();
+            return new MethodTemplateString(
+                method.Module.Name,
+                declaringTypeBuilder.ToString(),
+                methodNameBuilder.ToString(),
+                parametersTemplateBuilder.ToString());
         }
 
         private static void EmitParameter(StringBuilder stringBuilder, Type? type, string name, ParameterInfo? paramInfo = null)

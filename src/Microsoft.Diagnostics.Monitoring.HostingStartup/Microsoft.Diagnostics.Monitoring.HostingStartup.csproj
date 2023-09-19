@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Compile Include="..\Tools\dotnet-monitor\ParameterCapturing\ParameterCapturingEvents.cs" Link="ParameterCapturing\Eventing\ParameterCapturingEvents.cs" />
+    <Compile Include="..\Microsoft.Diagnostics.Monitoring.WebApi\KeyValueLogScope.cs" Link="KeyValueLogScope.cs" />
   </ItemGroup>
 
   <ItemGroup>

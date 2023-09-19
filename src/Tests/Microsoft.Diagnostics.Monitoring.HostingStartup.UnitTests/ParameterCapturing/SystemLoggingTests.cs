@@ -20,8 +20,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             var logRecord = new LogRecord();
             var factory = LoggerFactory.Create(builder => builder.AddProvider(new TestLoggerProvider(logRecord)));
 
-            const string inlineMessage = "Inline message";
-            const string backgroundMessage = "Background message";
+            MethodTemplateString inlineMessage = new("inline.dll", "type", "method", string.Empty);
+            MethodTemplateString backgroundMessage = new("inline.dll", "type", "method", string.Empty);
+
 
             using (ParameterCapturingLogger logger = new(factory.CreateLogger<DotnetMonitor.ParameterCapture.UserCode>(), factory.CreateLogger<DotnetMonitor.ParameterCapture.SystemCode>()))
             {
@@ -34,10 +35,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
 
             Assert.Equal(2, logRecord.Events.Count);
 
-            var userCodeEntry = logRecord.Events.First(e => e.Message == inlineMessage);
+            var userCodeEntry = logRecord.Events.First(e => e.Message == inlineMessage.TemplateString);
             Assert.Equal(typeof(DotnetMonitor.ParameterCapture.UserCode).FullName, userCodeEntry.Category);
 
-            var systemEntry = logRecord.Events.First(e => e.Message == backgroundMessage);
+            var systemEntry = logRecord.Events.First(e => e.Message == backgroundMessage.TemplateString);
             Assert.Equal(typeof(DotnetMonitor.ParameterCapture.SystemCode).FullName, systemEntry.Category);
 
             return;

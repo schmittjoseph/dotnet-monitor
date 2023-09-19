@@ -6,6 +6,8 @@ using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -13,10 +15,30 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal sealed class ParameterCapturingLogger : IDisposable
     {
+        private static class Scopes
+        {
+            private const string Prefix = "DotnetMonitor_";
+
+            public const string TimeStamp = Prefix + "Timestamp";
+            public const string ActivityId = Prefix + "ActivityId";
+            public const string ActivityIdFormat = Prefix + "ActivityIdFormat";
+
+
+            public static class MethodInfo
+            {
+                private const string Prefix = Scopes.Prefix + "Method_";
+
+                public const string Name = Prefix + "Name";
+
+                public const string Module = Prefix + "Module";
+                public const string DeclaringType = Prefix + "DeclaringType";
+            }
+        }
+
         private readonly ILogger _userLogger;
         private readonly ILogger _systemLogger;
         private readonly Thread _thread;
-        private BlockingCollection<(string format, string[] args)> _messages;
+        private BlockingCollection<(string format, string[] args, KeyValueLogScope scope)> _messages;
         private uint _droppedMessageCounter;
         private const int BackgroundLoggingCapacity = 1024;
         private const string BackgroundLoggingThreadName = "[dotnet-monitor] Probe Logging Thread";
@@ -36,7 +58,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _thread.Priority = ThreadPriority.BelowNormal;
             _thread.IsBackground = true;
             _thread.Name = BackgroundLoggingThreadName;
-            _messages = new BlockingCollection<(string, string[])>(BackgroundLoggingCapacity);
+            _messages = new BlockingCollection<(string, string[], KeyValueLogScope)>(BackgroundLoggingCapacity);
             _thread.Start();
         }
 
@@ -57,30 +79,52 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return true;
         }
 
-        public void Log(ParameterCaptureMode mode, string format, string[] args)
+        public void Log(ParameterCaptureMode mode, MethodTemplateString methodTemplateString, string[] args)
         {
             DisposableHelper.ThrowIfDisposed<ParameterCapturingLogger>(ref _disposedState);
 
+            // Construct scope
+            KeyValueLogScope scope = GenerateScope(methodTemplateString);
+
             if (mode == ParameterCaptureMode.Inline)
             {
-                Log(_userLogger, format, args);
+                Log(_userLogger, methodTemplateString.TemplateString, args, scope);
             }
             else if (mode == ParameterCaptureMode.Background)
             {
-                if (!_messages.TryAdd((format, args)))
+                if (!_messages.TryAdd((methodTemplateString.TemplateString, args, scope)))
                 {
                     Interlocked.Increment(ref _droppedMessageCounter);
                 }
             }
         }
 
+        private static KeyValueLogScope GenerateScope(MethodTemplateString methodTemplateString)
+        {
+            KeyValueLogScope scope = new();
+
+            scope.Values.Add(Scopes.TimeStamp, DateTime.UtcNow);
+            Activity? currentActivity = Activity.Current;
+            if (currentActivity?.Id != null)
+            {
+                scope.Values.Add(Scopes.ActivityId, currentActivity.Id);
+                scope.Values.Add(Scopes.ActivityIdFormat, currentActivity.IdFormat);
+            }
+
+            scope.Values.Add(Scopes.MethodInfo.Module, methodTemplateString.ModuleName);
+            scope.Values.Add(Scopes.MethodInfo.DeclaringType, methodTemplateString.TypeName);
+            scope.Values.Add(Scopes.MethodInfo.Name, methodTemplateString.MethodName);
+
+            return scope;
+        }
+
         private void ThreadProc()
         {
             try
             {
-                while (_messages.TryTake(out (string format, string[] args) entry, Timeout.InfiniteTimeSpan))
+                while (_messages.TryTake(out (string format, string[] args, KeyValueLogScope scope) entry, Timeout.InfiniteTimeSpan))
                 {
-                    Log(_systemLogger, entry.format, entry.args);
+                    Log(_systemLogger, entry.format, entry.args, entry.scope);
                 }
             }
             catch (ObjectDisposedException)
@@ -98,7 +142,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             _thread.Join();
         }
 
-        private static void Log(ILogger logger, string format, string[] args) => logger.Log(LogLevel.Information, format, args);
+        private static void Log(ILogger logger, string format, string[] args, KeyValueLogScope scope)
+        {
+            using var _ = logger.BeginScope(scope);
+            using (logger.BeginScope(new List<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>("TransactionId", "yes"),
+                new KeyValuePair<string, object>("Foobar", "no"),
+            }))
+            {
+                logger.Log(LogLevel.Information, format, args);
+            }
+        }
 
         public void Dispose()
         {

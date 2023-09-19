@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
             Assert.NotNull(method);
 
             // Act
-            string actualTemplateString = MethodTemplateStringGenerator.GenerateTemplateString(method);
+            string actualTemplateString = MethodTemplateStringGenerator.GenerateTemplateString(method).TemplateString;
 
             // Assert
             Assert.NotNull(actualTemplateString);

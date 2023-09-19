@@ -3,10 +3,23 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
+#if HOSTINGSTARTUP
+namespace Microsoft.Diagnostics.Monitoring.HostingStartup
+#else
 namespace Microsoft.Diagnostics.Monitoring.WebApi
+#endif
 {
+    internal static class KeyValueLogScopeExtenstions
+    {
+        public static void Add(this List<KeyValuePair<string, object>> values, string key, object value)
+        {
+            values.Add(new KeyValuePair<string, object>(key, value));
+        }
+    }
+
     // Logger implementations have different ways of serializing log scopes. This class helps those loggers
     // serialize the scope information in the best way possible for each of the implementations.
     //
@@ -16,10 +29,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
     //   in the enumeration; otherwise falls back to ToString.
     // - Event Log Logger: checks for IEnumerable<KeyValuePair<string, object>> and formats each value
     //   in the enumeration; otherwise falls back to ToString.
-    internal class KeyValueLogScope : IReadOnlyCollection<KeyValuePair<string, object>>
+    internal class KeyValueLogScope : IReadOnlyList<KeyValuePair<string, object>>
     {
-        public IDictionary<string, object> Values =
-            new Dictionary<string, object>();
+        public List<KeyValuePair<string, object>> Values = new();
 
         IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
         {
@@ -32,6 +44,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         }
 
         int IReadOnlyCollection<KeyValuePair<string, object>>.Count => Values.Count;
+
+        public KeyValuePair<string, object> this[int index] => Values[index];
 
         public override string ToString()
         {
