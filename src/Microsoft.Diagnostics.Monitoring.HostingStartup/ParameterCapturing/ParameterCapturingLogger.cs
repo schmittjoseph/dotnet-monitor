@@ -6,7 +6,6 @@ using Microsoft.Diagnostics.Monitoring.StartupHook;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -24,14 +23,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             public const string ActivityIdFormat = Prefix + "ActivityIdFormat";
 
 
-            public static class MethodInfo
+            public static class CaptureSite
             {
-                private const string Prefix = Scopes.Prefix + "Method_";
+                private const string Prefix = Scopes.Prefix + "CaptureSite_";
 
-                public const string Name = Prefix + "Name";
+                public const string MethodName = Prefix + "MethodName";
 
-                public const string Module = Prefix + "Module";
-                public const string DeclaringType = Prefix + "DeclaringType";
+                public const string ModuleName = Prefix + "ModuleName";
+                public const string DeclaringTypeName = Prefix + "DeclaringTypeName";
             }
         }
 
@@ -103,17 +102,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             KeyValueLogScope scope = new();
 
-            scope.Values.Add(Scopes.TimeStamp, DateTime.UtcNow);
+            // Store timestamp as ISO 8601
+            scope.Values.Add(Scopes.TimeStamp, DateTime.UtcNow.ToString("o"));
+
+            scope.Values.Add(Scopes.CaptureSite.ModuleName, methodTemplateString.ModuleName);
+            scope.Values.Add(Scopes.CaptureSite.DeclaringTypeName, methodTemplateString.TypeName);
+            scope.Values.Add(Scopes.CaptureSite.MethodName, methodTemplateString.MethodName);
+
             Activity? currentActivity = Activity.Current;
             if (currentActivity?.Id != null)
             {
                 scope.Values.Add(Scopes.ActivityId, currentActivity.Id);
                 scope.Values.Add(Scopes.ActivityIdFormat, currentActivity.IdFormat);
             }
-
-            scope.Values.Add(Scopes.MethodInfo.Module, methodTemplateString.ModuleName);
-            scope.Values.Add(Scopes.MethodInfo.DeclaringType, methodTemplateString.TypeName);
-            scope.Values.Add(Scopes.MethodInfo.Name, methodTemplateString.MethodName);
 
             return scope;
         }
@@ -145,14 +146,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         private static void Log(ILogger logger, string format, string[] args, KeyValueLogScope scope)
         {
             using var _ = logger.BeginScope(scope);
-            using (logger.BeginScope(new List<KeyValuePair<string, object>>
-            {
-                new KeyValuePair<string, object>("TransactionId", "yes"),
-                new KeyValuePair<string, object>("Foobar", "no"),
-            }))
-            {
-                logger.Log(LogLevel.Information, format, args);
-            }
+            logger.Log(LogLevel.Information, format, args);
         }
 
         public void Dispose()
