@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             EmitGenericArguments(methodNameBuilder, method.GetGenericArguments());
 
             // Method parameters
-              int parameterIndex = 0;
+            int parameterIndex = 0;
             ParameterInfo[] explicitParameters = method.GetParameters();
 
             // Implicit this
