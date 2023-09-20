@@ -9,24 +9,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal sealed class MethodTemplateString
     {
-        public string ModuleName { get; }
-        public string TypeName { get; }
-        public string MethodName { get; }
-
-        public string TemplateString { get; }
-
-        public MethodTemplateString(string moduleName, string typeName, string methodName, string parametersTemplate)
-        {
-            ModuleName = moduleName;
-            TypeName = typeName;
-            MethodName = methodName;
-
-            TemplateString = FormattableString.Invariant($"{TypeName}.{MethodName}({parametersTemplate})");
-        }
-    }
-
-    internal static class MethodTemplateStringGenerator
-    {
         private static class Tokens
         {
             private static class Internal
@@ -38,6 +20,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             public static class Types
             {
                 public const char ArityDelimiter = '`';
+                public const char Separator = '.';
                 public const string Unknown = Internal.Prefix + "unknown" + Internal.Postfix;
             }
 
@@ -71,7 +54,14 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
         }
 
-        public static MethodTemplateString GenerateTemplateString(MethodInfo method)
+
+        public string ModuleName { get; }
+        public string TypeName { get; }
+        public string MethodName { get; }
+
+        public string Template { get; }
+
+        public MethodTemplateString(MethodInfo method)
         {
             StringBuilder declaringTypeBuilder = new();
             StringBuilder methodNameBuilder = new();
@@ -118,11 +108,18 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 parameterIndex++;
             }
 
-            return new MethodTemplateString(
-                method.Module.Name,
-                declaringTypeBuilder.ToString(),
-                methodNameBuilder.ToString(),
-                parametersTemplateBuilder.ToString());
+
+            ModuleName = method.Module.Name;
+            TypeName = declaringTypeBuilder.ToString();
+            MethodName = methodNameBuilder.ToString();
+
+            Template = string.Concat(
+                TypeName,
+                Tokens.Types.Separator,
+                MethodName,
+                Tokens.Parameters.Start,
+                parametersTemplateBuilder.ToString(),
+                Tokens.Parameters.End);
         }
 
         private static void EmitParameter(StringBuilder stringBuilder, Type? type, string name, ParameterInfo? paramInfo = null)

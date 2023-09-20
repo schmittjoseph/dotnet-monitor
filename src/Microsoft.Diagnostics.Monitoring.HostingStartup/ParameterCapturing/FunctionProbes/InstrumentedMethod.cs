@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Fun
         {
             FunctionId = method.GetFunctionId();
             SupportedParameters = BoxingTokens.AreParametersSupported(boxingTokens);
-            MethodTemplateString = MethodTemplateStringGenerator.GenerateTemplateString(method);
+            MethodTemplateString = new MethodTemplateString(method);
             foreach (bool isParameterSupported in SupportedParameters)
             {
                 if (isParameterSupported)

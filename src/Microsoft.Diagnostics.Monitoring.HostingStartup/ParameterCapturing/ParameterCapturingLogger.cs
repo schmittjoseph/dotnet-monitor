@@ -20,6 +20,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             private const string Prefix = "DotnetMonitor_";
 
             public const string TimeStamp = Prefix + "Timestamp";
+
+            public const string ThreadId = Prefix + "ThreadId";
+
             public const string ActivityId = Prefix + "ActivityId";
             public const string ActivityIdFormat = Prefix + "ActivityIdFormat";
 
@@ -83,16 +86,15 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             DisposableHelper.ThrowIfDisposed<ParameterCapturingLogger>(ref _disposedState);
 
-            // Construct scope
             KeyValueLogScope scope = GenerateScope(methodTemplateString);
 
             if (mode == ParameterCaptureMode.Inline)
             {
-                Log(_userLogger, methodTemplateString.TemplateString, args, scope);
+                Log(_userLogger, methodTemplateString.Template, args, scope);
             }
             else if (mode == ParameterCaptureMode.Background)
             {
-                if (!_messages.TryAdd((methodTemplateString.TemplateString, args, scope)))
+                if (!_messages.TryAdd((methodTemplateString.Template, args, scope)))
                 {
                     Interlocked.Increment(ref _droppedMessageCounter);
                 }
@@ -105,6 +107,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
             // Store timestamp as ISO 8601 compliant
             scope.Values.Add(Scopes.TimeStamp, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
+            scope.Values.Add(Scopes.ThreadId, Environment.CurrentManagedThreadId);
 
             scope.Values.Add(Scopes.CaptureSite.ModuleName, methodTemplateString.ModuleName);
             scope.Values.Add(Scopes.CaptureSite.DeclaringTypeName, methodTemplateString.TypeName);
