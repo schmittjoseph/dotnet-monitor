@@ -63,21 +63,47 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         public MethodTemplateString(MethodInfo method)
         {
-            StringBuilder declaringTypeBuilder = new();
-            StringBuilder methodNameBuilder = new();
-            StringBuilder parametersTemplateBuilder = new();
+            ModuleName = GetModuleName(method);
+            TypeName = GetDeclaringTypeName(method);
+            MethodName = GetMethodName(method);
 
-            // Declaring type name
+            Template = string.Concat(
+                TypeName,
+                Tokens.Types.Separator,
+                MethodName,
+                Tokens.Parameters.Start,
+                GetTemplatedParameters(method),
+                Tokens.Parameters.End);
+        }
+
+        private static string GetModuleName(MethodInfo method) => method.Module.Name;
+
+        private static string GetDeclaringTypeName(MethodInfo method)
+        {
+            StringBuilder builder = new();
+
             // For a generic declaring type, trim the arity information and replace it with the known generic argument names.
             string declaringTypeName = method.DeclaringType?.FullName?.Split(Tokens.Types.ArityDelimiter)?[0] ?? Tokens.Types.Unknown;
-            declaringTypeBuilder.Append(declaringTypeName);
-            EmitGenericArguments(declaringTypeBuilder, method.DeclaringType?.GetGenericArguments());
+            builder.Append(declaringTypeName);
+            EmitGenericArguments(builder, method.DeclaringType?.GetGenericArguments());
 
-            // Method name
-            methodNameBuilder.Append(method.Name);
-            EmitGenericArguments(methodNameBuilder, method.GetGenericArguments());
+            return builder.ToString();
+        }
 
-            // Method parameters
+        private static string GetMethodName(MethodInfo method)
+        {
+            StringBuilder builder = new();
+
+            builder.Append(method.Name);
+            EmitGenericArguments(builder, method.GetGenericArguments());
+
+            return builder.ToString();
+        }
+
+        private static string GetTemplatedParameters(MethodInfo method)
+        {
+            StringBuilder builder = new();
+
             int parameterIndex = 0;
             ParameterInfo[] explicitParameters = method.GetParameters();
 
@@ -85,7 +111,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (method.HasImplicitThis())
             {
                 EmitParameter(
-                    parametersTemplateBuilder,
+                    builder,
                     method.DeclaringType,
                     Tokens.Parameters.Names.ImplicitThis);
                 parameterIndex++;
@@ -95,12 +121,12 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 if (parameterIndex != 0)
                 {
-                    parametersTemplateBuilder.Append(Tokens.Parameters.Separator);
+                    builder.Append(Tokens.Parameters.Separator);
                 }
 
                 string name = paramInfo.Name ?? Tokens.Parameters.Names.Unknown;
                 EmitParameter(
-                    parametersTemplateBuilder,
+                    builder,
                     paramInfo.ParameterType,
                     name,
                     paramInfo);
@@ -108,18 +134,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 parameterIndex++;
             }
 
-
-            ModuleName = method.Module.Name;
-            TypeName = declaringTypeBuilder.ToString();
-            MethodName = methodNameBuilder.ToString();
-
-            Template = string.Concat(
-                TypeName,
-                Tokens.Types.Separator,
-                MethodName,
-                Tokens.Parameters.Start,
-                parametersTemplateBuilder.ToString(),
-                Tokens.Parameters.End);
+            return builder.ToString();
         }
 
         private static void EmitParameter(StringBuilder stringBuilder, Type? type, string name, ParameterInfo? paramInfo = null)
