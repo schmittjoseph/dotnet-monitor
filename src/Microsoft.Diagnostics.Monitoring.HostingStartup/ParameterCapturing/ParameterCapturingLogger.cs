@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 
@@ -102,8 +103,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         {
             KeyValueLogScope scope = new();
 
-            // Store timestamp as ISO 8601
-            scope.Values.Add(Scopes.TimeStamp, DateTime.UtcNow.ToString("o"));
+            // Store timestamp as ISO 8601 compliant
+            scope.Values.Add(Scopes.TimeStamp, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
 
             scope.Values.Add(Scopes.CaptureSite.ModuleName, methodTemplateString.ModuleName);
             scope.Values.Add(Scopes.CaptureSite.DeclaringTypeName, methodTemplateString.TypeName);
