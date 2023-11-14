@@ -1,0 +1,1 @@
+Today we are releasing the 8.0.0 build of the `dotnet monitor` tool. This release includes:
