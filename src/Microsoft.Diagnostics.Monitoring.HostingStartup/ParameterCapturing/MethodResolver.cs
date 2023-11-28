@@ -44,13 +44,25 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 
         public List<MethodInfo> ResolveMethodDescription(MethodDescription methodDescription)
         {
-            // A single description can match multiple MethodInfos
+            // A single description can match multiple MethodInfo
             List<MethodInfo> matchingMethods = new();
 
-            List<MethodInfo> possibleMethods = GetMethodsForDeclaringType(methodDescription);
+            //
+            // Strip any generic information outside of the arity information (e.g. the types used for instantiated generics).
+            // This information isn't needed and we want to resolve to the underlying generic types / methods.
+            //
+            // NOTE: As a result if a request is made for List`1[String].Add we will return the method for List`1.Add which
+            // match against all instantiated Lists despite if they have a generic type of String. This is acceptable for now.
+            //
+            if (!TypeUtils.TryStripGenerics(methodDescription, out MethodDescription? genericFreeMethodDescription))
+            {
+                return matchingMethods;
+            }
+
+            List<MethodInfo> possibleMethods = GetMethodsForDeclaringType(genericFreeMethodDescription);
             foreach (MethodInfo method in possibleMethods)
             {
-                if (method.Name == methodDescription.MethodName)
+                if (method.Name == genericFreeMethodDescription.MethodName)
                 {
                     matchingMethods.Add(method);
                 }

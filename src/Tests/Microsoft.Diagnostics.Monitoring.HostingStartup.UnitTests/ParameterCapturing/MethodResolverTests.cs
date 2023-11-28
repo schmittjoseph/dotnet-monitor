@@ -113,6 +113,65 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         }
 
         [Fact]
+        public void ResolveMethodDescription_Generics_MatchesInstantiated()
+        {
+            // Arrange
+            MethodResolver resolver = new();
+            MethodDescription description = new()
+            {
+                ModuleName = typeof(StaticTestMethodSignatures).Module.Name,
+                TypeName = "SampleMethods.GenericTestMethodSignatures`2[System.String,System.String]",
+                MethodName = "GenericParameters",
+            };
+
+            // Act
+            List<MethodInfo> methods = resolver.ResolveMethodDescription(description);
+
+            // Assert
+            Assert.Single(methods);
+        }
+
+        [Fact]
+        public void ResolveMethodDescription_Generic_MatchesWithGenericParameterType()
+        {
+            // Arrange
+            MethodResolver resolver = new();
+            MethodDescription description = new()
+            {
+                ModuleName = typeof(StaticTestMethodSignatures).Module.Name,
+                TypeName = "SampleMethods.GenericTestMethodSignatures`2",
+                MethodName = "GenericParameters[System.String]",
+            };
+
+            // Act
+            List<MethodInfo> methods = resolver.ResolveMethodDescription(description);
+
+            // Assert
+            Assert.Single(methods);
+        }
+
+
+        [Fact]
+        public void ResolveMethodDescription_Generic_MatchesInstantiatedWithGenericParameterType()
+        {
+            // Arrange
+            MethodResolver resolver = new();
+            MethodDescription description = new()
+            {
+                ModuleName = typeof(StaticTestMethodSignatures).Module.Name,
+                TypeName = "SampleMethods.GenericTestMethodSignatures`2[System.String,System.String]",
+                MethodName = "GenericParameters[System.String]",
+            };
+
+            // Act
+            List<MethodInfo> methods = resolver.ResolveMethodDescription(description);
+
+            // Assert
+            Assert.Single(methods);
+        }
+
+
+        [Fact]
         public void ResolveMethodDescription_Generics_MatchesAmbiguous()
         {
             // Arrange
