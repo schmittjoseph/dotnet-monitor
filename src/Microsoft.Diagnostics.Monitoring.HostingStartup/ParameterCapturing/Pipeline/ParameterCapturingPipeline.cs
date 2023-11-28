@@ -113,14 +113,19 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing.Pip
                 List<MethodInfo> methods = new(request.Payload.Configuration.Methods.Length);
                 List<MethodDescription> methodsFailedToResolve = new();
 
-                for (int i = 0; i < request.Payload.Configuration.Methods.Length; i++)
+                foreach (MethodDescription inputMethodDescription in request.Payload.Configuration.Methods)
                 {
-                    MethodDescription methodDescription = request.Payload.Configuration.Methods[i];
+                    if (!TypeUtils.TryStripGenerics(inputMethodDescription, out MethodDescription? genericFreeMethodDescription))
+                    {
+                        methodsFailedToResolve.Add(inputMethodDescription);
+                        continue;
+                    }
 
-                    List<MethodInfo> resolvedMethods = resolver.ResolveMethodDescription(methodDescription);
+                    List<MethodInfo> resolvedMethods = resolver.ResolveMethodDescription(genericFreeMethodDescription);
                     if (resolvedMethods.Count == 0)
                     {
-                        methodsFailedToResolve.Add(methodDescription);
+                        methodsFailedToResolve.Add(inputMethodDescription);
+                        continue;
                     }
 
                     methods.AddRange(resolvedMethods);
