@@ -14,6 +14,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.UnitTests.ParameterCap
         [Theory]
         [InlineData("ClassInNamespace", "ClassInNamespace.MyClass", true)]
         [InlineData("NestedType", "NestedType+MyNestedType", true)]
+        [InlineData("GenericType", "GenericType`1[String]", true)]
         [InlineData("SameAsNamespace", "SameAsNamespace", true)]
         [InlineData("DifferentCasing", "differentcasing", false)]
         [InlineData("CustomNamespace.Microsoft", "Microsoft", false)]

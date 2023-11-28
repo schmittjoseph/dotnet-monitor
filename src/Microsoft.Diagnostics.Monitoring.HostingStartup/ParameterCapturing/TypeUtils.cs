@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
 
             char charAfterParentType = typeToCheck[parentType.Length];
-            if (charAfterParentType == '.' || charAfterParentType == '+')
+            if (charAfterParentType == '.' || charAfterParentType == '+' || charAfterParentType == '`')
             {
                 return true;
             }
