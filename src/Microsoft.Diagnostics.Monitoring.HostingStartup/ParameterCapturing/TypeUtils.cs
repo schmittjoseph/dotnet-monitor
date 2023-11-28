@@ -10,6 +10,17 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
 {
     internal static class TypeUtils
     {
+        private static class Tokens
+        {
+            public const char ArityDelimiter = '`';
+
+            public const char Separator = '.';
+            public const char NestedSeparator = '+';
+
+            public const char GenericStart = '[';
+            public const char GenericEnd = ']';
+        }
+
         public static bool IsSubType(string parentType, string typeToCheck)
         {
             if (string.IsNullOrEmpty(parentType))
@@ -33,12 +44,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
 
             char charAfterParentType = typeToCheck[parentType.Length];
-            if (charAfterParentType == '.' || charAfterParentType == '+' || charAfterParentType == '`')
-            {
-                return true;
-            }
-
-            return false;
+            return charAfterParentType is
+                Tokens.Separator or
+                Tokens.NestedSeparator or
+                Tokens.ArityDelimiter;
         }
 
         public static bool TryStripGenerics(MethodDescription methodDescription, [NotNullWhen(true)] out MethodDescription? strippedMethodDescription)
@@ -83,10 +92,10 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             {
                 switch (name[i])
                 {
-                    case '[':
+                    case Tokens.GenericStart:
                         depth++;
                         break;
-                    case ']':
+                    case Tokens.GenericEnd:
                         if (--depth < 0)
                         {
                             // Malformed
