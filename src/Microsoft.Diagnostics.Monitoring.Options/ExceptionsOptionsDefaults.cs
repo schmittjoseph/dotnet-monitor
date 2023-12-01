@@ -5,7 +5,7 @@ namespace Microsoft.Diagnostics.Monitoring.Options
 {
     internal static class ExceptionsOptionsDefaults
     {
-        public const bool Enabled = true;
+        public const bool Enabled = false;
 
         public const int TopLevelLimit = 20;
     }

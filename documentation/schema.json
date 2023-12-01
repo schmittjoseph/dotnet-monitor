@@ -1088,7 +1088,7 @@
             "null"
           ],
           "description": "Enables or disables the exceptions feature. By default, this feature is enabled if in-process features are enabled.",
-          "default": true
+          "default": false
         },
         "TopLevelLimit": {
           "type": [
