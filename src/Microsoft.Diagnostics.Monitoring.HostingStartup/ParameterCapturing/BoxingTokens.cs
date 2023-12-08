@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
                 else if (paramType.IsGenericParameter)
                 {
-                    boxingTokens.Add(UnsupportedParameterToken);
+                    boxingTokens.Add(ancillaryBoxingTokens.Value?[formalParameterPosition] ?? UnsupportedParameterToken);
                 }
                 else if (paramType.IsPrimitive)
                 {
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     if (paramType.IsGenericType)
                     {
                         // Typespec
-                        boxingTokens.Add(UnsupportedParameterToken);
+                        boxingTokens.Add(ancillaryBoxingTokens.Value?[formalParameterPosition] ?? UnsupportedParameterToken);
                     }
                     else if (paramType.Assembly != method.Module.Assembly)
                     {
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
                 else
                 {
-                    boxingTokens.Add(UnsupportedParameterToken);
+                    boxingTokens.Add(ancillaryBoxingTokens.Value?[formalParameterPosition] ?? UnsupportedParameterToken);
                 }
 
                 formalParameterPosition++;
@@ -172,14 +172,53 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 MethodDefinitionHandle methodDefHandle = (MethodDefinitionHandle)MetadataTokens.Handle(method.MetadataToken);
                 MethodDefinition methodDef = mdReader.GetMethodDefinition(methodDefHandle);
 
-                MethodSignature<uint> methodSignature = methodDef.DecodeSignature(new BoxingTokensSignatureProvider(), genericContext: null);
+                BlobReader signatureReader = mdReader.GetBlobReader(methodDef.Signature);
 
-                return methodSignature.ParameterTypes.ToArray();
+                List<SignatureUtils.ParameterSignature> parameterSignatures = SignatureUtils.ExtractParameterSignatures(ref signatureReader);
+
+                uint[] tokens = new uint[parameterSignatures.Count];
+
+                for (int i = 0; i < tokens.Length; i++)
+                {
+                    if (parameterSignatures[i].BoxingToken != UnsupportedParameterToken)
+                    {
+                        tokens[i] = parameterSignatures[i].BoxingToken;
+                        continue;
+                    }
+
+                    tokens[i] = FindTypeSpecFromSig(mdReader, parameterSignatures[i].blob);
+                }
+
+                return tokens;
+
             }
             catch (Exception)
             {
                 return null;
             }
+        }
+
+        private static uint FindTypeSpecFromSig(MetadataReader mdReader, byte[] signature)
+        {
+            int rows = mdReader.GetTableRowCount(TableIndex.TypeSpec);
+            for (int row = 1; row <= rows; row++)
+            {
+                TypeSpecificationHandle handle = MetadataTokens.TypeSpecificationHandle(row);
+                TypeSpecification typeSpec = mdReader.GetTypeSpecification(handle);
+
+                byte[] signatureBytes = mdReader.GetBlobBytes(typeSpec.Signature);
+
+                if (signatureBytes.Length != signature.Length)
+                {
+                    continue;
+                }
+
+                if (signature.SequenceEqual(signatureBytes))
+                {
+                    return (uint)MetadataTokens.GetToken(handle);
+                }
+            }
+            return UnsupportedParameterToken;
         }
 
         private static uint GetSpecialCaseBoxingTokenForPrimitive(Type primitiveType)
