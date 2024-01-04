@@ -114,6 +114,8 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 else if (paramType.Assembly != method.Module.Assembly)
                 {
                     // Typeref
+
+                    // value-type type refs are supported by the signature decoder
                     canUseSignatureDecoder = true;
                     return SpecialCaseBoxingTypes.Unknown;
                 }
