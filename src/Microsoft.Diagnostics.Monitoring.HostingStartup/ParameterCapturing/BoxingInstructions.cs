@@ -31,7 +31,13 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         public static ParameterBoxingInstructions[] GetBoxingInstructions(MethodInfo method)
         {
             ParameterInfo[] methodParameters = method.GetParameters();
-            ParameterBoxingInstructions[] instructions = new ParameterBoxingInstructions[methodParameters.Length + (method.HasImplicitThis() ? 1 : 0)];
+            int numberOfInstructions = methodParameters.Length + (method.HasImplicitThis() ? 1 : 0);
+            if (numberOfInstructions == 0)
+            {
+                return Array.Empty<ParameterBoxingInstructions>();
+            }
+
+            ParameterBoxingInstructions[] instructions = new ParameterBoxingInstructions[numberOfInstructions];
             int index = 0;
 
             //
