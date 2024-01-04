@@ -47,8 +47,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             if (method.HasImplicitThis())
             {
                 Debug.Assert(!method.IsStatic);
+
+                Type? thisType = method.DeclaringType;
                 ParameterBoxingInstructions thisBoxingInstructions;
-                if (method.DeclaringType?.IsValueType == true)
+                if (thisType == null ||
+                    thisType.IsValueType)
                 {
                     //
                     // Implicit this pointers for value types can **sometimes** be passed as an address to the value.
@@ -62,7 +65,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 else
                 {
                     // There's no currently no scenario where the implicit this can leverage the signature decoder
-                    thisBoxingInstructions = GetBoxingInstructionsFromReflection(method.DeclaringType, method, out _);
+                    thisBoxingInstructions = GetBoxingInstructionsFromReflection(thisType, method, out _);
                 }
 
                 instructions[index++] = thisBoxingInstructions;
@@ -82,15 +85,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             return instructions;
         }
 
-        private static ParameterBoxingInstructions GetBoxingInstructionsFromReflection(Type? paramType, MethodInfo method, out bool canUseSignatureDecoder)
+        private static ParameterBoxingInstructions GetBoxingInstructionsFromReflection(Type paramType, MethodInfo method, out bool canUseSignatureDecoder)
         {
             canUseSignatureDecoder = false;
 
-            if (paramType == null)
-            {
-                return SpecialCaseBoxingTypes.Unknown;
-            }
-            else if (paramType.IsByRef ||
+            if (paramType.IsByRef ||
                 paramType.IsByRefLike ||
                 paramType.IsPointer)
             {
