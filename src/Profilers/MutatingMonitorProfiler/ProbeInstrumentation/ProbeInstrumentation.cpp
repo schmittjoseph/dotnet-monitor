@@ -356,6 +356,27 @@ HRESULT ProbeInstrumentation::InstallProbes(vector<UNPROCESSED_INSTRUMENTATION_R
         // For now just use the function id as the uniquifier.
         // Consider allowing the caller to specify one.
         processedRequest.uniquifier = static_cast<ULONG64>(req.functionId);
+
+        // Try to transform any type spec instructions into metadata tokens.
+        for (auto const& instruction : req.boxingInstructions)
+        {
+            if (instruction.instructionType == InstructionType::TYPE_SPEC)
+            {
+                // TODO: Ensure that the signature length doesn't exceed
+                mdToken token = mdTokenNil;
+
+                // TODO: This needs to be used on IMetadataEmit, not IMetadataImport.
+                // Relocate inside AssemblyProbePrep?
+                // ref: https://learn.microsoft.com/en-us/dotnet/framework/unmanaged-api/metadata/imetadataemit-gettokenfromtypespec-method
+                IfFailLogRet(m_pCorProfilerInfo->GetTokenFromTypeSpec(
+                    reinterpret_cast<PCCOR_SIGNATURE>(instruction.pSignature),
+                    static_cast<ULONG>(instruction.signatureLength),
+                    &token));
+
+                instruction.instructionType = InstructionType::METADATA_TOKEN;
+                instruction.token.mdToken = token;
+            }
+        }
         processedRequest.boxingInstructions = req.boxingInstructions;
 
         IfFailLogRet(m_pCorProfilerInfo->GetFunctionInfo2(

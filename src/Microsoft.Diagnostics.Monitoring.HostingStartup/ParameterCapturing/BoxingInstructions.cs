@@ -144,23 +144,11 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 MethodDefinitionHandle methodDefHandle = (MethodDefinitionHandle)MetadataTokens.Handle(method.MetadataToken);
                 MethodDefinition methodDef = mdReader.GetMethodDefinition(methodDefHandle);
 
-                MethodSignature<uint?> methodSignature = methodDef.DecodeSignature(new BoxingTokensSignatureProvider(), genericContext: null);
+                BlobReader sigBlobReader = mdReader.GetBlobReader(methodDef.Signature);
 
-                ParameterBoxingInstructions[] instructions = new ParameterBoxingInstructions[methodSignature.ParameterTypes.Length];
-                for (int i = 0; i < methodSignature.ParameterTypes.Length; i++)
-                {
-                    uint? mdToken = methodSignature.ParameterTypes[i];
-                    if (mdToken.HasValue)
-                    {
-                        instructions[i] = mdToken.Value;
-                    }
-                    else
-                    {
-                        instructions[i] = SpecialCaseBoxingTypes.Unknown;
-                    }
-                }
+                MethodSignature<ParameterBoxingInstructions> instructions = SignatureDecoderEx.DecodeParameterBoxingInstructions(ref mdReader, ref sigBlobReader);
 
-                return instructions;
+                return [.. instructions.ParameterTypes];
             }
             catch (Exception)
             {

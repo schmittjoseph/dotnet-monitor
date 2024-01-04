@@ -15,7 +15,8 @@ enum class InstructionType : USHORT
 {
     UNKNOWN = 0,
     SPECIAL_CASE_TOKEN,
-    METADATA_TOKEN
+    METADATA_TOKEN,
+    TYPE_SPEC
 };
 
 enum class SpecialCaseBoxingTypes : ULONG32
@@ -49,6 +50,9 @@ typedef struct _PARAMETER_BOXING_INSTRUCTIONS
         ULONG32 mdToken;
         SpecialCaseBoxingTypes specialCaseToken;
     } token;
+
+    PVOID pSignature;
+    ULONG32 signatureLength;
 } PARAMETER_BOXING_INSTRUCTIONS;
 
 typedef struct _INSTRUMENTATION_REQUEST

@@ -10,6 +10,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
     /// <summary>
     /// This decoder is made specifically for parameters of the following types:
     /// - TypeReference'd value-types (e.g. enums from another assembly).
+    /// - TypeDefinitions
     ///
     /// The results of this decoder should not be used for any types not listed above.
     /// </summary>
@@ -19,6 +20,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         // Supported
         //
         public uint? GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) => (uint)MetadataTokens.GetToken(handle);
+        public uint? GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) => (uint)MetadataTokens.GetToken(handle);
 
         //
         // Unsupported
@@ -34,7 +36,6 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
         public uint? GetPointerType(uint? elementType) => null;
         public uint? GetPrimitiveType(PrimitiveTypeCode typeCode) => null;
         public uint? GetSZArrayType(uint? elementType) => null;
-        public uint? GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) => null;
         public uint? GetTypeFromSpecification(MetadataReader reader, object? genericContext, TypeSpecificationHandle handle, byte rawTypeKind) => null;
     }
 }
