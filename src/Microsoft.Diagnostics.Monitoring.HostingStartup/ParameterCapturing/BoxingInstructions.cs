@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             // as it is not a comprehensive decoder and will produce an unsupported boxing instruction for any types not explicitly mentioned
             // in BoxingTokensSignatureProvider's summary.
             // 
-            Lazy<ParameterBoxingInstructions[]?> signatureDecoderResults = new(() => GetAncillaryBoxingInstructionsFromMethodSignature(method));
+            Lazy<ParameterBoxingInstructions[]?> instructionsFromSignatureDecoder = new(() => GetAncillaryBoxingInstructionsFromMethodSignature(method));
 
 
             // Handle implicit this
@@ -71,9 +71,9 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             foreach (ParameterInfo param in methodParameters)
             {
                 ParameterBoxingInstructions paramBoxingInstructions = GetBoxingInstructionsFromReflection(param.ParameterType, method, out bool canUseSignatureDecoder);
-                if (canUseSignatureDecoder && !IsParameterSupported(paramBoxingInstructions) && signatureDecoderResults.Value != null)
+                if (canUseSignatureDecoder && !IsParameterSupported(paramBoxingInstructions) && instructionsFromSignatureDecoder.Value != null)
                 {
-                    paramBoxingInstructions = signatureDecoderResults.Value[param.Position];
+                    paramBoxingInstructions = instructionsFromSignatureDecoder.Value[param.Position];
                 }
 
                 instructions[index++] = paramBoxingInstructions;
