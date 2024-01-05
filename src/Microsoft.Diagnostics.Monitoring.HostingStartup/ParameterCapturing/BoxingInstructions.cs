@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                 }
                 else
                 {
-                    // There's no currently no scenario where the implicit this can leverage the signature decoder
+                    // There's no currently no supported scenario where the implicit this can leverage the signature decoder
                     thisBoxingInstructions = GetBoxingInstructionsFromReflection(thisType, method, out _);
                 }
 
