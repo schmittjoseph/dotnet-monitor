@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
             }
 
             ParameterBoxingInstructions[] instructions = new ParameterBoxingInstructions[numberOfInstructions];
-            int index = 0;
+            int instructionsIndex = 0;
 
             //
             // A signature decoder will used to determine boxing tokens for parameter types that cannot be determined from standard
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     thisBoxingInstructions = GetBoxingInstructionsFromReflection(thisType, method, out _);
                 }
 
-                instructions[index++] = thisBoxingInstructions;
+                instructions[instructionsIndex++] = thisBoxingInstructions;
             }
 
             foreach (ParameterInfo param in methodParameters)
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Monitoring.HostingStartup.ParameterCapturing
                     paramBoxingInstructions = instructionsFromSignatureDecoder.Value[param.Position];
                 }
 
-                instructions[index++] = paramBoxingInstructions;
+                instructions[instructionsIndex++] = paramBoxingInstructions;
             }
 
             return instructions;
