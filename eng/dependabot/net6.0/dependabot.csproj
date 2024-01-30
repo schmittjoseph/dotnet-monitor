@@ -1,2 +1,6 @@
 <!-- This isn't a real project, but Dependabot requires a project. -->
-<Project/>
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
