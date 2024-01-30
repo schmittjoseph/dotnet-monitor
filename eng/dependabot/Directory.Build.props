@@ -1,4 +1,7 @@
 <Project>
   <!-- Dependendabot is configured to read package versions from Directory.Build.props, so just use this file as a shim. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
   <Import Project="Versions.props" />
 </Project>
