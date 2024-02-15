@@ -1,2 +1,15 @@
 <!-- This isn't a real project, but Dependabot requires a project. -->
-<Project/>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <Import Project="Versions.props" />
+
+  <!--
+    Packages in this file have versions updated periodically by Dependabot specifically for .NET Core 3.1.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETCore.App.Runtime.win-x64" Version="$(MicrosoftNETCoreApp31Version)" />
+  </ItemGroup>
+</Project>
