@@ -12,7 +12,7 @@ env:
 
 jobs:
   sync-branch:
-    name: 'Sync ${{ matrix.branch }}'
+    name: 'Sync ${{ env.target_branch }}'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -43,10 +43,10 @@ jobs:
         uses: ./.github/actions/open-pr
         with:
           files_to_commit: "*"
-          title: '[${{ matrix.branch }}] Sync branch with ${{ env.base_branch }}'
+          title: '[${{ env.target_branch }}] Sync branch with ${{ env.base_branch }}'
           commit_message: Resolve merge conflicts ${{ env.base_branch }}
           body: Sync branch with ${{ env.base_branch }}. This PR was auto generated and will not be automatically merged in.
-          branch_name: sync/${{ matrix.branch }}
+          branch_name: sync/${{ env.target_branch }}
           fail_if_files_unchanged: false
           always_create_pr: true
           labels: 'automatic-pr'
