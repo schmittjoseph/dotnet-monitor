@@ -24,7 +24,8 @@ When `dotnet-monitor` is used to produce artifacts such as dumps or traces, an e
 | queueSharedAccessSignatureName | string | false | (6.3+) Name of the property in the Properties section that will contain the queue SAS token; if using SAS, must be specified if `queueSharedAccessSignature` is not specified.|
 | metadata | Dictionary<string, string> | false | A mapping of metadata keys to environment variable names. The values of the environment variables will be added as metadata for egressed artifacts.|
 
-> **Note**: Starting with `dotnet monitor` 7.0, all built-in metadata keys are prefixed with `DotnetMonitor_`; to avoid metadata naming conflicts, avoid prefixing your metadata keys with `DotnetMonitor_`.
+> [!NOTE]
+> Starting with `dotnet monitor` 7.0, all built-in metadata keys are prefixed with `DotnetMonitor_`; to avoid metadata naming conflicts, avoid prefixing your metadata keys with `DotnetMonitor_`.
 
 ### Example azureBlobStorage provider
 
@@ -52,7 +53,7 @@ When `dotnet-monitor` is used to produce artifacts such as dumps or traces, an e
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   Egress__AzureBlobStorage__monitorBlob__accountUri: "https://exampleaccount.blob.core.windows.net"
   Egress__AzureBlobStorage__monitorBlob__containerName: "dotnet-monitor"
@@ -64,7 +65,7 @@ When `dotnet-monitor` is used to produce artifacts such as dumps or traces, an e
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_Egress__AzureBlobStorage__monitorBlob__accountUri
     value: "https://exampleaccount.blob.core.windows.net"
@@ -107,7 +108,7 @@ When `dotnet-monitor` is used to produce artifacts such as dumps or traces, an e
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   Egress__AzureBlobStorage__monitorBlob__accountUri: "https://exampleaccount.blob.core.windows.net"
   Egress__AzureBlobStorage__monitorBlob__containerName: "dotnet-monitor"
@@ -121,7 +122,7 @@ When `dotnet-monitor` is used to produce artifacts such as dumps or traces, an e
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_Egress__AzureBlobStorage__monitorBlob__accountUri
     value: "https://exampleaccount.blob.core.windows.net"
@@ -144,19 +145,18 @@ When `dotnet-monitor` is used to produce artifacts such as dumps or traces, an e
 
 The Queue Message's payload will be the blob name (`<BlobPrefix>/<ArtifactName>`; using the above example with an artifact named `mydump.dmp`, this would be `artifacts/mydump.dmp`) that is being egressed to blob storage. This is designed to be easily integrated into an Azure Function that triggers whenever a new message is added to the queue, providing you with the contents of the artifact as a stream. See [Azure Blob storage input binding for Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-blob-input?tabs=csharp#example) for an example.
 
-## S3 storage egress provider
+## (8.0+) S3 storage egress provider
 
 | Name | Type | Required | Description |
 |---|---|---|---|
 | endpoint | string | false | An optional endpoint of S3 storage service. Can be left empty in case of using AWS. |
-| bucketName | string | true | The name of the S3 Bucket to which the blob will be egressed |
+| bucketName | string | true | The name of the S3 Bucket to which the blob will be egressed. |
 | accessKeyId | string | false | The AWS AccessKeyId for IAM user to login.  |
-| secretAccessKey | string | false | The AWS SecretAccessKey associated AccessKeyId for IAM user to login. To login by access key id either the 'secretAccessKeyFile' or 'secretAccessKey' must be set. |
+| secretAccessKey | string | false | The AWS SecretAccessKey associated AccessKeyId for IAM user to login. To login by access key id the 'secretAccessKey' must be set. |
 | awsProfileName | string | false | The AWS profile name to be used for login. |
 | awsProfilePath | string | false | The AWS profile path, if profile details not stored in default path. |
-| generatePreSignedUrl | bool | false | A boolean flag to control if either a pre-signed url is returned after successful upload or only the name of bucket and the artifacts S3 object key. |
-| regionName | string | false | A Region is a named set of AWS resources in the same geographical area. This option specifies the region to connect to. |
-| preSignedUrlExpiry | TimeStamp? | false | The amount of time the generated pre-signed url should be accessible. The value has to be between 1 minute and 1 day. |
+| regionName | string | false | A Region is a named set of AWS resources in the same geographical area. This option specifies the region to connect to. If the Endpoint is specified, this is the AuthenticationRegion; otherwise, it is the RegionEndpoint. |
+| preSignedUrlExpiry | TimeStamp? | false | When specified, a pre-signed url is returned after successful upload; this value specifies the amount of time the generated pre-signed url should be accessible. The value has to be between 1 minute and 1 day. |
 | forcePathStyle | bool | false | The boolean flag set for AWS connection configuration ForcePathStyle option. |
 | copyBufferSize | int | false | The buffer size to use when copying data from the original artifact to the blob stream. There is a minimum size of 5 MB which is set when the given value is lower.|
 
@@ -175,7 +175,6 @@ The Queue Message's payload will be the blob name (`<BlobPrefix>/<ArtifactName>`
                   "accessKeyId": "minioUser",
                   "secretAccessKey": "mySecretPassword",
                   "regionName": "us-east-1",
-                  "generatePresSignedUrl" : true,
                   "preSignedUrlExpiry" : "00:15:00",
                   "copyBufferSize": 1024
               }
@@ -187,7 +186,7 @@ The Queue Message's payload will be the blob name (`<BlobPrefix>/<ArtifactName>`
 
 <details>
   <summary>Kubernetes Secret</summary>
-  
+
   ```sh
   #!/bin/sh
   kubectl create secret generic my-s3-secrets \
@@ -227,7 +226,7 @@ The Queue Message's payload will be the blob name (`<BlobPrefix>/<ArtifactName>`
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   Egress__FileSystem__monitorFile__directoryPath: "/artifacts"
   Egress__FileSystem__monitorFile__intermediateDirectoryPath: "/intermediateArtifacts"
@@ -236,7 +235,7 @@ The Queue Message's payload will be the blob name (`<BlobPrefix>/<ArtifactName>`
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_Egress__FileSystem__monitorFile__directoryPath
     value: "/artifacts"
