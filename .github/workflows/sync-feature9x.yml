@@ -33,7 +33,7 @@ jobs:
 
           git merge "origin/$base_branch" --strategy-option theirs
           git checkout "origin/$target_branch" -- \
-            ".global.json" \
+            "global.json" \
             "eng/common" \
             "eng/Common.props" \
             "eng/Versions.props" \
