@@ -3,18 +3,20 @@ on:
   issue_comment:
     types: [created]
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   backport:
-    if: github.event.issue.pull_request != '' && contains(github.event.comment.body, '/backport to')
+    if: github.event.issue.pull_request != '' && contains(github.event.comment.body, '/backport to') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-20.04
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
     steps:
     - name: Extract backport target branch
-      uses: actions/github-script@v6.3.3
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       id: target-branch-extractor
       with:
         result-encoding: string
@@ -28,7 +30,7 @@ jobs:
 
           return target_branch[1];
     - name: Post backport started comment to pull request
-      uses: actions/github-script@v6.3.3
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       with:
         script: |
           const backport_start_body = `Started backporting to ${{ steps.target-branch-extractor.outputs.result }}: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
@@ -39,8 +41,9 @@ jobs:
             body: backport_start_body
           });
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
+        persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
         fetch-depth: 0
     - name: Run backport
       uses: ./eng/actions/backport
