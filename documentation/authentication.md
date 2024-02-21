@@ -3,11 +3,65 @@
 
 # Authentication
 
-Authenticated requests to `dotnet monitor` help protect sensitive diagnostic artifacts from unauthorized users and lower privileged processes. `dotnet monitor` can be configured to use either [Windows Authentication](#windows-authentication) or via an [API Key](#api-key-authentication). It is possible, although strongly not recommended, to [disable authentication](#disabling-authentication).
+Authenticated requests to `dotnet monitor` help protect sensitive diagnostic artifacts from unauthorized users and lower privileged processes. `dotnet monitor` can be configured to use any one of the following authentication modes:
+- [API Key](#api-key-authentication)
+- [Azure Active Directory Authentication](#azure-active-directory-authentication)
+- [Windows Authentication](#windows-authentication)
 
-> **Note**: Authentication is not performed on requests to the metrics endpoint (by default, http://localhost:52325).
+It is also possible, although strongly not recommended, to [disable authentication](#disabling-authentication).
 
-The recommended configuration for `dotnet monitor` is to use [API Key Authentication](#api-key-authentication) over a channel secured with TLS.
+> [!NOTE]
+> Authentication is not performed on requests to the metrics endpoint (by default, http://localhost:52325).
+
+The recommended configuration for `dotnet monitor` is to use [Azure Active Directory Authentication](#azure-active-directory-authentication) over a channel secured with TLS.
+
+## Azure Active Directory Authentication
+
+First Available: 7.1
+
+Azure Active Directory integration (referred to as Azure AD) is the recommended authentication mechanism for `dotnet monitor` as it does not require storing any secrets or rotating keys yourself. To enable Azure AD authentication:
+
+- [Create an App Registration](https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app#register-an-application) in your Azure tenant that will be used by `dotnet monitor`. Note that a single App Registration can be used by multiple instances of `dotnet monitor`.
+- [Add a new app role](https://learn.microsoft.com/azure/active-directory/develop/howto-add-app-roles-in-azure-ad-apps#app-roles-ui) for general API access.
+- [Assign user to role](https://learn.microsoft.com/azure/active-directory/develop/howto-add-app-roles-in-apps#assign-users-and-groups-to-roles) via the Enterprise Applications section of AAD.
+- [Configure Azure AD in dotnet monitor](./configuration/azure-ad-authentication-configuration.md).
+
+> [!NOTE]
+> Azure AD B2C is currently not supported.
+
+### Authenticating with a Managed Identity
+
+`dotnet monitor` supports other applications calling its APIs using a [Managed Identity](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/) when Azure AD is configured. You will need to have added an app role to `dotnet monitor`'s App Registration as described above and then assign it to the Managed Identity using either the [Azure CLI](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/how-to-assign-app-role-managed-identity-cli) or [PowerShell](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/how-to-assign-app-role-managed-identity-powershell).
+
+### Authenticating with the Azure CLI
+
+If a user is a member of the necessary app role, they can obtain a valid auth token using the Azure CLI:
+
+```sh
+az account get-access-token --resource <Application ID URI> --query accessToken --output tsv
+```
+
+You can then use that token like so:
+
+```sh
+curl -H "Authorization: Bearer <Token from Azure CLI>" https://localhost:52323/processes
+```
+
+- If using PowerShell, you can use `Invoke-WebRequest` but it does not accept the same parameters.
+
+```powershell
+ (Invoke-WebRequest -Uri https://localhost:52323/processes -Headers @{ 'Authorization' = 'Bearer <Token from Azure CLI>' }).Content | ConvertFrom-Json
+```
+
+### Interactively authenticating using the Swagger UI
+
+If you want Azure AD users to be able to interactively authenticate with your `dotnet monitor` instance using the in-box Swagger UI you will need to:
+- [Add a new scope](https://learn.microsoft.com/azure/active-directory/develop/quickstart-configure-app-expose-web-apis#add-a-scope). This scope will only be used to enable interactive authentication and users will still be required to be part of the configured app role. Custom Application ID URIs are supported.
+- [Add a redirect URI to the App Registration](https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app#add-a-redirect-uri).
+  1. Select `Single-page application` as the platform.
+  1. For the redirect URI, enter `{dotnet monitor address}/swagger/oauth2-redirect.html`, where `{dotnet monitor address}` is the address of your `dotnet monitor` instance.
+> [!NOTE]
+> If using `localhost` for the address, you do **not** need to specify the port number. Example: `https://localhost/swagger/oauth2-redirect.html`
 
 ## Windows Authentication
 
@@ -15,25 +69,30 @@ We only recommend using Windows Authentication if you're running `dotnet monitor
 
 Windows authentication doesn't require explicit configuration and is enabled automatically when running `dotnet monitor` on Windows. When available, `dotnet monitor` will authorize any user authenticated as the same user that started the `dotnet monitor` process. It is not possible to disable Windows authentication.
 
-> **Note**: Windows authentication will not be attempted if you are running `dotnet monitor` as an Administrator
+> [!NOTE]
+> Windows authentication will not be attempted if you are running `dotnet monitor` as an Administrator
 
 ## API Key Authentication
 
-An API Key is the recommended authentication mechanism for `dotnet monitor`. API Keys are referred to as `MonitorApiKey` in configuration and source code but we will shorten the term to "API key" in this document. To enable API key authentication:
+API Keys are referred to as `MonitorApiKey` in configuration and source code but we will shorten the term to "API key" in this document. To enable API key authentication:
 
 - You will need to generate a secret token, update the configuration of `dotnet monitor`, and then specify the secret token in the `Authorization` header on all requests to `dotnet monitor`. To configure API Key authentication using the integrated `generatekey` command see: [API Key Setup](./api-key-setup.md).
 
   or
 
-- Use the `--temp-api-key` command line option to generate a one-time API key for that instantiation of dotnet-monitor. The API key will be reported back as part of log output during the startup of the process.
+- Use the `--temp-apikey` command line option to generate a one-time API key for that instantiation of dotnet-monitor. The API key will be reported back as part of log output during the startup of the process.
 
-> **Note**: API Key Authentication should only be used when TLS is enabled to protect the key while in transit. `dotnet monitor` will emit a warning if authentication is enabled over an insecure transport medium.
+> [!IMPORTANT]
+> API Key Authentication should only be used when TLS is enabled to protect the key while in transit. `dotnet monitor` will emit a warning if authentication is enabled over an insecure transport medium.
 
 ## Authenticating requests
 
 ### Windows authentication
 
-- When using a web browser, it will automatically handle the Windows authentication challenge. 
+> [!NOTE]
+> Windows authentication is only supported when also using API Key authentication and not running elevated.
+
+- When using a web browser, it will automatically handle the Windows authentication challenge.
 
 - To use Windows authentication with PowerShell, you can specify the `-UseDefaultCredentials` flag for `Invoke-WebRequest` or `--negotiate` for `curl.exe`
 ```powershell

@@ -12,15 +12,17 @@ Collection rules are specified in configuration as a named item under the `Colle
   - [AspNetRequestDuration](#aspnetrequestduration-trigger)
   - [AspNetResponseStatus](#aspnetresponsestatus-trigger)
   - [EventCounter](#eventcounter-trigger)
-  - [Trigger shortcuts](../collectionrules/triggershortcuts.md) 
+  - [EventMeter](#eventmeter-trigger-80)
+  - [Trigger shortcuts](../collectionrules/triggershortcuts.md)
 - [`Actions`](#actions) - The action to be be performed
   - [CollectDump](#collectdump-action)
+  - [CollectExceptions](#collectexceptions-action)
   - [CollectGCDump](#collectgcdump-action)
   - [CollectTrace](#collecttrace-action)
   - [CollectLiveMetrics](#collectlivemetrics-action)
   - [CollectLogs](#collectlogs-action)
   - [Execute](#execute-action)
-  - [CollectStacks](#experimental-collectstacks-action-70)
+  - [CollectStacks](#collectstacks-action)
   - [LoadProfiler](#loadprofiler-action)
   - [SetEnvironmentVariable](#setenvironmentvariable-action)
   - [GetEnvironmentVariable](#getenvironmentvariable-action)
@@ -72,7 +74,7 @@ The following is a collection rule that collects a 1 minute CPU trace and egress
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__HighCpuRule__Filters__0__Key: "ProcessName"
   CollectionRules__HighCpuRule__Filters__0__Value: "dotnet"
@@ -93,7 +95,7 @@ The following is a collection rule that collects a 1 minute CPU trace and egress
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__HighCpuRule__Filters__0__Key
     value: "ProcessName"
@@ -153,7 +155,7 @@ The following example shows the `Filters` portion of a collection rule that has 
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Filters__0__Key: "ProcessName"
   CollectionRules__RuleName__Filters__0__Value: "dotnet"
@@ -165,7 +167,7 @@ The following example shows the `Filters` portion of a collection rule that has 
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Filters__0__Key
     value: "ProcessName"
@@ -217,7 +219,7 @@ Usage that is satisfied when request count is higher than 500 requests during a 
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Trigger__Settings__RequestCount: "500"
   CollectionRules__RuleName__Trigger__Settings__SlidingWindowDuration: "00:01:00"
@@ -227,7 +229,7 @@ Usage that is satisfied when request count is higher than 500 requests during a 
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__RequestCount
     value: "500"
@@ -273,7 +275,7 @@ Usage that is satisfied when 10 requests take longer than 3 seconds during a 1 m
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Trigger__Settings__RequestCount: "10"
   CollectionRules__RuleName__Trigger__Settings__RequestDuration: "00:00:03"
@@ -284,7 +286,7 @@ Usage that is satisfied when 10 requests take longer than 3 seconds during a 1 m
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__RequestCount
     value: "10"
@@ -332,7 +334,7 @@ Usage that is satisfied when 10 requests respond with a 5XX status code during a
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Trigger__Settings__StatusCodes__0: "500-599"
   CollectionRules__RuleName__Trigger__Settings__RequestCount: "10"
@@ -343,7 +345,7 @@ Usage that is satisfied when 10 requests respond with a 5XX status code during a
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__StatusCodes__0
     value: "500-599"
@@ -391,7 +393,7 @@ Usage that is satisfied when the CPU usage of the application is higher than 70%
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Trigger__Settings__ProviderName: "System.Runtime"
   CollectionRules__RuleName__Trigger__Settings__CounterName: "cpu-usage"
@@ -402,7 +404,7 @@ Usage that is satisfied when the CPU usage of the application is higher than 70%
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__ProviderName
     value: "System.Runtime"
@@ -410,6 +412,111 @@ Usage that is satisfied when the CPU usage of the application is higher than 70%
     value: "cpu-usage"
   - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__GreaterThan
     value: "70"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__SlidingWindowDuration
+    value: "00:00:10"
+  ```
+</details>
+
+### `EventMeter` Trigger (8.0+)
+
+A trigger that has its condition satisfied when the value of an instrument falls above, below, or between the described threshold value for a duration of time. Supported instruments include [Gauges](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics.observablegauge-1), [Counters](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics.counter-1), and [Histograms](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics.histogram-1).
+
+#### Properties
+
+| Name | Type | Required | Description | Default Value | Min Value | Max Value |
+|---|---|---|---|---|---|---|
+| `MeterName` | string | true | The name of the meter that provides the instrument information. | | | |
+| `InstrumentName` | string | true | The name of the instrument to monitor. | | | |
+| `GreaterThan` | double? | false | The threshold level the instrument must maintain (or higher) for the specified duration. Either `GreaterThan` or `LessThan` (or both) must be specified for non-histogram instruments. | `null` | | |
+| `LessThan` | double? | false | The threshold level the instrument must maintain (or lower) for the specified duration. Either `GreaterThan` or `LessThan` (or both) must be specified for non-histogram instruments. | `null` | | |
+| `SlidingWindowDuration` | TimeSpan? | false | The sliding time window in which the instrument must maintain its value as specified by the threshold levels in `GreaterThan` and/or `LessThan`. | `"00:01:00"` (one minute) | `"00:00:01"` (one second) | `"1.00:00:00"` (1 day) |
+| `HistogramPercentile` | int? | false | The histogram percentile should be one of the instrument's published percentiles (by default: 50, 95, and 99) and is only specified when the instrument is a histogram. The provided percentile's value will be used to compare against `GreaterThan` and/or `LessThan`. | | 0 | 100 |
+
+#### Example
+
+Usage that is satisfied when the target application's custom gauge is greater than 20 for a 10 second window.
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "MeterName": "MyMeterName",
+    "InstrumentName": "MyGaugeName",
+    "GreaterThan": 20,
+    "SlidingWindowDuration": "00:00:10"
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+
+  ```yaml
+  CollectionRules__RuleName__Trigger__Settings__MeterName: "MyMeterName"
+  CollectionRules__RuleName__Trigger__Settings__InstrumentName: "MyGaugeName"
+  CollectionRules__RuleName__Trigger__Settings__GreaterThan: "20"
+  CollectionRules__RuleName__Trigger__Settings__SlidingWindowDuration: "00:00:10"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+
+  ```yaml
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__MeterName
+    value: "MyMeterName"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__InstrumentName
+    value: "MyGaugeName"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__GreaterThan
+    value: "20"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__SlidingWindowDuration
+    value: "00:00:10"
+  ```
+</details>
+
+#### Example
+
+Usage that is satisfied when the target application's custom histogram for a 10 second window has its 50th Percentile greater than 200:
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "MeterName": "MyMeterName",
+    "InstrumentName": "MyHistogramName",
+    "GreaterThan": 200,
+    "HistogramPercentile": 50,
+    "SlidingWindowDuration": "00:00:10"
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+
+  ```yaml
+  CollectionRules__RuleName__Trigger__Settings__MeterName: "MyMeterName"
+  CollectionRules__RuleName__Trigger__Settings__InstrumentName: "MyHistogramName"
+  CollectionRules__RuleName__Trigger__Settings__GreaterThan: "200"
+  CollectionRules__RuleName__Trigger__Settings__HistogramPercentile: "50"
+  CollectionRules__RuleName__Trigger__Settings__SlidingWindowDuration: "00:00:10"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+
+  ```yaml
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__MeterName
+    value: "MyMeterName"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__InstrumentName
+    value: "MyGaugeName"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__GreaterThan
+    value: "200"
+  - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__HistogramPercentile
+    value: "50"
   - name: DotnetMonitor_CollectionRules__RuleName__Trigger__Settings__SlidingWindowDuration
     value: "00:00:10"
   ```
@@ -474,7 +581,7 @@ Usage that collects a full dump and egresses it to a provider named "AzureBlobDu
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Type: "Full"
   CollectionRules__RuleName__Actions__0__Settings__Egress: "AzureBlobDumps"
@@ -483,12 +590,67 @@ Usage that collects a full dump and egresses it to a provider named "AzureBlobDu
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Type
     value: "Full"
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Egress
     value: "AzureBlobDumps"
+  ```
+</details>
+
+### `CollectExceptions` Action
+
+First Available: 8.0 RC 1
+
+An action that collects exceptions from the process that the collection rule is targeting.
+
+#### Properties
+
+| Name | Type | Required | Description | Default Value |
+|---|---|---|---|---|
+| `Egress` | string | true | The named [egress provider](../egress.md) for egressing the collected dump. | |
+| `Format` | [ExceptionFormat](../api/definitions.md#exceptionformat)? | false | The format of the exception entries. | `PlainText` |
+| `Filters` | [ExceptionsConfiguration](../api/definitions.md#exceptionsconfiguration)? | false | Determines which exceptions should be included/excluded in the result - note that this does not alter which [exceptions are collected](in-process-features-configuration.md#filtering).
+
+#### Outputs
+
+| Name | Description |
+|---|---|
+| `EgressPath` | The path of the file that was egressed using the specified egress provider. |
+
+#### Example
+
+Usage that collects exceptions as newline-delimited JSON and egresses it to a provider named "AzureBlobExceptions".
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "Egress": "AzureBlobExceptions",
+    "Format": "NewlineDelimitedJson"
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+
+  ```yaml
+  CollectionRules__RuleName__Actions__0__Settings__Egress: "AzureBlobExceptions"
+  CollectionRules__RuleName__Actions__0__Settings__Format: "NewlineDelimitedJson"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+
+  ```yaml
+  - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Egress
+    value: "AzureBlobExceptions"
+  - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Format
+    value: "NewlineDelimitedJson"
   ```
 </details>
 
@@ -524,7 +686,7 @@ Usage that collects a gcdump and egresses it to a provider named "AzureBlobGCDum
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Egress: "AzureBlobGCDumps"
   ```
@@ -532,7 +694,7 @@ Usage that collects a gcdump and egresses it to a provider named "AzureBlobGCDum
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Egress
     value: "AzureBlobGCDumps"
@@ -578,7 +740,7 @@ Usage that collects a CPU trace for 30 seconds and egresses it to a provider nam
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Profile: "Cpu"
   CollectionRules__RuleName__Actions__0__Settings__Egress: "TmpDir"
@@ -587,7 +749,7 @@ Usage that collects a CPU trace for 30 seconds and egresses it to a provider nam
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Profile
     value: "Cpu"
@@ -600,12 +762,16 @@ Usage that collects a CPU trace for 30 seconds and egresses it to a provider nam
 
 An action that collects live metrics for the process that the collection rule is targeting.
 
+> [!NOTE]
+> **(8.0+)** If none of `IncludeDefaultProviders`, `Provider`, or `Meters` are specified, then the [metrics configuration](<metrics-configuration.md#metrics-configuration>) is used as the collection specification.
+
 #### Properties
 
 | Name | Type | Required | Description | Default Value | Min Value | Max Value |
 |---|---|---|---|---|---|---|
 | `IncludeDefaultProviders` | bool | false | Determines if the default counter providers should be used. | `true` | | |
 | `Providers` | [EventMetricsProvider](../api/definitions.md#eventmetricsprovider)[] | false | The array of providers for metrics to collect. | | | |
+| `Meters` | [EventMetricsMeter](../api/definitions.md#eventmetricsmeter)[] | false | (7.1+) The array of meters for metrics to collect. | | | |
 | `Duration` | TimeSpan? | false | The duration of the live metrics operation. | `"00:00:30"` (30 seconds) | `"00:00:01"` (1 second) | `"1.00:00:00"` (1 day) |
 | `Egress` | string | true | The named [egress provider](../egress.md) for egressing the collected live metrics. | | | |
 
@@ -631,7 +797,7 @@ Usage that collects live metrics with the default providers for 30 seconds and e
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Egress: "TmpDir"
   ```
@@ -639,7 +805,7 @@ Usage that collects live metrics with the default providers for 30 seconds and e
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Egress
     value: "TmpDir"
@@ -669,7 +835,7 @@ Usage that collects live metrics for the `cpu-usage` counter on `System.Runtime`
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__UseDefaultProviders: "false"
   CollectionRules__RuleName__Actions__0__Settings__Providers__0__ProviderName: "System.Runtime"
@@ -680,7 +846,7 @@ Usage that collects live metrics for the `cpu-usage` counter on `System.Runtime`
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__UseDefaultProviders
     value: "false"
@@ -732,7 +898,7 @@ Usage that collects logs at the Information level for 30 seconds and egresses it
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__DefaultLevel: "Information"
   CollectionRules__RuleName__Actions__0__Settings__UseAppFilters: "false"
@@ -742,7 +908,7 @@ Usage that collects logs at the Information level for 30 seconds and egresses it
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__DefaultLevel
     value: "Information"
@@ -788,7 +954,7 @@ Usage that executes a .NET executable named `myapp.dll` using `dotnet`.
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Path: "C:\\Program Files\\dotnet\\dotnet.exe"
   CollectionRules__RuleName__Actions__0__Settings__Arguments: "C:\\Program Files\\MyApp\\myapp.dll"
@@ -797,7 +963,7 @@ Usage that executes a .NET executable named `myapp.dll` using `dotnet`.
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Path
     value: "C:\\Program Files\\dotnet\\dotnet.exe"
@@ -806,17 +972,20 @@ Usage that executes a .NET executable named `myapp.dll` using `dotnet`.
   ```
 </details>
 
-### **[Experimental]** `CollectStacks` Action (7.0+)
+### `CollectStacks` Action
+
+First Available: 8.0 Preview 7
 
 Collect call stacks from the target process.
 
->**Note**: This feature is [experimental](../experimental.md). To enable this feature, set `DotnetMonitor_Experimental_Feature_CallStacks` to `true` as an environment variable on the `dotnet monitor` process or container. Additionally, the [in-process features](#experimental-in-process-features-configuration-70) must be enabled since the call stacks feature uses shared libraries loaded into the target application for collecting the call stack information.
+> [!NOTE]
+> This feature is not enabled by default and requires configuration to be enabled. The [in-process features](./../configuration/in-process-features-configuration.md) must be enabled since the call stacks feature uses shared libraries loaded into the target application for collecting the call stack information.
 
 #### Properties
 
 | Name | Type | Required | Description | Default Value |
 |---|---|---|---|---|
-| `Format` | [CallStackFormat](../api/definitions.md#experimental-callstackformat-70) | false | The format of the collected call stack. | `Json` |
+| `Format` | [CallStackFormat](../api/definitions.md#callstackformat) | false | The format of the collected call stack. | `Json` |
 | `Egress` | string | true | The named [egress provider](../egress.md) for egressing the collected stacks. | |
 
 ### `LoadProfiler` Action
@@ -851,7 +1020,7 @@ Usage that loads one of the sample profilers from [`dotnet/runtime: src/tests/pr
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Path: "Profilers\\Profiler.dll"
   CollectionRules__RuleName__Actions__0__Settings__Clsid: "55b9554d-6115-45a2-be1e-c80f7fa35369"
@@ -860,7 +1029,7 @@ Usage that loads one of the sample profilers from [`dotnet/runtime: src/tests/pr
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Path
     value: "Profilers\\Profiler.dll"
@@ -901,7 +1070,7 @@ Usage that sets a parameter to the profiler you loaded. In this case, your profi
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Settings__Name: "MyProfiler_AccountId"
   CollectionRules__RuleName__Actions__0__Settings__Value: "8fb138d2c44e4aea8545cc2df541ed4c"
@@ -910,7 +1079,7 @@ Usage that sets a parameter to the profiler you loaded. In this case, your profi
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Settings__Name
     value: "MyProfiler_AccountId"
@@ -939,7 +1108,8 @@ An action that gets an environment variable from the target process. Its value i
 
 Usage that gets a token your app has access to and uses it to send a trace.
 
-> **Note**: the example below is of an entire action list to provide context, only the second json entry represents the `GetEnvironmentVariable` Action.
+> [!NOTE]
+> The example below is of an entire action list to provide context, only the second json entry represents the `GetEnvironmentVariable` Action.
 
 <details>
   <summary>JSON</summary>
@@ -971,7 +1141,7 @@ Usage that gets a token your app has access to and uses it to send a trace.
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Actions__0__Name: "A"
   CollectionRules__RuleName__Actions__0__Type: "CollectTrace"
@@ -989,7 +1159,7 @@ Usage that gets a token your app has access to and uses it to send a trace.
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Actions__0__Name
     value: "A"
@@ -1045,7 +1215,7 @@ The following example shows the `Limits` portion of a collection rule that has t
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   CollectionRules__RuleName__Limits__ActionCount: "3"
   CollectionRules__RuleName__Limits__ActionCountSlidingWindowDuration: "01:00:00"
@@ -1054,7 +1224,7 @@ The following example shows the `Limits` portion of a collection rule that has t
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_CollectionRules__RuleName__Limits__ActionCount
     value: "3"
@@ -1107,7 +1277,7 @@ The following example includes a default egress provider that corresponds to the
     },
     "CollectionRuleDefaults": {
       "Actions": {
-        "Egress": "artifacts"    
+        "Egress": "artifacts"
       }
     },
     "CollectionRules": {
@@ -1138,7 +1308,7 @@ The following example includes a default egress provider that corresponds to the
 
 <details>
   <summary>Kubernetes ConfigMap</summary>
-  
+
   ```yaml
   Egress__AzureBlobStorage__monitorBlob__accountUri: "https://exampleaccount.blob.core.windows.net"
   Egress__AzureBlobStorage__monitorBlob__containerName: "dotnet-monitor"
@@ -1158,7 +1328,7 @@ The following example includes a default egress provider that corresponds to the
 
 <details>
   <summary>Kubernetes Environment Variables</summary>
-  
+
   ```yaml
   - name: DotnetMonitor_Egress__AzureBlobStorage__monitorBlob__accountUri
     value: "https://exampleaccount.blob.core.windows.net"

@@ -1,7 +1,8 @@
 
 ### Was this documentation helpful? [Share feedback](https://www.research.net/r/DGDQWXH?src=documentation%2FlearningPath%2FREADME)
 
->**Note**:  All documents in this directory are a work in progress.
+> [!NOTE]
+> All documents in this directory are a work in progress.
 
 # Overview
 
@@ -21,5 +22,5 @@ graph TD
     G --> |OPTIONAL| J[<a href='https://github.com/dotnet/dotnet-monitor/blob/main/documentation/learningPath/testing.md'>Testing</a>]
     G --> |OPTIONAL| K[<a href='https://github.com/dotnet/dotnet-monitor/blob/main/documentation/learningPath/configuration.md'>Configuration</a>]
     G --> |OPTIONAL| L[<a href='https://github.com/dotnet/dotnet-monitor/blob/main/documentation/learningPath/aks.md'>AKS</a>]
-    G --> |OPTIONAL| M[Egress -> COMING SOON]
+    G --> |OPTIONAL| M[<a href='https://github.com/dotnet/dotnet-monitor/blob/main/documentation/learningPath/egress.md'>Egress</a>]
 ```
