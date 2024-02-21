@@ -1,0 +1,60 @@
+name: 'Sync feature/9.x'
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Run at the start of every monday
+  workflow_dispatch: # Allow manually invoking this workflow
+
+permissions: {}
+
+env:
+  base_branch: 'main'
+  target_branch: 'feature/9.x'
+
+jobs:
+  sync-branch:
+    name: 'Sync feature/9.x'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with:
+          persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
+          fetch-depth: 0 # Fetch the entire repo for the below git operations
+          ref: ${{ env.target_branch }}
+
+      - name: Sync branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          headCommit=$(git rev-parse HEAD)
+          git merge "origin/$base_branch" --strategy=ort --strategy-option=theirs
+          newHeadCommit=$(git rev-parse HEAD)
+          if [[ "$headCommit" == "$newHeadCommit" ]]; then
+            echo "No changes to sync"
+            exit 0
+          fi
+
+          git checkout "origin/$target_branch" -- \
+            "global.json" \
+            "eng/common" \
+            "eng/Common.props" \
+            "eng/Versions.props" \
+            "eng/Version.Details.xml"
+
+      - name: Open PR
+        uses: ./.github/actions/open-pr
+        with:
+          files_to_commit: "*"
+          title: '[${{ env.target_branch }}] Sync branch with ${{ env.base_branch }}'
+          commit_message: Merge remote-tracking branch 'origin/${{ env.base_branch }}' into ${{ env.target_branch }}
+          body: Sync branch with ${{ env.base_branch }}. This PR was auto generated and will not be automatically merged in.
+          branch_name: sync/${{ env.target_branch }}
+          fail_if_files_unchanged: false
+          always_create_pr: true
+          labels: 'automatic-pr'
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
