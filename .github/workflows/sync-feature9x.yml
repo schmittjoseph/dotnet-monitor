@@ -31,7 +31,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git merge "origin/$base_branch" --strategy-option theirs --no-commit
+          $headCommit=$(git rev-parse HEAD)
+          git merge "origin/$base_branch" --strategy=ort --strategy-option=theirs
+          $newHeadCommit=$(git rev-parse HEAD)
+          if [ "$headCommit" == "$newHeadCommit"]; then
+            echo "No changes to sync"
+            exit 0
+          fi
+
           git checkout "origin/$target_branch" -- \
             "global.json" \
             "eng/common" \
