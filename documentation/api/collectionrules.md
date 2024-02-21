@@ -1,11 +1,14 @@
 
 ### Was this documentation helpful? [Share feedback](https://www.research.net/r/DGDQWXH?src=documentation%2Fapi%2Fcollectionrules)
 
-# Collection Rules (6.3+)
+# Collection Rules
+
+First Available: 6.3
 
 The `/collectionrules` route reports the state of configured collection rules.
 
-> **Note**: Process information (IDs, names, environment, etc) may change between invocations of these APIs. Processes may start or stop between API invocations, causing this information to change.
+> [!NOTE]
+> Process information (IDs, names, environment, etc) may change between invocations of these APIs. Processes may start or stop between API invocations, causing this information to change.
 
 | Operation | Description |
 |---|---|

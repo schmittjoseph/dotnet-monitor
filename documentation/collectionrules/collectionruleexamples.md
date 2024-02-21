@@ -224,7 +224,90 @@ This rule, named "LargeGCHeapSize", will trigger when the GC Heap Size exceeds 1
 
 This rule, named "HighCpuUsage", will trigger when a process named "MyProcessName" causes CPU usage to exceed 60% for greater than 10 seconds. If the rule is triggered, a Cpu trace will be collected for the default duration (30 seconds), and egressed to the specified `Egress` provider (in this case, `artifacts` has been configured to save the trace to the local filesystem). There is a default `ActionCount` limit stating that this rule may only be triggered 5 times.
 
-## Collect Dump - 4xx Response Status (`AspNetResponseStatus` Trigger)
+## Collect Logs - Custom Histogram Metrics (`EventMeter` Trigger)
+
+First Available: 7.1
+
+<details>
+  <summary>JSON</summary>
+
+  ```json
+  {
+    "HighHistogramValues": {
+      "Trigger": {
+        "Type": "EventMeter",
+        "Settings": {
+          "MeterName": "MyCustomMeter",
+          "InstrumentName": "MyCustomHistogram",
+          "HistogramPercentile": "95",
+          "GreaterThan": 175
+        }
+      },
+      "Actions": [
+        {
+          "Type": "CollectLogs",
+          "Settings": {
+            "Egress": "artifacts",
+            "DefaultLevel": "Warning",
+            "UseAppFilters": false,
+            "Duration": "00:00:30"
+          }
+        }
+      ]
+    }
+  }
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes ConfigMap</summary>
+
+  ```yaml
+  CollectionRules__HighHistogramValues__Trigger__Type: "EventMeter"
+  CollectionRules__HighHistogramValues__Trigger__Settings__MeterName: "MyCustomMeter"
+  CollectionRules__HighHistogramValues__Trigger__Settings__InstrumentName: "MyCustomHistogram"
+  CollectionRules__HighHistogramValues__Trigger__Settings__HistogramPercentile: "95"
+  CollectionRules__HighHistogramValues__Trigger__Settings__GreaterThan: "175"
+  CollectionRules__HighHistogramValues__Actions__0__Type: "CollectLogs"
+  CollectionRules__HighHistogramValues__Actions__0__Settings__Egress: "artifacts"
+  CollectionRules__HighHistogramValues__Actions__0__Settings__DefaultLevel: "Warning"
+  CollectionRules__HighHistogramValues__Actions__0__Settings__UseAppFilters: "false"
+  CollectionRules__HighHistogramValues__Actions__0__Settings__Duration: "00:00:30"
+  ```
+</details>
+
+<details>
+  <summary>Kubernetes Environment Variables</summary>
+
+  ```yaml
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Trigger__Type
+    value: "EventMeter"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Trigger__Settings_MeterName
+    value: "MyCustomMeter"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Trigger__Settings__InstrumentName
+    value: "MyCustomHistogram"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Trigger__Settings__HistogramPercentile
+    value: "95"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Trigger__Settings__GreaterThan
+    value: "175"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Actions__0__Type
+    value: "CollectLogs"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Actions__0__Settings__Egress
+    value: "artifacts"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Actions__0__Settings__DefaultLevel
+    value: "Warning"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Actions__0__Settings__UseAppFilters
+    value: "false"
+  - name: DotnetMonitor_CollectionRules__HighHistogramValues__Actions__0__Settings__Duration
+    value: "00:00:30"    
+  ```
+</details>
+
+### Explanation
+
+This rule, named "HighHistogramValues", will trigger when the custom histogram's values for the 95th percentile exceed the specified threshold (175) throughout the default sliding window duration (1 minute). If the rule is triggered, logs will be collected and egressed to the specified `Egress` provider (in this case, `artifacts` has been configured to save the logs to the local filesystem). There is a default `ActionCount` limit stating that this rule may only be triggered 5 times.
+
+## Collect Exceptions - 4xx Response Status (`AspNetResponseStatus` Trigger)
 
 <details>
   <summary>JSON</summary>
@@ -243,10 +326,10 @@ This rule, named "HighCpuUsage", will trigger when a process named "MyProcessNam
       },
       "Actions": [
         {
-          "Type": "CollectDump",
+          "Type": "CollectExceptions",
           "Settings": {
             "Egress": "artifacts",
-            "Type": "Full"
+            "Format": "NewlineDelimitedJson"
           }
         }
       ],
@@ -266,9 +349,9 @@ This rule, named "HighCpuUsage", will trigger when a process named "MyProcessNam
   CollectionRules__BadResponseStatus__Trigger__Type: "AspNetResponseStatus"
   CollectionRules__BadResponseStatus__Trigger__Settings__ResponseCount: "5"
   CollectionRules__BadResponseStatus__Trigger__Settings__StatusCodes__0: "400-499"
-  CollectionRules__BadResponseStatus__Actions__0__Type: "CollectDump"
+  CollectionRules__BadResponseStatus__Actions__0__Type: "CollectExceptions"
   CollectionRules__BadResponseStatus__Actions__0__Settings__Egress: "artifacts"
-  CollectionRules__BadResponseStatus__Actions__0__Settings__Type: "Full"
+  CollectionRules__BadResponseStatus__Actions__0__Settings__Format: "NewlineDelimitedJson"
   CollectionRules__BadResponseStatus__Limits__ActionCount: "3"
   CollectionRules__BadResponseStatus__Limits__ActionCountSlidingWindowDuration: "00:30:00"
   ```
@@ -285,11 +368,11 @@ This rule, named "HighCpuUsage", will trigger when a process named "MyProcessNam
   - name: DotnetMonitor_CollectionRules__BadResponseStatus__Trigger__Settings__StatusCodes__0
     value: "400-499"
   - name: DotnetMonitor_CollectionRules__BadResponseStatus__Actions__0__Type
-    value: "CollectDump"
+    value: "CollectExceptions"
   - name: DotnetMonitor_CollectionRules__BadResponseStatus__Actions__0__Settings__Egress
     value: "artifacts"
-  - name: DotnetMonitor_CollectionRules__BadResponseStatus__Actions__0__Settings__Type
-    value: "Full"
+  - name: DotnetMonitor_CollectionRules__BadResponseStatus__Actions__0__Settings__Format
+    value: "NewlineDelimitedJson"
   - name: DotnetMonitor_CollectionRules__BadResponseStatus__Limits__ActionCount
     value: "3"
   - name: DotnetMonitor_CollectionRules__BadResponseStatus__Limits__ActionCountSlidingWindowDuration
@@ -299,7 +382,7 @@ This rule, named "HighCpuUsage", will trigger when a process named "MyProcessNam
 
 ### Explanation
 
-This rule, named "BadResponseStatus", will trigger when 5 4xx status codes are encountered within the default sliding window duration (1 minute). If the rule is triggered, a Full dump will be collected and egressed to the specified `Egress` provider (in this case, `artifacts` has been configured to save the dump to the local filesystem). There is a limit that states that this may only be triggered at most 3 times within a 30 minute sliding window (to prevent an excessive number of dumps from being collected).
+This rule, named "BadResponseStatus", will trigger when 5 4xx status codes are encountered within the default sliding window duration (1 minute). If the rule is triggered, the recent exceptions from the target process are collected and egressed to the specified `Egress` provider (in this case, `artifacts` has been configured to save the exceptions to the local filesystem). There is a limit that states that this may only be triggered at most 3 times within a 30 minute sliding window (to prevent an excessive number of exceptions from being collected).
 
 ## Collect Logs - High Number of Requests (`AspNetRequestCount` Trigger)
 
@@ -394,7 +477,7 @@ This rule, named "BadResponseStatus", will trigger when 5 4xx status codes are e
 
 ### Explanation
 
-This rule, named "HighRequestCount", will trigger when a process with a `ProcessId` of 12345 has 10 requests within a 1 minute sliding window. If the rule is triggered, information level logs will be collected for one minute and egressed to the specified `Egress` provider (in this case, `artifacts` has been configured to save the logs to the local filesystem). There is a limit that states that this may only be triggered for one hour (to prevent an excessive number of logs from being collected), and there is a default `ActionCount` limit stating that this rule may only be triggered 5 times.
+This rule, named "HighRequestCount", will trigger when a process with a `ProcessId` of 12345 has 10 requests within a 1 minute sliding window. If the rule is triggered, error level logs will be collected for one minute and egressed to the specified `Egress` provider (in this case, `artifacts` has been configured to save the logs to the local filesystem). There is a limit that states that this may only be triggered for one hour (to prevent an excessive number of logs from being collected), and there is a default `ActionCount` limit stating that this rule may only be triggered 5 times.
     
 ## Collect Trace - Too Many Long Requests (`AspNetRequestDuration` Trigger)
 

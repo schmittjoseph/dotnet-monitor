@@ -1,22 +1,11 @@
-const fs = require('fs');
+const actionUtils = require('../action-utils.js');
 const path = require('path');
-const util = require('util');
-const jsExec = util.promisify(require("child_process").exec);
-const readFile = (fileName) => util.promisify(fs.readFile)(fileName, 'utf8');
-const writeFile = (fileName, contents) => util.promisify(fs.writeFile)(fileName, contents);
 
 const UpdateReleaseNotesLabel = "update-release-notes";
 const BackportLabel = "backport";
 
 async function run() {
-    console.log("Installing npm dependencies");
-    const { stdout, stderr } = await jsExec("npm install @actions/core @actions/github");
-    console.log("npm-install stderr:\n\n" + stderr);
-    console.log("npm-install stdout:\n\n" + stdout);
-    console.log("Finished installing npm dependencies");
-
-    const github = require('@actions/github');
-    const core = require('@actions/core');
+    const [core, github] = await actionUtils.installAndRequirePackages("@actions/core", "@actions/github");
 
     const octokit = github.getOctokit(core.getInput("auth_token", { required: true }));
 
@@ -43,11 +32,15 @@ async function run() {
                 inChangelog: false
             }
         ];
-        const changelog = await generateChangelog(octokit, branch, repoOwner, repoName, lastReleaseDate, significantLabels);
+
+        const parsedLastReleaseDate = new Date(lastReleaseDate);
+        const jsISODateRepresentation = parsedLastReleaseDate.toISOString();
+
+        const changelog = await generateChangelog(octokit, branch, repoOwner, repoName, jsISODateRepresentation, significantLabels);
         const monikerDescriptions = generateMonikerDescriptions(significantLabels);
 
         const releaseNotes = await generateReleaseNotes(path.join(__dirname, "releaseNotes.template.md"), buildDescription, changelog, monikerDescriptions);
-        await writeFile(output, releaseNotes);
+        await actionUtils.writeFile(output, releaseNotes);
     } catch (error) {
         core.setFailed(error);
     }
@@ -79,6 +72,7 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
             // Patch the origin PR information to have the backport PR number and URL
             // so that the release notes links to the backport, but grabs the rest of
             // the information from the origin PR.
+            originPr.originNumber = originPr.number;
             originPr.number = pr.number;
             originPr.html_url = pr.html_url;
 
@@ -99,6 +93,9 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
         commitHashesInRelease.add(commit.sha);
     }
 
+    // Keep track of all of the prs we mention to avoid duplicates from resolved backports.
+    let mentionedOriginNumbers = new Set();
+
     let prs = [];
     for (const pr of candidatePrs) {
         // Get a fully-qualified version of the pr that has all of the relevant information,
@@ -109,8 +106,10 @@ async function getPrsToMention(octokit, branch, repoOwner, repoName, minMergeDat
             pull_number: pr.number
         }))?.data;
 
-        if (commitHashesInRelease.has(fqPr.merge_commit_sha)) {
-            console.log(`Including: #${fqPr.number}`);
+        let originNumber = pr.originNumber ?? pr.number;
+        if (commitHashesInRelease.has(fqPr.merge_commit_sha) && !mentionedOriginNumbers.has(originNumber)) {
+            console.log(`Including: #${fqPr.number} -- origin:#${originNumber}`);
+            mentionedOriginNumbers.add(originNumber);
             prs.push(pr);
         } else {
             console.log(`Skipping: #${fqPr.number} --- ${fqPr.merge_commit_sha}`);
@@ -143,7 +142,7 @@ async function generateChangelog(octokit, branch, repoOwner, repoName, minMergeD
             entry += ` ${significantLabels[index].moniker}`;
         }
 
-        const changelogRegex=/^###### Release Notes Entry\r?\n(?<releaseNotesEntry>.*)/m
+        const changelogRegex=/^###### Release Notes Entry\s+(?<releaseNotesEntry>.*)/m
         const userDefinedChangelogEntry = pr.body?.match(changelogRegex)?.groups?.releaseNotesEntry?.trim();
         if (userDefinedChangelogEntry !== undefined && userDefinedChangelogEntry.length !== 0) {
             entry += ` ${userDefinedChangelogEntry}`
@@ -156,11 +155,15 @@ async function generateChangelog(octokit, branch, repoOwner, repoName, minMergeD
         changelog.push(entry);
     }
 
+    if (changelog.length === 0) {
+        changelog.push("- Updated dependencies");
+    }
+
     return changelog.join("\n");
 }
 
 async function generateReleaseNotes(templatePath, buildDescription, changelog, monikerDescriptions) {
-    let releaseNotes = await readFile(templatePath);
+    let releaseNotes = await actionUtils.readFile(templatePath);
     releaseNotes = releaseNotes.replace("${buildDescription}", buildDescription);
     releaseNotes = releaseNotes.replace("${changelog}", changelog);
     releaseNotes = releaseNotes.replace("${monikerDescriptions}", monikerDescriptions);
