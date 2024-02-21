@@ -12,7 +12,7 @@ env:
 
 jobs:
   sync-branch:
-    name: 'Sync ${{ env.target_branch }}'
+    name: 'Sync feature/9.x'
     runs-on: ubuntu-latest
     permissions:
       contents: write
