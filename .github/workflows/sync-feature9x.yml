@@ -31,9 +31,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          $headCommit=$(git rev-parse HEAD)
+          headCommit=$(git rev-parse HEAD)
           git merge "origin/$base_branch" --strategy=ort --strategy-option=theirs
-          $newHeadCommit=$(git rev-parse HEAD)
+          newHeadCommit=$(git rev-parse HEAD)
           if [[ "$headCommit" == "$newHeadCommit" ]]; then
             echo "No changes to sync"
             exit 0
