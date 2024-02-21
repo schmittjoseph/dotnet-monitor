@@ -1,4 +1,4 @@
-name: 'Sync branches'
+name: 'Sync feature/9.x'
 on:
   schedule:
     - cron: '0 0 * * 1' # Run at the start of every monday
@@ -7,15 +7,12 @@ on:
 permissions: {}
 
 env:
-  base_branch: 'origin/main'
+  base_branch: 'main'
+  target_branch: 'feature/9.x'
 
 jobs:
   sync-branch:
-    if: github.repository == 'dotnet/dotnet-monitor'
-    strategy:
-      matrix:
-        branch: ["release/6.x", "release/7.x", "release/8.0"]
-    name: 'Sync ${{ matrix.branch }}'
+    name: 'Sync feature/9.x'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -27,26 +24,30 @@ jobs:
         with:
           persist-credentials: true # We need to persist credentials to push the resulting changes upstream.
           fetch-depth: 0 # Fetch the entire repo for the below git operations
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.target_branch }}
 
       - name: Sync branch
         run: |
-          git checkout "$base_branch" -- \
-            ".github" \
-            ".devcontainer" \
-            ".vscode" \
-            "eng/actions" \
-            "cspell.json" \
-            "documentation/**.md"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git merge "origin/$base_branch" --strategy-option theirs
+          git checkout "origin/$target_branch" -- \
+            "global.json" \
+            "eng/common" \
+            "eng/Common.props" \
+            "eng/Versions.props" \
+            "eng/Version.Details.xml"
 
       - name: Open PR
         uses: ./.github/actions/open-pr
         with:
           files_to_commit: "*"
-          title: '[${{ matrix.branch }}] Sync branch with ${{ env.base_branch }}'
-          commit_message: sync branch with ${{ env.base_branch }}
+          title: '[${{ env.target_branch }}] Sync branch with ${{ env.base_branch }}'
+          commit_message: Resolve merge conflicts ${{ env.base_branch }}
           body: Sync branch with ${{ env.base_branch }}. This PR was auto generated and will not be automatically merged in.
-          branch_name: sync/${{ matrix.branch }}
+          branch_name: sync/${{ env.target_branch }}
           fail_if_files_unchanged: false
+          always_create_pr: true
           labels: 'automatic-pr'
           auth_token: ${{ secrets.GITHUB_TOKEN }}
