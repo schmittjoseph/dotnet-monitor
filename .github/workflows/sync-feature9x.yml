@@ -34,7 +34,7 @@ jobs:
           $headCommit=$(git rev-parse HEAD)
           git merge "origin/$base_branch" --strategy=ort --strategy-option=theirs
           $newHeadCommit=$(git rev-parse HEAD)
-          if [ "$headCommit" == "$newHeadCommit"]; then
+          if [ "$headCommit" == "$newHeadCommit" ]; then
             echo "No changes to sync"
             exit 0
           fi
