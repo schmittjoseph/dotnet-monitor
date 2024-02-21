@@ -7,8 +7,8 @@ on:
 permissions: {}
 
 env:
-  base_branch: 'origin/main'
-  target_branch: 'origin/feature/9.x'
+  base_branch: 'main'
+  target_branch: 'feature/9.x'
 
 jobs:
   sync-branch:
@@ -28,8 +28,8 @@ jobs:
 
       - name: Sync branch
         run: |
-          git merge "$base_branch" --strategy-option theirs
-          git checkout "$target_branch" -- \
+          git merge "origin/$base_branch" --strategy-option theirs
+          git checkout "origin/$target_branch" -- \
             ".global.json" \
             "eng/common" \
             "eng/Common.props" \
