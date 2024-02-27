@@ -75,7 +75,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git merge "$base_branch" --strategy=ort --strategy-option=theirs
+          git merge "$base_branch" --strategy=ort --strategy-option=theirs --no-squash --no-commit
 
           git checkout "origin/${{ matrix.branch }}" -- \
             "global.json" \
@@ -90,7 +90,7 @@ jobs:
         with:
           files_to_commit: "*"
           title: '[${{ matrix.branch }}] Sync branch with ${{ env.base_branch }}'
-          commit_message: Resolve merge conflicts
+          commit_message: Merge remote-tracking branch '${{ env.base_branch }}' into ${{ matrix.branch }}
           body: Sync branch with ${{ env.base_branch }}. This PR was auto generated and will not be automatically merged in.
           branch_name: sync/${{ matrix.branch }}
           fail_if_files_unchanged: false
