@@ -52,7 +52,6 @@ jobs:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
 
   sync-code:
-    if: github.repository == 'dotnet/dotnet-monitor'
     strategy:
       matrix:
         branch: ["feature/9.x"]
