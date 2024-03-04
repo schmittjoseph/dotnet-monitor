@@ -52,7 +52,6 @@ jobs:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
 
   sync-code:
-    if: github.repository == 'dotnet/dotnet-monitor'
     strategy:
       matrix:
         branch: ["feature/9.x"]
@@ -78,14 +77,12 @@ jobs:
           git config merge.ours.driver true
           git merge "$base_branch" --strategy=ort --strategy-option=theirs
 
-          # Must be kept in sync with .gitattributes
-          git checkout "origin/${{ matrix.branch }}" -- \
-            "global.json" \
-            "eng/branch-vscode-config" \
-            "eng/common" \
-            "eng/Common.props" \
-            "eng/Versions.props" \
-            "eng/Version.Details.xml"
+          matches=$(perl -ne '/^([^\s]+)\s+merge=ours/gm && print "$1 "' .gitattributes)
+          for match in $matches; do
+              git checkout "$target_branch" -- "$match"
+          done
+        env:
+          target_branch: origin/${{ matrix.branch }}
 
       - name: Open PR
         uses: ./.github/actions/open-pr
