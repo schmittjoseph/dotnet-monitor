@@ -1,0 +1,35 @@
+name: 'Sync Individual Branch'
+run-name: '[${{ inputs.branch }}] Sync with ${{ inputs.base_branch }}'
+
+on:
+  workflow_dispatch: # Allow manually invoking this workflow
+    inputs:
+      branch:
+        description: 'The branch to update.'
+        required: true
+      base_branch:
+        description: 'The base branch to sync with.'
+        required: true
+
+permissions: {}
+
+
+jobs:
+  sync-branch:
+    name: 'Sync ${{ inputs.branch }} branch with ${{ inputs.base_branch }}'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      with:
+        persist-credentials: false
+
+    - name: Sync Branch
+      uses: ./.github/actions/sync-branch
+      with:
+        branch: ${{ inputs.branch }}
+        base_branch: ${{ inputs.base_branch }}
