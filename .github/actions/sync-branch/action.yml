@@ -42,7 +42,7 @@ runs:
         title: '[${{ inputs.branch }}] Sync branch with ${{ inputs.base_branch }}'
         commit_message: Restore branch-specific files
         body: Sync branch with ${{ inputs.base_branch }}. This PR was auto generated and will not be automatically merged in.
-        branch_name: sync/${{ matrix.branch }}
+        branch_name: sync/${{ inputs.branch }}
         fail_if_files_unchanged: false
         always_create_pr: true
         labels: 'automatic-pr'
