@@ -27,6 +27,7 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
         persist-credentials: false
+        ref: individual-sync
 
     - name: Sync Branch
       uses: ./.github/actions/sync-branch
