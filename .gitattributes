@@ -48,9 +48,9 @@
 *.png				binary
 *.snk       		binary
 
-
 ###############################################################################
-# Define branch-specific merge driver
+# Define branch specific files by overriding the merge driver
+#   Must be kept in sync with .github\workflows\sync-branches.yml
 ###############################################################################
 global.json merge=ours
 eng/branch-vscode-config merge=ours
