@@ -7,6 +7,9 @@ inputs:
   base_branch:
     description: 'The base branch to sync with.'
     required: true
+  auth_token:
+    description: 'The token used to authenticate to GitHub.'
+    required: true
 
 runs:
   using: "composite"
@@ -43,4 +46,4 @@ runs:
         fail_if_files_unchanged: false
         always_create_pr: true
         labels: 'automatic-pr'
-        auth_token: ${{ secrets.GITHUB_TOKEN }}
+        auth_token: ${{ inputs.auth_token }}

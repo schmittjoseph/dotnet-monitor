@@ -34,3 +34,4 @@ jobs:
       with:
         branch: ${{ inputs.branch }}
         base_branch: ${{ inputs.base_branch }}
+        auth_token: ${{ secrets.GITHUB_TOKEN }}
