@@ -31,7 +31,7 @@ jobs:
 
       - name: Sync branch
         run: |
-          git checkout "$base_branch" -- \
+          git checkout --no-overlay "$base_branch" -- \
             ".github" \
             ".devcontainer" \
             ".vscode" \
@@ -79,7 +79,7 @@ jobs:
 
           matches=$(perl -ne '/^([^\s]+)\s+merge=ours/gm && print "$1 "' .gitattributes)
           for match in $matches; do
-              git checkout "$target_branch" -- "$match"
+              git checkout --no-overlay "$target_branch" -- "$match"
           done
         env:
           target_branch: origin/${{ matrix.branch }}
