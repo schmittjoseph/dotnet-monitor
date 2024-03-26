@@ -22,20 +22,20 @@ namespace Microsoft.Diagnostics.Tools.Monitor.HostingStartup
         private const string HostingStartupTargetFramework = "net6.0";
 
         private readonly IEndpointInfo _endpointInfo;
-        private readonly StartupHookService _startupHookService;
+        private readonly DotnetMonitorStartupHook _startupHook;
         private readonly IInProcessFeatures _inProcessFeatures;
         private readonly ISharedLibraryService _sharedLibraryService;
         private readonly ILogger<HostingStartupService> _logger;
 
         public HostingStartupService(
             IEndpointInfo endpointInfo,
-            StartupHookService startupHookService,
+            DotnetMonitorStartupHook startupHook,
             ISharedLibraryService sharedLibraryService,
             IInProcessFeatures inProcessFeatures,
             ILogger<HostingStartupService> logger)
         {
             _endpointInfo = endpointInfo;
-            _startupHookService = startupHookService;
+            _startupHook = startupHook;
             _inProcessFeatures = inProcessFeatures;
             _sharedLibraryService = sharedLibraryService;
             _logger = logger;
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.HostingStartup
             try
             {
                 // Hosting startup requires the startup hook
-                if (!await _startupHookService.CheckHasStartupHookAsync(cancellationToken))
+                if (!await _startupHook.Applied.WaitAsync(cancellationToken))
                 {
                     return;
                 }
