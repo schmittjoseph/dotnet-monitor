@@ -367,11 +367,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         public static IServiceCollection ConfigureStartupHook(this IServiceCollection services)
         {
-            services.AddScoped<StartupHookService>();
-            services.AddScopedForwarder<IDiagnosticLifetimeService, StartupHookService>();
-
             services.AddScoped<DotnetMonitorStartupHook>();
-            services.AddScopedForwarder<IStartupHook, DotnetMonitorStartupHook>();
+            services.AddScopedForwarder<IDiagnosticLifetimeService, DotnetMonitorStartupHook>();
             return services;
         }
 
