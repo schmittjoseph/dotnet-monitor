@@ -470,8 +470,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 logLevel: LogLevel.Debug,
                 formatString: Strings.LogFormatString_StartCollectArtifact);
 
-        private static readonly Action<ILogger, string, Exception> _startupHookInstructions =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, int, string, Exception> _startupHookInstructions =
+            LoggerMessage.Define<int, string>(
                 eventId: LoggingEventIds.StartupHookInstructions.EventId(),
                 logLevel: LogLevel.Warning,
                 formatString: Strings.LogFormatString_StartupHookInstructions);
@@ -919,9 +919,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             _startCollectArtifact(logger, artifactType, null);
         }
 
-        public static void StartupHookInstructions(this ILogger logger, string startupHookLibraryPath)
+        public static void StartupHookInstructions(this ILogger logger, int processId, string startupHookLibraryPath)
         {
-            _startupHookInstructions(logger, startupHookLibraryPath, null);
+            _startupHookInstructions(logger, processId, startupHookLibraryPath, null);
         }
 
         public static void UnableToWatchForDisconnect(this ILogger logger, Exception exception)
