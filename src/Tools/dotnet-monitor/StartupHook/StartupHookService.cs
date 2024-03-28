@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.StartupHook
 {
-    internal sealed class DotnetMonitorStartupHook : IDiagnosticLifetimeService
+    internal sealed class StartupHookService : IDiagnosticLifetimeService
     {
         // Intent is to ship a single TFM of the startup hook, which should be the lowest supported version.
         // If necessary, the startup hook should dynamically access APIs for higher version TFMs and handle
@@ -26,8 +26,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.StartupHook
 
         public Task<bool> Applied => _appliedSource.Task;
 
-        public DotnetMonitorStartupHook(
-            ILogger<DotnetMonitorStartupHook> logger,
+        public StartupHookService(
+            ILogger<StartupHookService> logger,
             IEndpointInfo endpointInfo,
             IInProcessFeatures inProcessFeatures,
             StartupHookFileProvider startupHookFileProvider,

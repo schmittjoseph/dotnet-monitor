@@ -22,14 +22,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.HostingStartup
         private const string HostingStartupTargetFramework = "net6.0";
 
         private readonly IEndpointInfo _endpointInfo;
-        private readonly DotnetMonitorStartupHook _startupHook;
+        private readonly StartupHook.StartupHookService _startupHook;
         private readonly IInProcessFeatures _inProcessFeatures;
         private readonly ISharedLibraryService _sharedLibraryService;
         private readonly ILogger<HostingStartupService> _logger;
 
         public HostingStartupService(
             IEndpointInfo endpointInfo,
-            DotnetMonitorStartupHook startupHook,
+            StartupHook.StartupHookService startupHook,
             ISharedLibraryService sharedLibraryService,
             IInProcessFeatures inProcessFeatures,
             ILogger<HostingStartupService> logger)

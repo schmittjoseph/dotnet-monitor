@@ -21,13 +21,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
     {
         private readonly EventExceptionsPipeline _pipeline;
         private readonly IOptions<ExceptionsOptions> _options;
-        private readonly DotnetMonitorStartupHook _startupHook;
+        private readonly StartupHook.StartupHookService _startupHook;
 
         public ExceptionsService(
             IEndpointInfo endpointInfo,
             IOptions<ExceptionsOptions> options,
             IExceptionsStore store,
-            DotnetMonitorStartupHook startupHook)
+            StartupHook.StartupHookService startupHook)
         {
             ArgumentNullException.ThrowIfNull(endpointInfo);
             ArgumentNullException.ThrowIfNull(store);
