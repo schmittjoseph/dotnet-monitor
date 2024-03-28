@@ -3,10 +3,12 @@
 
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.NETCore.Client;
+using Microsoft.Diagnostics.Tools.Monitor.LibrarySharing;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,17 +18,30 @@ namespace Microsoft.Diagnostics.Tools.Monitor.StartupHook
     {
         private readonly ILogger _logger;
         private readonly IEndpointInfo _endpointInfo;
+        private readonly ISharedLibraryService _sharedLibraryService;
+
+        public const int MinMajorVersionForAutomaticApplication = 8;
 
         public StartupHookApplicator(
             ILogger<StartupHookApplicator> logger,
-            IEndpointInfo endpointInfo)
+            IEndpointInfo endpointInfo,
+            ISharedLibraryService sharedLibraryService)
         {
             _logger = logger;
             _endpointInfo = endpointInfo;
+            _sharedLibraryService = sharedLibraryService;
         }
 
-        public async Task<bool> ApplyAsync(IFileInfo fileInfo, CancellationToken token)
+        public async Task<bool> ApplyAsync(string tfm, string fileName, CancellationToken token)
         {
+            IFileInfo fileInfo = await GetFileInfoAsync(tfm, fileName, token);
+            if (!fileInfo.Exists)
+            {
+                // When the file doesn't exist fileInfo.Name will contain the full path of the missing file.
+                _logger.StartupHookApplyFailed(Path.GetFileName(fileInfo.Name), new FileNotFoundException(null, fileInfo.Name));
+                return false;
+            }
+
             DiagnosticsClient client = new(_endpointInfo.Endpoint);
             IDictionary<string, string> env = await client.GetProcessEnvironmentAsync(token);
 
@@ -35,31 +50,39 @@ namespace Microsoft.Diagnostics.Tools.Monitor.StartupHook
                 return true;
             }
 
-            return await ApplyStartupHookAsync(fileInfo, _endpointInfo, client, token);
+
+            if (_endpointInfo.RuntimeVersion.Major < MinMajorVersionForAutomaticApplication)
+            {
+                _logger.StartupHookInstructions(_endpointInfo.ProcessId, fileInfo.Name, fileInfo.PhysicalPath);
+                return false;
+            }
+
+            return await ApplyUsingDiagnosticClientAsync(fileInfo, _endpointInfo, client, token);
         }
 
-        private async Task<bool> ApplyStartupHookAsync(IFileInfo fileInfo, IEndpointInfo endpointInfo, DiagnosticsClient client, CancellationToken token)
+        private async Task<IFileInfo> GetFileInfoAsync(string tfm, string fileName, CancellationToken token)
         {
-            if (endpointInfo.RuntimeVersion.Major < 8)
-            {
-                return false;
-            }
-
-            try
-            {
-                await client.ApplyStartupHookAsync(fileInfo.PhysicalPath, token);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.StartupHookApplyFailed(ex);
-                return false;
-            }
+            IFileProviderFactory fileProviderFactory = await _sharedLibraryService.GetFactoryAsync(token);
+            IFileProvider managedFileProvider = fileProviderFactory.CreateManaged(tfm);
+            return managedFileProvider.GetFileInfo(fileName);
         }
 
         private static bool IsEnvironmentConfiguredForStartupHook(IFileInfo fileInfo, IDictionary<string, string> env)
             => env.TryGetValue(ToolIdentifiers.EnvironmentVariables.StartupHooks, out string startupHookPaths) &&
             startupHookPaths?.Contains(fileInfo.Name, StringComparison.OrdinalIgnoreCase) == true;
+
+        private async Task<bool> ApplyUsingDiagnosticClientAsync(IFileInfo fileInfo, IEndpointInfo endpointInfo, DiagnosticsClient client, CancellationToken token)
+        {
+            try
+            {
+                await client.ApplyStartupHookAsync(fileInfo.PhysicalPath, token);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.StartupHookApplyFailed(fileInfo.Name, ex);
+                return false;
+            }
+        }
     }
 }
