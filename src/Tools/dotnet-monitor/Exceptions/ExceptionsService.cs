@@ -21,19 +21,19 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
     {
         private readonly EventExceptionsPipeline _pipeline;
         private readonly IOptions<ExceptionsOptions> _options;
-        private readonly StartupHookService _startupHook;
+        private readonly StartupHookService _startupHookService;
 
         public ExceptionsService(
             IEndpointInfo endpointInfo,
             IOptions<ExceptionsOptions> options,
             IExceptionsStore store,
-            StartupHookService startupHook)
+            StartupHookService startupHookService)
         {
             ArgumentNullException.ThrowIfNull(endpointInfo);
             ArgumentNullException.ThrowIfNull(store);
 
             _options = options ?? throw new ArgumentNullException(nameof(options));
-            _startupHook = startupHook ?? throw new ArgumentNullException(nameof(startupHook));
+            _startupHookService = startupHookService ?? throw new ArgumentNullException(nameof(startupHookService));
 
             _pipeline = new EventExceptionsPipeline(
                 new DiagnosticsClient(endpointInfo.Endpoint),
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!_options.Value.GetEnabled() || !await _startupHook.Applied.WaitAsync(stoppingToken))
+            if (!_options.Value.GetEnabled() || !await _startupHookService.Applied.WaitAsync(stoppingToken))
             {
                 return;
             }
