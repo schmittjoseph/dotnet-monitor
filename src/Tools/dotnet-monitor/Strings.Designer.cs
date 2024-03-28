@@ -10,8 +10,8 @@
 
 namespace Microsoft.Diagnostics.Tools.Monitor {
     using System;
-
-
+    
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Strings {
-
+        
         private static global::System.Resources.ResourceManager resourceMan;
-
+        
         private static global::System.Globalization.CultureInfo resourceCulture;
-
+        
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Strings() {
         }
-
+        
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return resourceMan;
             }
         }
-
+        
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 resourceCulture = value;
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to API key authentication not configured..
         /// </summary>
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ApiKeyNotConfigured", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to find a collection rule with name {0}..
         /// </summary>
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_CollectionRuleNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The &apos;{0}&apos; action was not registered correctly..
         /// </summary>
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_CouldNotMapToAction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The &apos;{0}&apos; trigger was not registered correctly..
         /// </summary>
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_CouldNotMapToTrigger", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to In &apos;Listen&apos; mode, the diagnostic port endpoint name must be specified..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_DiagnosticPortMissingInListenMode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Feature &apos;{0}&apos; is not enabled..
         /// </summary>
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_DisabledFeature", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Duplicate action name &apos;{0}&apos;..
         /// </summary>
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_DuplicateActionName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Azure blob egress failed: {0}.
         /// </summary>
@@ -131,7 +131,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressAzureFailedDetailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Azure blob egress failed..
         /// </summary>
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressAzureFailedGeneric", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension egress failed..
         /// </summary>
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressExtensionFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to File system egress failed: {0}.
         /// </summary>
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressFileFailedDetailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to File system egress failed..
         /// </summary>
@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressFileFailedGeneric", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to SharedAccessSignature, AccountKey, ManagedIdentityClientId, or UseWorkloadIdentityFromEnvironment must be specified..
         /// </summary>
@@ -176,7 +176,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressMissingCredentials", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Egress provider &apos;{0}&apos; does not exist..
         /// </summary>
@@ -185,7 +185,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressProviderDoesNotExist", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} egress provider failed validation: {1}.
         /// </summary>
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressProviderFailedValidation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Egress provider type &apos;{0}&apos; was not registered..
         /// </summary>
@@ -203,7 +203,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressProviderTypeNotRegistered", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to S3 storage egress failed: {0}.
         /// </summary>
@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressS3FailedDetailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to create unique intermediate file in &apos;{0}&apos; directory..
         /// </summary>
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_EgressUnableToCreateIntermediateFile", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Expected to find shared libraries at &apos;{0}&apos;..
         /// </summary>
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ExpectedToFindSharedLibrariesAtPath", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The extension file &apos;{0}&apos; for extension &apos;{1}&apos; could not be found..
         /// </summary>
@@ -239,7 +239,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ExtensionFileNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The extension &apos;{extensionName}&apos; failed to launch..
         /// </summary>
@@ -248,7 +248,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ExtensionLaunchFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid extension manifest: {0}.
         /// </summary>
@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ExtensionManifestInvalid", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Could not find extension manifest at &apos;{0}&apos;.
         /// </summary>
@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ExtensionManifestNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to locate extension &apos;{0}&apos;..
         /// </summary>
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ExtensionNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The value of field {0} must be less than the value of field {1}..
         /// </summary>
@@ -284,7 +284,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_FieldMustBeLessThanOtherField", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} field value &apos;{1}&apos; is not allowed..
         /// </summary>
@@ -293,7 +293,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_FieldNotAllowed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} field could not be decoded as hex string..
         /// </summary>
@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_FieldNotHex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} field value length must be an even number..
         /// </summary>
@@ -311,7 +311,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_FieldOddLength", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to A file could not be found at the provided path: {0}.
         /// </summary>
@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_FileNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The guid {0} is required to be set and can not be empty..
         /// </summary>
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_GuidRequired", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid API key..
         /// </summary>
@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_InvalidApiKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid API key format..
         /// </summary>
@@ -347,7 +347,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_InvalidApiKeyFormat", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid authentication header..
         /// </summary>
@@ -356,7 +356,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_InvalidAuthHeader", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The configuration parameter {0} must be contain a valid jwk, the value &apos;{1}&apos; could not be parsed as a Json Web Key. The expected format is a Json Web Key written as JSON which is base64Url encoded. {2}.
         /// </summary>
@@ -365,7 +365,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_InvalidJwk", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Value must be between 1 and 254, or -1 (to obtain the maximum number allowed by system resources)..
         /// </summary>
@@ -374,7 +374,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_MaxConnections", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} field specified the provider &apos;{1}&apos; but it was not found in the {2} field..
         /// </summary>
@@ -383,7 +383,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_MissingStoppingEventProvider", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The environment block does not contain the &apos;{0}&apos; variable..
         /// </summary>
@@ -392,7 +392,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_NoEnvironmentVariable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The process exited with exit code {0}.
         /// </summary>
@@ -401,7 +401,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_NonzeroExitCode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The configuration parameter {0} must be base64Url encoded, the value &apos;{1}&apos; could not be parsed as a base64Url-encoded string..
         /// </summary>
@@ -410,7 +410,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_NotBase64", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This operation does not support being stopped..
         /// </summary>
@@ -419,7 +419,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_OperationIsNotStoppable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Parameter capturing is not available in the process. {0}.
         /// </summary>
@@ -428,7 +428,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ParameterCapturingNotAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} parameter value &apos;{1}&apos; is not allowed..
         /// </summary>
@@ -437,7 +437,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ParameterNotAllowed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} parameter value &apos;{1}&apos; is not allowed. Must be between {2} and {3} bytes long..
         /// </summary>
@@ -446,7 +446,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_ParameterNotAllowedByteRange", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The configuration parameter {0} must be contain a jwk that is valid for use with dotnet-monitor. The provided Json Web Key must be have a key-type of EC or RSA and must-not have private key information because this this key is only used for signature verification..
         /// </summary>
@@ -455,7 +455,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_RejectedJwk", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The shared file &apos;{0}&apos; is different from source file &apos;{1}&apos;..
         /// </summary>
@@ -464,7 +464,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_SharedFileDiffersFromSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The following unrecoverable validation issues were found with the &apos;{0}&apos; configuration:
         ///{1}.
@@ -474,7 +474,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_StartupConfigurationValidationException", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Could not find a template with the name: {0}.
         /// </summary>
@@ -483,7 +483,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_TemplateNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The &apos;{0}&apos; trigger factory failed to create a trigger instance..
         /// </summary>
@@ -492,7 +492,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_TriggerFactoryFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Both the {0} field and the {1} field cannot be specified..
         /// </summary>
@@ -501,7 +501,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_TwoFieldsCannotBeSpecified", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {0} field or the {1} field is required..
         /// </summary>
@@ -510,7 +510,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_TwoFieldsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to bind any urls..
         /// </summary>
@@ -519,7 +519,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnableToBindUrls", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to determine platform of the target process..
         /// </summary>
@@ -528,7 +528,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnableToDetermineTargetPlatform", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to find hosting startup assembly at determined path..
         /// </summary>
@@ -537,7 +537,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnableToFindHostingStartupAssembly", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to find profiler assembly at determined path..
         /// </summary>
@@ -546,7 +546,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnableToFindProfilerAssembly", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to start: {0} {1}.
         /// </summary>
@@ -555,7 +555,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnableToStartProcess", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unhandled connection mode: {0}.
         /// </summary>
@@ -564,7 +564,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnhandledConnectionMode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to &apos;{0}&apos; is not a known action type..
         /// </summary>
@@ -573,7 +573,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnknownActionType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unknown output format type: {0}.
         /// </summary>
@@ -582,7 +582,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnknownFormat", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to &apos;{0}&apos; is not a known trigger type..
         /// </summary>
@@ -591,7 +591,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ErrorMessage_UnknownTriggerType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Monitor logs and metrics in a .NET application send the results to a chosen destination..
         /// </summary>
@@ -600,7 +600,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_CommandCollect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration related commands for dotnet-monitor..
         /// </summary>
@@ -609,7 +609,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_CommandConfig", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generate api key and hash for authentication..
         /// </summary>
@@ -618,7 +618,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_CommandGenerateKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Shows configuration, as if dotnet-monitor collect was executed with these parameters..
         /// </summary>
@@ -627,7 +627,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_CommandShow", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The fully qualified path and filename of the json configuration file you&apos;d like to add to the list of configuration sources..
         /// </summary>
@@ -636,7 +636,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionConfigurationFilePath", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The fully qualified path and filename of the diagnostic port to which runtime instances can connect..
         /// </summary>
@@ -645,7 +645,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionDiagnosticPort", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to If specified, dotnet-monitor will monitor `stdin`, and if it closes, will exit. This is useful when dotnet-monitor is started remotely without a pseudo-terminal, and the caller wishes for it to exit when the connection is dropped (example: `docker exec -i ...`)..
         /// </summary>
@@ -654,7 +654,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionExitOnStdinDisconnect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration level. Unredacted configuration can show sensitive information..
         /// </summary>
@@ -663,7 +663,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionLevel", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enable publishing of metrics.
         /// </summary>
@@ -672,7 +672,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionMetrics", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Bindings for metrics api..
         /// </summary>
@@ -681,7 +681,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionMetricsUrls", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Turn off authentication..
         /// </summary>
@@ -690,7 +690,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionNoAuth", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Turn off HTTP response egress.
         /// </summary>
@@ -699,7 +699,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionNoHttpEgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show loaded configuration providers from high to low priority.
         /// </summary>
@@ -708,7 +708,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionShowSources", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generates a new MonitorApiKey for each launch of the process..
         /// </summary>
@@ -717,7 +717,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionTempApiKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Bindings for the REST api..
         /// </summary>
@@ -726,7 +726,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OptionUrls", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The output format of the API Key configuration..
         /// </summary>
@@ -735,7 +735,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_OutputFormat", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to JWT Authorization header using bearer token authentication. Put the Authorization header value (&quot;Bearer&quot; prefix and the JWT value) in the textbox when prompted..
         /// </summary>
@@ -744,7 +744,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("HelpDescription_SecurityDefinitionDescription_ApiKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule action options &apos;{settingsType}&apos; must implement ICloneable to support property tokenization..
         /// </summary>
@@ -753,7 +753,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ActionSettingsTokenizationNotSupported", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {apiAuthenticationConfigKey} settings have changed. The new settings have passed validation..
         /// </summary>
@@ -762,7 +762,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ApiKeyAuthenticationOptionsValidated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to API key authentication is not configured. See {0} for more details..
         /// </summary>
@@ -771,7 +771,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ApiKeyNotConfigured", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The {configName} have changed, new values: Subject={subject}, PublicKey={publicKey}.
         /// </summary>
@@ -780,7 +780,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ApiKeyOptionsChanged", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {apiAuthenticationConfigKey} settings are invalid: {validationFailure}.
         /// </summary>
@@ -789,7 +789,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ApiKeyValidationFailure", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Bound default address: {address}.
         /// </summary>
@@ -798,7 +798,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_BoundDefaultAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Bound metrics address: {address}.
         /// </summary>
@@ -807,7 +807,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_BoundMetricsAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; action &apos;{actionType}&apos; completed..
         /// </summary>
@@ -816,7 +816,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleActionCompleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; action &apos;{actionType}&apos; failed..
         /// </summary>
@@ -825,7 +825,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleActionFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; actions completed..
         /// </summary>
@@ -834,7 +834,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleActionsCompleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; action &apos;{actionType}&apos; started..
         /// </summary>
@@ -843,7 +843,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleActionStarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; actions throttled due to action limits..
         /// </summary>
@@ -852,7 +852,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleActionsThrottled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; cancelled..
         /// </summary>
@@ -861,7 +861,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleCancelled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; completed..
         /// </summary>
@@ -870,7 +870,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleCompleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule configuration changed..
         /// </summary>
@@ -879,7 +879,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleConfigurationChanged", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; failed..
         /// </summary>
@@ -888,7 +888,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All collection rules started..
         /// </summary>
@@ -897,7 +897,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRulesStarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Starting collection rules..
         /// </summary>
@@ -906,7 +906,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRulesStarting", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All collection rules have stopped..
         /// </summary>
@@ -915,7 +915,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRulesStopped", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Stopping collection rules..
         /// </summary>
@@ -924,7 +924,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRulesStopping", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; started..
         /// </summary>
@@ -933,7 +933,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleStarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; trigger &apos;{triggerType}&apos; completed..
         /// </summary>
@@ -942,7 +942,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleTriggerCompleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; trigger &apos;{triggerType}&apos; started..
         /// </summary>
@@ -951,7 +951,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleTriggerStarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule &apos;{ruleName}&apos; filters do not match the process..
         /// </summary>
@@ -960,7 +960,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_CollectionRuleUnmatchedFilters", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Connection mode: Connect.
         /// </summary>
@@ -969,7 +969,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ConnectionModeConnect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Connection mode: Listen at &apos;{path}&apos;.
         /// </summary>
@@ -978,7 +978,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ConnectionModeListen", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Diagnostic port file at &apos;{0}&apos; was either deleted or moved while it was still being used..
         /// </summary>
@@ -987,7 +987,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticPortAlteredWhileInUse", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Attempting to delete diagnostic port file at &apos;{0}&apos;..
         /// </summary>
@@ -996,7 +996,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticPortDeleteAttempt", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to delete diagnostic port file at &apos;{0}&apos;..
         /// </summary>
@@ -1005,7 +1005,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticPortDeleteFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to When using collection rules, the diagnostic port must be in &apos;Listen&apos; mode. Please correct the configuration and restart dotnet monitor..
         /// </summary>
@@ -1014,7 +1014,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticPortNotInListenModeForCollectionRules", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to watch diagnostic port file at &apos;{0}&apos;..
         /// </summary>
@@ -1023,7 +1023,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticPortWatchingFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Cancelled waiting for diagnostic response from runtime in process {processId}..
         /// </summary>
@@ -1032,7 +1032,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticRequestCancelled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to get diagnostic response from runtime in process {processId}..
         /// </summary>
@@ -1041,7 +1041,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DiagnosticRequestFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Negotiate, Kerberos, and NTLM authentication are not enabled when running with elevated permissions..
         /// </summary>
@@ -1050,7 +1050,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DisabledNegotiateWhileElevated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule action &apos;{actionType}&apos; was previously registered; the new registration will be ignored..
         /// </summary>
@@ -1059,7 +1059,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DuplicateCollectionRuleActionIgnored", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Collection rule trigger &apos;{triggerType}&apos; was previously registered; the new registration will be ignored..
         /// </summary>
@@ -1068,7 +1068,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DuplicateCollectionRuleTriggerIgnored", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to New provider &apos;{providerName}&apos; under type &apos;{providerType}&apos; was already registered with type &apos;{existingProviderType}&apos; and will be ignored..
         /// </summary>
@@ -1077,7 +1077,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_DuplicateEgressProviderIgnored", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Copying action stream to egress stream with buffer size {bufferSize}.
         /// </summary>
@@ -1086,7 +1086,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EgressCopyActionStreamToEgressStream", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Provider &apos;{providerName}&apos;: The options are invalid. The provider will not be available for use..
         /// </summary>
@@ -1095,7 +1095,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EgressProviderInvalidOptions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Provider {providerType}: Invoking stream action..
         /// </summary>
@@ -1104,7 +1104,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EgressProviderInvokeStreamAction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Provider &apos;{providerName}&apos;: {failureMessage}.
         /// </summary>
@@ -1113,7 +1113,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EgressProviderOptionsValidationError", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Provider {providerType}: Saved stream to {path}.
         /// </summary>
@@ -1122,7 +1122,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EgressProviderSavedStream", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Egress provider type &apos;{type}&apos; does not exist..
         /// </summary>
@@ -1131,7 +1131,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EgressProviderTypeNotExist", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to fully initialize endpoint for process {processId}. Some monitoring features may be unavailable..
         /// </summary>
@@ -1140,7 +1140,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EndpointInitializationFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to fully remove endpoint for process {processId}..
         /// </summary>
@@ -1149,7 +1149,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EndpointRemovalFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unexpected timeout from process {processId}. Process will no longer be monitored..
         /// </summary>
@@ -1158,7 +1158,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_EndpointTimeout", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Tell us about your experience with dotnet monitor: {link}.
         /// </summary>
@@ -1167,7 +1167,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExperienceSurvey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Experimental feature &apos;{name}&apos; is enabled..
         /// </summary>
@@ -1176,7 +1176,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExperimentalFeatureEnabled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension &apos;{extensionPath}&apos; started process {pid}, configuration sent..
         /// </summary>
@@ -1185,7 +1185,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionConfigured", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Payload egress complete to extension process {pid}, waiting for process exit..
         /// </summary>
@@ -1194,7 +1194,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionEgressPayloadCompleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension process {pid} wrote error: {message}.
         /// </summary>
@@ -1203,7 +1203,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionErrorMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension process {pid} exited with code {exitCode}..
         /// </summary>
@@ -1212,7 +1212,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionExited", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension process {pid} wrote output message &apos;{message}&apos;. This message was parsed correctly as &apos;{resultType}&apos; but contained malformed data or was missing critical data to be considered valid..
         /// </summary>
@@ -1221,7 +1221,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionMalformedOutput", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The extension manifest file &apos;{manifestPath}&apos; is missing or incorrectly formed..
         /// </summary>
@@ -1230,7 +1230,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionManifestNotParsable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The extension&apos;{extensionName} at {extension} was not the required type {extensionType}. This most likely means the extension definition does not specify support for this usage type..
         /// </summary>
@@ -1239,7 +1239,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionNotOfType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension process {pid} wrote output: {message}.
         /// </summary>
@@ -1248,7 +1248,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionOutputMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to locate extension &apos;{extensionName}&apos;..
         /// </summary>
@@ -1257,7 +1257,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionProbeFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Searching {extensionRepository} for extension &apos;{extensionName}&apos;..
         /// </summary>
@@ -1266,7 +1266,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionProbeRepo", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Attempting to locate extension &apos;{extensionName}&apos;..
         /// </summary>
@@ -1275,7 +1275,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionProbeStart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Found extension &apos;{extensionName}&apos; at {extension}..
         /// </summary>
@@ -1284,7 +1284,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionProbeSucceeded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Starting extension &apos;{extensionName}&apos;..
         /// </summary>
@@ -1293,7 +1293,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ExtensionStarting", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to initialize shared library storage. Some monitoring features may be unavailable..
         /// </summary>
@@ -1302,7 +1302,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_FailedInitializeSharedLibraryStorage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Getting the environment variable {variableName} from process {processId}..
         /// </summary>
@@ -1311,7 +1311,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_GetEnvironmentVariable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to WARNING: Authentication is enabled over insecure http transport. This can pose a security risk and is not intended for production environments..
         /// </summary>
@@ -1320,7 +1320,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_InsecureAuthenticationConfiguration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The intermediate file at the following path could not be deleted: {path}.
         /// </summary>
@@ -1329,7 +1329,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_IntermediateFileDeletionFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid action reference &apos;{actionReference}&apos;..
         /// </summary>
@@ -1338,7 +1338,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_InvalidActionReference", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid result reference &apos;{actionToken}&apos;..
         /// </summary>
@@ -1347,7 +1347,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_InvalidActionResultReference", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Action &apos;{actionName}&apos; with setting &apos;{setting}&apos; has invalid tokens..
         /// </summary>
@@ -1356,7 +1356,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_InvalidToken", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Loading the profiler with CLSID {clsid} from {path} into process {processId}..
         /// </summary>
@@ -1365,7 +1365,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_LoadingProfiler", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generated one-time-use ApiKey for dotnet-monitor; use the following header for authorization:{NewLine}{AuthHeaderName}: {AuthScheme} {MonitorApiKey}.
         /// </summary>
@@ -1374,7 +1374,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_LogTempApiKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to WARNING: Authentication has been disabled. This can pose a security risk and is not intended for production environments..
         /// </summary>
@@ -1383,7 +1383,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_NoAuthentication", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The configuration field {fieldName} contains private key information. The private key information is not required for dotnet-monitor to verify a token signature and it is strongly recommended to only provide the public key..
         /// </summary>
@@ -1392,7 +1392,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_NotifyPrivateKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {failure}.
         /// </summary>
@@ -1401,7 +1401,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_OptionsValidationFailure", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The provided url could not be parsed: {url}.
         /// </summary>
@@ -1410,7 +1410,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ParsingUrlFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Using &apos;{runtimeIdentifier}&apos; profiler runtime identifier. Source: {source}.
         /// </summary>
@@ -1419,7 +1419,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_ProfilerRuntimeIdentifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The queue {0} does not exist; ensure that the {queueName} and {queueAccountUri} fields are set correctly..
         /// </summary>
@@ -1428,7 +1428,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_QueueDoesNotExist", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Queue message egress requires {queueName} and {queueAccountUri} to be set.
         /// </summary>
@@ -1437,7 +1437,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_QueueOptionsPartiallySet", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The process was launched elevated and will have access to all processes on the system. Do not run elevated unless you need to monitor processes launched by another user (e.g., IIS worker processes).
         /// </summary>
@@ -1446,7 +1446,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_RunningElevated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to get the runtime instance cookie of the current process..
         /// </summary>
@@ -1455,7 +1455,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_RuntimeInstanceCookieFailedToFilterSelf", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Setting the environment variable {variableName} in process {processId}..
         /// </summary>
@@ -1464,7 +1464,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_SetEnvironmentVariable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Shared library path: {path}.
         /// </summary>
@@ -1473,7 +1473,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_SharedLibraryPath", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Started capturing {artifactType} artifact..
         /// </summary>
@@ -1482,7 +1482,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_StartCollectArtifact", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Failed to apply the startup hook. Not all in process features will be available..
         /// </summary>
@@ -1491,7 +1491,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_StartupHookApplyFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Exception-based features require that the DOTNET_STARTUP_HOOKS environment variable is set on the target process {processId} and must contain the path to the .NET Monitor startup hook library. The path to the library is &quot;{path}&quot;..
         /// </summary>
@@ -1500,7 +1500,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_StartupHookInstructions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to apply hosting startup..
         /// </summary>
@@ -1509,7 +1509,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_UnableToApplyHostingStartup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to apply in process feature flags..
         /// </summary>
@@ -1518,7 +1518,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_UnableToApplyInProcessFeatureFlags", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to apply profiler..
         /// </summary>
@@ -1527,7 +1527,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_UnableToApplyProfiler", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to listen to {url}. Dotnet-monitor functionality will be limited..
         /// </summary>
@@ -1536,7 +1536,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_UnableToListenToAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to watch &apos;stdin&apos; for disconnect..
         /// </summary>
@@ -1545,7 +1545,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_UnableToWatchForDisconnect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to send message to the queue {0}..
         /// </summary>
@@ -1554,7 +1554,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("LogFormatString_WritingMessageToQueueFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The provided configuration file &apos;{0}&apos; could not be found..
         /// </summary>
@@ -1563,7 +1563,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_ConfigurationFileDoesNotExist", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The provided configuration file &apos;{0}&apos; must have the .json extension..
         /// </summary>
@@ -1572,7 +1572,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_ConfigurationFileNotJson", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Tell us about your experience with dotnet monitor: {0}.
         /// </summary>
@@ -1581,7 +1581,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_ExperienceSurvey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generated ApiKey for dotnet-monitor; use the following header for authorization:.
         /// </summary>
@@ -1590,7 +1590,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_GenerateApiKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0}: {1} {2}.
         /// </summary>
@@ -1599,7 +1599,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_GeneratedAuthorizationHeader", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Public Key: {0}.
         /// </summary>
@@ -1608,7 +1608,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_GeneratekeyPublicKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Subject: {0}.
         /// </summary>
@@ -1617,7 +1617,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_GeneratekeySubject", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Settings in {0} format:.
         /// </summary>
@@ -1626,7 +1626,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_SettingsDump", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration Providers (High to Low Priority):.
         /// </summary>
@@ -1635,7 +1635,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Message_ShowSources", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This feature is only available on processes using ASP.NET Core. If the process is using ASP.NET Core and has successfully started, ensure that it has not been configured to prevent hosting startup assemblies from loading..
         /// </summary>
@@ -1644,7 +1644,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ParameterCapturingNotAvailable_Reason_HostingStartupDidNotLoad", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The process has Hot Reload enabled..
         /// </summary>
@@ -1653,7 +1653,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ParameterCapturingNotAvailable_Reason_HotReload", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to An internal error occurred that has prevented communication with the process..
         /// </summary>
@@ -1662,7 +1662,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ParameterCapturingNotAvailable_Reason_ManagedMessagingDidNotLoad", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The process has prevented hosting startup assemblies from loading using the ASPNETCORE_PREVENTHOSTINGSTARTUP environment variable..
         /// </summary>
@@ -1671,7 +1671,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ParameterCapturingNotAvailable_Reason_PreventedHostingStartup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The process needs to be using .NET 7 or newer..
         /// </summary>
@@ -1680,7 +1680,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("ParameterCapturingNotAvailable_Reason_UnsupportedRuntime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to :NOT PRESENT:.
         /// </summary>
@@ -1689,7 +1689,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
                 return ResourceManager.GetString("Placeholder_NotPresent", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to :REDACTED:.
         /// </summary>
