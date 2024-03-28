@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.StartupHook
             if (!fileInfo.Exists)
             {
                 // When the file doesn't exist fileInfo.Name will contain the full path of the missing file.
-                _logger.StartupHookApplyFailed(Path.GetFileName(fileInfo.Name), new FileNotFoundException(null, fileInfo.Name));
+                _logger.StartupHookApplyFailed(fileName, new FileNotFoundException(null, fileInfo.Name));
                 return false;
             }
 
