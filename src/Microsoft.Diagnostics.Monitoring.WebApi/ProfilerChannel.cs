@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         private IOptionsMonitor<StorageOptions> _storageOptions;
 
-        internal ProfilerChannel(IOptionsMonitor<StorageOptions> storageOptions)
+        public ProfilerChannel(IOptionsMonitor<StorageOptions> storageOptions)
         {
             _storageOptions = storageOptions;
         }
