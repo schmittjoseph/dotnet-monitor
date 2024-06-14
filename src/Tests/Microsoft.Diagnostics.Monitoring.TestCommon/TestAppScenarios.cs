@@ -109,23 +109,14 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
                 public const string RecursingProbe = nameof(RecursingProbe);
                 public const string RequestInstallationOnProbeFunction = nameof(RequestInstallationOnProbeFunction);
 
+                /* Monitor context */
+                public const string ProbeInMonitorContext = nameof(ProbeInMonitorContext);
+
                 /* Self tests */
                 public const string AssertsInProbesAreCaught = nameof(AssertsInProbesAreCaught);
 #else // NET7_0_OR_GREATER
                 public const string ValidateNoMutatingProfiler = nameof(ValidateNoMutatingProfiler);
 #endif // NET7_0_OR_GREATER
-            }
-        }
-
-        public static class HostingStartup
-        {
-            public const string Name = nameof(HostingStartup);
-
-            public static class SubScenarios
-            {
-                public const string VerifyAspNetAppWithoutHostingStartup = nameof(VerifyAspNetAppWithoutHostingStartup);
-                public const string VerifyAspNetApp = nameof(VerifyAspNetApp);
-                public const string VerifyNonAspNetAppNotImpacted = nameof(VerifyNonAspNetAppNotImpacted);
             }
         }
 
@@ -142,6 +133,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
         public static class EnvironmentVariables
         {
             public const string Name = nameof(EnvironmentVariables);
+            public const string CustomVariableName = nameof(CustomVariableName);
             public const string IncrementVariableName = nameof(IncrementVariableName);
 
             public static class Commands
@@ -192,15 +184,12 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
             public static class SubScenarios
             {
-                public const string ExpectLogStatement = nameof(ExpectLogStatement);
-                public const string DoNotExpectLogStatement = nameof(DoNotExpectLogStatement);
                 public const string AspNetApp = nameof(AspNetApp);
                 public const string NonAspNetApp = nameof(NonAspNetApp);
             }
 
             public static class Commands
             {
-                public const string Validate = nameof(Validate);
                 public const string Continue = nameof(Continue);
             }
         }

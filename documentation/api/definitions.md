@@ -54,7 +54,7 @@ Object describing the basic state of a collection rule for the executing instanc
 
 | Name | Type | Description |
 |---|---|---|
-| State | [CollectionRuleState](#collectionrulestate-63) | Indicates what state the collection rule is in for the current process. |
+| State | [CollectionRuleState](#collectionrulestate) | Indicates what state the collection rule is in for the current process. |
 | StateReason | string | Human-readable explanation for the current state of the collection rule. |
 
 ## CollectionRuleDetailedDescription
@@ -65,7 +65,7 @@ Object describing the detailed state of a collection rule for the executing inst
 
 | Name | Type | Description |
 |---|---|---|
-| State | [CollectionRuleState](#collectionrulestate-63) | Indicates what state the collection rule is in for the current process. |
+| State | [CollectionRuleState](#collectionrulestate) | Indicates what state the collection rule is in for the current process. |
 | StateReason | string | Human-readable explanation for the current state of the collection rule. |
 | LifetimeOccurrences | int | The number of times the trigger has executed for a process in its lifetime. |
 | SlidingWindowOccurrences | int | The number of times the trigger has executed within the current sliding window. |
@@ -86,6 +86,37 @@ Enumeration that describes the current state of the collection rule.
 | `ActionExecuting` | Indicates that the collection has had its triggering conditions satisfied and is currently executing its action list. |
 | `Throttled` | Indicates that the collection rule is temporarily throttled because the ActionCountLimit has been reached within the ActionCountSlidingWindowDuration. |
 | `Finished` | Indicates that the collection rule has completed and will no longer trigger. |
+
+## CapturedMethod
+
+First Available: 9.0 Preview 4
+
+Object describing a captured method and its parameters.
+
+| Name | Type | Description |
+|---|---|---|
+| `activityId` | string? | An identifier for the current activity at the time of the capture. For more information see [Activity.Id](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activity.id).|
+| `activityIdFormat` | string | The activity Id format. For more information see [Activity.IdFormat](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activity.idformat).|
+| `threadId` | int | The managed thread id where the method was called.|
+| `timestamp` | DateTime | Time when the method call was captured. |
+| `moduleName` | string | The method module name. |
+| `typeName` | string | The method type name. |
+| `methodName` | string | The method name. |
+| `parameters` | [CapturedParameter](#capturedparameter)[] | Array of captured parameters. |
+
+## CapturedParameter
+
+First Available: 9.0 Preview 4
+
+Object describing a captured parameter.
+
+| Name | Type | Description |
+|---|---|---|
+| `parameterName` | string | The parameter name. |
+| `value` | string? | The parameter value. |
+| `typeName` | string | The parameter type name. |
+| `moduleName` | string | The parameter type module name. |
+| `evalFailReason` | string | The reason why evaluation failed. If missing the evaluation was successful. |
 
 ## CaptureParametersConfiguration
 

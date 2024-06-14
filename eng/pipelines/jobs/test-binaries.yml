@@ -20,9 +20,12 @@ parameters:
   - key: net8.0
     value: .NET 8
   useHelix: false
+  # Adjust for 1ES pipeline template
+  is1ESPipeline: true
+  commonTemplatesFolderName: ''
 
 jobs:
-- template: /eng/pipelines/jobs/build.yml
+- template: /eng/pipelines/jobs/build.yml@self
   parameters:
     prefix: Test
     osGroup: ${{ parameters.osGroup }}
@@ -33,13 +36,16 @@ jobs:
     dependsOn: Build_${{ parameters.configuration }}_${{ parameters.osGroup }}_${{ parameters.architecture }}
     disableComponentGovernance: true
     disableSbom: true
+    is1ESPipeline: ${{ parameters.is1ESPipeline }}
+    ${{ if ne(parameters.commonTemplatesFolderName, '') }}:
+      commonTemplatesFolderName: ${{ parameters.commonTemplatesFolderName }}
 
     # Override containers for Linux to test on real clib and architecture variants
     ${{ if ne(parameters.useHelix, 'true')}}:
       ${{ if eq(parameters.osGroup, 'Linux') }}:
-        container: mcr.microsoft.com/dotnet-buildtools/prereqs:ubuntu-18.04
+        container: helix_linux_amd64
       ${{ if eq(parameters.osGroup, 'Linux_Musl') }}:
-        container: mcr.microsoft.com/dotnet-buildtools/prereqs:alpine-3.14-WithNode
+        container: helix_linux_musl_amd64
 
     variables:
     - HelixNodejsPayloadPath: '$(Agent.TempDirectory)/helix_nodejs'
@@ -75,27 +81,52 @@ jobs:
       - ${{ if ne(parameters.osGroup, 'Linux_Musl')}}:
         # Linux builds (of all variants) run in Mariner containers and do not include pwsh by default
         - ${{ if eq(parameters.osGroup, 'Linux') }}:
-          - script: sudo -n tdnf install -y --refresh powershell
+          - script: |
+              $(Build.SourcesDirectory)/restore.sh
+              $(Build.SourcesDirectory)/.dotnet/dotnet tool install --global PowerShell
+              echo "##vso[task.prependpath]/home/cloudtest_azpcontainer/.dotnet/tools"
             displayName: Install pwsh
 
-        # Calculate the fully qualified Nodejs version first so that any new releases will result in a new cache key
-        - pwsh: eng/helix/GetNodejsVersion.ps1
-              -MajorVersion $(NodeMajorVersion)
-              -TaskVariableName 'FqNodejsVersion'
-          displayName: Calculate Node.js version
+          # Calculate the fully qualified Nodejs version first so that any new releases will result in a new cache key
+          - script: |
+              pwsh ../eng/helix/GetNodejsVersion.ps1 -MajorVersion $(NodeMajorVersion) -TaskVariableName 'FqNodejsVersion'
+            displayName: Calculate Node.js version Linux
+            workingDirectory: "$(Build.SourcesDirectory)/.dotnet"
+            env:
+              DOTNET_ROOT: "$(Build.SourcesDirectory)/.dotnet"
+  
+          - task: Cache@2
+            displayName: Node.js Cache Linux
+            inputs:
+              # Wrap FqNodejsVersion in quotes to prevent it being interpreted as a file
+              key: 'nodejs | ${{ parameters.osGroup }} | ${{ parameters.architecture }} | "$(FqNodejsVersion)"'
+              path: $(HelixNodejsPayloadPath)
+  
+          - script: |
+              pwsh ../eng/helix/InstallNodejs.ps1 -Version $(FqNodejsVersion) -Architecture ${{ parameters.architecture }} -DestinationFolder "$(HelixNodejsPayloadPath)"
+            displayName: Hydrate Node.js Installation Linux
+            workingDirectory: "$(Build.SourcesDirectory)/.dotnet"
+            env:
+              DOTNET_ROOT: "$(Build.SourcesDirectory)/.dotnet"
 
-        - task: Cache@2
-          displayName: Node.js Cache
-          inputs:
-            # Wrap FqNodejsVersion in quotes to prevent it being interpreted as a file
-            key: 'nodejs | ${{ parameters.osGroup }} | ${{ parameters.architecture }} | "$(FqNodejsVersion)"'
-            path: $(HelixNodejsPayloadPath)
-
-        - pwsh: eng/helix/InstallNodejs.ps1
-            -Version $(FqNodejsVersion)
-            -Architecture ${{ parameters.architecture }}
-            -DestinationFolder "$(HelixNodejsPayloadPath)"
-          displayName: Hydrate Node.js Installation
+        - ${{ else }}:
+          - pwsh: eng/helix/GetNodejsVersion.ps1
+                -MajorVersion $(NodeMajorVersion)
+                -TaskVariableName 'FqNodejsVersion'
+            displayName: Calculate Node.js version Non-Linux
+  
+          - task: Cache@2
+            displayName: Node.js Cache Non-Linux
+            inputs:
+              # Wrap FqNodejsVersion in quotes to prevent it being interpreted as a file
+              key: 'nodejs | ${{ parameters.osGroup }} | ${{ parameters.architecture }} | "$(FqNodejsVersion)"'
+              path: $(HelixNodejsPayloadPath)
+  
+          - pwsh: eng/helix/InstallNodejs.ps1
+              -Version $(FqNodejsVersion)
+              -Architecture ${{ parameters.architecture }}
+              -DestinationFolder "$(HelixNodejsPayloadPath)"
+            displayName: Hydrate Node.js Installation Non-Linux
 
     - ${{ else }}:
       - ${{ if ne(parameters.osGroup, 'Windows') }}:
@@ -170,10 +201,11 @@ jobs:
           condition: succeededOrFailed()
 
       - ${{ if ne(variables['System.TeamProject'], 'public') }}:
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Test Result Files
-          inputs:
+        - template: /eng/pipelines/steps/publish-build-artifacts.yml@self
+          parameters:
+            displayName: Publish Test Result Files
             PathtoPublish: '$(Build.SourcesDirectory)/artifacts/TestResults/$(_BuildConfig)'
             ArtifactName: TestResults_${{ parameters.configuration }}_${{ parameters.osGroup }}_${{ parameters.architecture }}
-          continueOnError: true
-          condition: succeededOrFailed()
+            is1ESPipeline: ${{ parameters.is1ESPipeline }}
+            continueOnError: true
+            condition: succeededOrFailed()

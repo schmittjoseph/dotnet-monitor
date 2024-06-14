@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Monitoring;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Tools.Monitor.Auth;
-using Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing;
 using Microsoft.Diagnostics.Tools.Monitor.Stacks;
 using Microsoft.Diagnostics.Tools.Monitor.Swagger;
 using Microsoft.Extensions.DependencyInjection;
@@ -120,29 +119,32 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.AddSingleton<IDiagnosticServices, DiagnosticServices>();
                 services.AddSingleton<IDumpService, DumpService>();
                 services.AddSingleton<IEndpointInfoSourceCallbacks, OperationTrackerServiceEndpointInfoSourceCallback>();
-                services.AddSingleton<IRequestLimitTracker, RequestLimitTracker>();
+                services.ConfigureRequestLimits();
                 services.ConfigureOperationStore();
                 services.ConfigureExtensions();
                 services.ConfigureExtensionLocations(settings);
                 services.ConfigureEgress();
                 services.ConfigureMetrics(context.Configuration);
+                services.ConfigureParameterCapturing();
                 services.ConfigureStorage(context.Configuration);
                 services.ConfigureDefaultProcess(context.Configuration);
                 services.AddSingleton<ProfilerChannel>();
                 services.ConfigureCollectionRules();
                 services.ConfigureLibrarySharing();
+                /*
+                 * ConfigureInProcessFeatures needs to be called before ConfigureProfiler
+                 * because the profiler needs to have access to environment variables set by in process features.
+                 */
+                services.ConfigureInProcessFeatures(context.Configuration);
                 services.ConfigureProfiler();
                 services.ConfigureStartupHook();
-                services.ConfigureHostingStartup();
                 services.ConfigureExceptions();
                 services.ConfigureStartupLoggers(authConfigurator);
-                services.ConfigureInProcessFeatures(context.Configuration);
                 services.AddSingleton<IInProcessFeatures, InProcessFeatures>();
                 services.AddSingleton<IDumpOperationFactory, DumpOperationFactory>();
                 services.AddSingleton<ILogsOperationFactory, LogsOperationFactory>();
                 services.AddSingleton<IMetricsOperationFactory, MetricsOperationFactory>();
                 services.AddSingleton<ITraceOperationFactory, TraceOperationFactory>();
-                services.AddSingleton<ICaptureParametersOperationFactory, CaptureParametersOperationFactory>();
                 services.AddSingleton<IGCDumpOperationFactory, GCDumpOperationFactory>();
                 services.AddSingleton<IStacksOperationFactory, StacksOperationFactory>();
 
