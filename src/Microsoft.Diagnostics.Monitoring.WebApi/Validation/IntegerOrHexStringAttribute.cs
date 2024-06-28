@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Validation
     {
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value == null || !(value is string stringValue))
+            if (!(value is not null and string stringValue))
             {
                 return new ValidationResult(Strings.ErrorMessage_ValueNotString);
             }
