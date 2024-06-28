@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         private readonly Channel<ICounterPayload> _channel;
         private readonly ChannelReader<ICounterPayload> _channelReader;
         private readonly ChannelWriter<ICounterPayload> _channelWriter;
-        private Task _processingTask;
+        private Task? _processingTask;
         private readonly ILogger _logger;
 
         protected ILogger Logger => _logger;
@@ -40,6 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _channelReader = _channel.Reader;
             _channelWriter = _channel.Writer;
             _logger = logger;
+
         }
 
         public void Log(ICounterPayload counter)
@@ -47,14 +48,24 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             _channelWriter.TryWrite(counter);
         }
 
+        // Not thread safe.
         public Task PipelineStarted(CancellationToken token)
         {
+            if (_processingTask != null)
+            {
+                throw new InvalidOperationException(Strings.ErrorMessage_PipelineNotRunning);
+            }
             _processingTask = ReadAndSerializeAsync(token);
             return Task.CompletedTask;
         }
 
+        // Not thread safe.
         public async Task PipelineStopped(CancellationToken token)
         {
+            if (_processingTask == null)
+            {
+                throw new InvalidOperationException(Strings.ErrorMessage_PipelineAlreadyRunning);
+            }
             _channelWriter.Complete();
 
             if (_dropCount > 0)

@@ -187,6 +187,24 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Pipeline is already running..
+        /// </summary>
+        internal static string ErrorMessage_PipelineAlreadyRunning {
+            get {
+                return ResourceManager.GetString("ErrorMessage_PipelineAlreadyRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pipeline is not running..
+        /// </summary>
+        internal static string ErrorMessage_PipelineNotRunning {
+            get {
+                return ResourceManager.GetString("ErrorMessage_PipelineNotRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to enumerate processes..
         /// </summary>
         internal static string ErrorMessage_ProcessEnumerationFailed {

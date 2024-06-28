@@ -166,6 +166,12 @@
   <data name="ErrorMessage_OperationNotStarting" xml:space="preserve">
     <value>Operation is not starting.</value>
   </data>
+  <data name="ErrorMessage_PipelineAlreadyRunning" xml:space="preserve">
+    <value>Pipeline is already running.</value>
+  </data>
+  <data name="ErrorMessage_PipelineNotRunning" xml:space="preserve">
+    <value>Pipeline is not running.</value>
+  </data>
   <data name="ErrorMessage_ProcessEnumerationFailed" xml:space="preserve">
     <value>Unable to enumerate processes.</value>
     <comment>Gets a string similar to "Unable to enumerate processes.".</comment>
