@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.Extensibility
@@ -17,9 +18,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Extensibility
             _factories = factories.ToDictionary(f => f.Name, StringComparer.Ordinal);
         }
 
-        public override bool TryFindExtension(string extensionName, out IExtension extension)
+        public override bool TryFindExtension(string extensionName, [NotNullWhen(true)] out IExtension? extension)
         {
-            if (!_factories.TryGetValue(extensionName, out IWellKnownExtensionFactory factory))
+            if (!_factories.TryGetValue(extensionName, out IWellKnownExtensionFactory? factory))
             {
                 extension = null;
                 return false;

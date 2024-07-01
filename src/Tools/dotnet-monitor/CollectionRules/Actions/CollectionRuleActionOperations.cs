@@ -3,10 +3,12 @@
 
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Configuration;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
@@ -42,14 +44,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         /// <inheritdoc/>
         public bool TryCreateFactory(
             string actionName,
-            out ICollectionRuleActionFactoryProxy action)
+            [NotNullWhen(true)] out ICollectionRuleActionFactoryProxy? action)
         {
-            if (_map.TryGetValue(actionName, out ICollectionRuleActionDescriptor descriptor))
+            if (_map.TryGetValue(actionName, out ICollectionRuleActionDescriptor? descriptor))
             {
                 Type actionWrapperType = typeof(CollectionRuleActionFactoryProxy<,>).MakeGenericType(descriptor.FactoryType, descriptor.OptionsType);
 
-                action = (ICollectionRuleActionFactoryProxy)_serviceProvider.GetService(actionWrapperType);
-                return true;
+                action = (ICollectionRuleActionFactoryProxy?)_serviceProvider.GetService(actionWrapperType);
+                return action != null;
             }
 
             action = null;
@@ -59,12 +61,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         /// <inheritdoc/>
         public bool TryCreateOptions(
             string actionName,
-            out object options)
+            [NotNullWhen(true)] out object? options)
         {
-            if (_map.TryGetValue(actionName, out ICollectionRuleActionDescriptor descriptor))
+            if (_map.TryGetValue(actionName, out ICollectionRuleActionDescriptor? descriptor))
             {
                 options = Activator.CreateInstance(descriptor.OptionsType);
-                return true;
+                return options != null;
             }
 
             options = null;
@@ -78,7 +80,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             ValidationContext validationContext,
             ICollection<ValidationResult> results)
         {
-            if (_map.TryGetValue(actionName, out ICollectionRuleActionDescriptor descriptor))
+            if (_map.TryGetValue(actionName, out ICollectionRuleActionDescriptor? descriptor))
             {
                 return ValidationHelper.TryValidateOptions(descriptor.OptionsType, options, validationContext, results);
             }

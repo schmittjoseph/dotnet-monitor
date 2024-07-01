@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Actions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -35,7 +36,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
         private readonly ConfigurationTokenParser _tokenParser;
 
         //Use action index instead of name, since it's possible for an unnamed action to have named dependencies.
-        private Dictionary<int, Dictionary<string, PropertyDependency>> _dependencies;
+        private Dictionary<int, Dictionary<string, PropertyDependency>>? _dependencies;
 
         private sealed class PropertyDependency
         {
@@ -89,7 +90,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
 
         public IList<CollectionRuleActionOptions> GetActionDependencies(int actionIndex)
         {
-            if (_dependencies.TryGetValue(actionIndex, out Dictionary<string, PropertyDependency> properties))
+            EnsureDependencies(ref _dependencies);
+            if (_dependencies.TryGetValue(actionIndex, out Dictionary<string, PropertyDependency>? properties))
             {
                 HashSet<string> actionNames = new(StringComparer.Ordinal);
                 List<CollectionRuleActionOptions> actionOptions = new();
@@ -107,12 +109,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
             return Array.Empty<CollectionRuleActionOptions>();
         }
 
-        public object SubstituteOptionValues(IDictionary<string, CollectionRuleActionResult> actionResults, int actionIndex, object settings)
+        public object? SubstituteOptionValues(IDictionary<string, CollectionRuleActionResult> actionResults, int actionIndex, object? settings)
         {
+            EnsureDependencies(ref _dependencies);
             //Attempt to substitute context properties.
-            object originalSettings = settings;
+            object? originalSettings = settings;
 
-            if (_dependencies.TryGetValue(actionIndex, out Dictionary<string, PropertyDependency> properties) && (properties.Count > 0))
+            if (_dependencies.TryGetValue(actionIndex, out Dictionary<string, PropertyDependency>? properties) && (properties.Count > 0))
             {
                 if (!_tokenParser.TryCloneSettings(originalSettings, ref settings))
                 {
@@ -121,7 +124,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
 
                 foreach ((_, PropertyDependency property) in properties)
                 {
-                    StringBuilder builder = property.ActionDependencies.Any() ? new() : null;
+                    if (property.ActionDependencies.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    StringBuilder builder = new();
                     int offset = 0;
                     foreach (ActionDependency actionDependency in property.ActionDependencies)
                     {
@@ -130,7 +138,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
                             _ruleContext.Logger.InvalidActionResultReference(actionDependency.GetActionResultToken());
                             continue;
                         }
-                        if (!results.OutputValues.TryGetValue(actionDependency.ResultName, out string result))
+                        if (!results.OutputValues.TryGetValue(actionDependency.ResultName, out string? result))
                         {
                             _ruleContext.Logger.InvalidActionResultReference(actionDependency.GetActionResultToken());
                             continue;
@@ -139,16 +147,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
                         builder.Append(result);
                         offset = actionDependency.EndIndex + 1;
                     }
-                    if (builder != null)
-                    {
-                        //It's possible there are trailing values after the last dependency or we simply couldn't process any tokens.
-                        if (offset < property.OriginalValue.Length)
-                        {
-                            builder.Append(property.OriginalValue, offset, property.OriginalValue.Length - offset);
-                        }
 
-                        property.Property.SetValue(settings, builder.ToString());
+                    //It's possible there are trailing values after the last dependency or we simply couldn't process any tokens.
+                    if (offset < property.OriginalValue.Length)
+                    {
+                        builder.Append(property.OriginalValue, offset, property.OriginalValue.Length - offset);
                     }
+
+                    property.Property.SetValue(settings, builder.ToString());
                 }
             }
             string commandLine = _ruleContext.EndpointInfo?.CommandLine ?? string.Empty;
@@ -166,12 +172,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
         }
 
 
-
         private void EnsureDependencies()
         {
-            if (_dependencies == null)
+            EnsureDependencies(ref _dependencies);
+        }
+
+        private void EnsureDependencies([NotNull] ref Dictionary<int, Dictionary<string, PropertyDependency>>? dependencies)
+        {
+            if (dependencies == null)
             {
-                _dependencies = new Dictionary<int, Dictionary<string, PropertyDependency>>(_ruleContext.Options.Actions.Count);
+                dependencies = new Dictionary<int, Dictionary<string, PropertyDependency>>(_ruleContext.Options.Actions.Count);
                 for (int i = 0; i < _ruleContext.Options.Actions.Count; i++)
                 {
                     CollectionRuleActionOptions options = _ruleContext.Options.Actions[i];
@@ -184,17 +194,17 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
         {
             foreach (PropertyInfo property in GetDependencyPropertiesFromSettings(options))
             {
-                string originalValue = (string)property.GetValue(options.Settings);
-                string newValue = originalValue;
+                string? originalValue = (string?)property.GetValue(options.Settings);
                 if (string.IsNullOrEmpty(originalValue))
                 {
                     continue;
                 }
+                string newValue = originalValue;
 
                 int foundIndex;
                 int startIndex = 0;
 
-                PropertyDependency propertyDependency = null;
+                PropertyDependency? propertyDependency = null;
 
                 while ((foundIndex = newValue.IndexOf(ActionReferencePrefix, startIndex, StringComparison.OrdinalIgnoreCase)) >= 0)
                 {
@@ -208,7 +218,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
 
                     string actionAndResult = newValue[(foundIndex + ActionReferencePrefix.Length)..suffixIndex];
 
-                    if (!GetActionResultReference(actionAndResult, actionIndex, out CollectionRuleActionOptions dependencyOptions, out string actionResultName))
+                    if (!GetActionResultReference(actionAndResult, actionIndex, out CollectionRuleActionOptions? dependencyOptions, out string? actionResultName))
                     {
                         continue;
                     }
@@ -223,12 +233,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
 
         private PropertyDependency GetOrCreateDependency(int actionIndex, PropertyInfo propertyInfo, string originalValue)
         {
-            if (!_dependencies.TryGetValue(actionIndex, out Dictionary<string, PropertyDependency> properties))
+            EnsureDependencies(ref _dependencies);
+            if (!_dependencies.TryGetValue(actionIndex, out Dictionary<string, PropertyDependency>? properties))
             {
                 properties = new Dictionary<string, PropertyDependency>(StringComparer.Ordinal);
                 _dependencies.Add(actionIndex, properties);
             }
-            if (!properties.TryGetValue(propertyInfo.Name, out PropertyDependency dependency))
+            if (!properties.TryGetValue(propertyInfo.Name, out PropertyDependency? dependency))
             {
                 dependency = new PropertyDependency(propertyInfo, originalValue);
                 properties.Add(propertyInfo.Name, dependency);
@@ -237,7 +248,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
         }
 
         private bool GetActionResultReference(string actionReference, int actionIndex,
-            out CollectionRuleActionOptions action, out string actionResultName)
+            [NotNullWhen(true)] out CollectionRuleActionOptions? action, [NotNullWhen(true)] out string? actionResultName)
         {
             action = null;
             actionResultName = null;
@@ -257,7 +268,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
             }
 
             //We only check previous actions for our dependencies.
-            CollectionRuleActionOptions dependencyOptions = _ruleContext.Options.Actions.Take(actionIndex)
+            CollectionRuleActionOptions? dependencyOptions = _ruleContext.Options.Actions.Take(actionIndex)
                 .FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.Ordinal));
 
             if (dependencyOptions == null)

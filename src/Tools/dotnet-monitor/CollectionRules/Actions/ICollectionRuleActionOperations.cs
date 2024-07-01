@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
 {
@@ -17,7 +18,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         /// </summary>
         bool TryCreateFactory(
             string actionName,
-            out ICollectionRuleActionFactoryProxy action);
+            [NotNullWhen(true)] out ICollectionRuleActionFactoryProxy? action);
 
         /// <summary>
         /// Attempts to create an options instance of the options type
@@ -25,7 +26,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         /// </summary>
         bool TryCreateOptions(
             string actionName,
-            out object options);
+            [NotNullWhen(true)] out object? options);
 
         /// <summary>
         /// Attempts to validate an options instance of the options type

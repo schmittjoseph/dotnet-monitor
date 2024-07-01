@@ -5,6 +5,7 @@ using Microsoft.Diagnostics.Tools.Monitor.Egress.Extension;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.Extensibility
@@ -22,7 +23,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Extensibility
             _logger = logger;
         }
 
-        public override bool TryFindExtension(string extensionName, out IExtension extension)
+        public override bool TryFindExtension(string extensionName, [NotNullWhen(true)] out IExtension? extension)
         {
             IDirectoryContents extensionDirs = _fileSystem.GetDirectoryContents(string.Empty);
 

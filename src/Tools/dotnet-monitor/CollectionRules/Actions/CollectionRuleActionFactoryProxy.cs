@@ -23,9 +23,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         }
 
         /// <inheritdoc/>
-        public ICollectionRuleAction Create(IProcessInfo processInfo, object options)
+        public ICollectionRuleAction Create(IProcessInfo processInfo, object? options)
         {
-            TOptions typedOptions = options as TOptions;
+            TOptions? typedOptions = options as TOptions;
             if (null != options && null == typedOptions)
             {
                 throw new ArgumentException(nameof(options));

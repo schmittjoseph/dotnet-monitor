@@ -164,13 +164,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
         /// </remarks>
         private async Task RunRuleAsync(
             string ruleName,
-            TaskCompletionSource<object> startedSource,
+            TaskCompletionSource<object?> startedSource,
             CancellationToken token)
         {
             KeyValueLogScope scope = new();
             scope.AddCollectionRuleEndpointInfo(_processInfo.EndpointInfo);
             scope.AddCollectionRuleName(ruleName);
-            using IDisposable loggerScope = _logger.BeginScope(scope);
+            using IDisposable? loggerScope = _logger.BeginScope(scope);
 
             using CancellationTokenSource linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
                 _shutdownTokenSource.Token,

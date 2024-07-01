@@ -3,10 +3,12 @@
 
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Configuration;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
@@ -42,10 +44,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
         /// <inheritdoc/>
         public bool TryCreateFactory(
             string triggerName,
-            out ICollectionRuleTriggerFactoryProxy factory)
+            [NotNullWhen(true)] out ICollectionRuleTriggerFactoryProxy? factory)
         {
             // Check that the trigger is registered
-            if (_map.TryGetValue(triggerName, out ICollectionRuleTriggerDescriptor descriptor))
+            if (_map.TryGetValue(triggerName, out ICollectionRuleTriggerDescriptor? descriptor))
             {
                 // Trigger options are optional; the descriptor will have a non-null options type
                 // if the trigger was registered with options. Create the appropriate factory proxy
@@ -60,7 +62,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
                     factoryWrapperType = typeof(CollectionRuleTriggerFactoryProxy<,>).MakeGenericType(descriptor.FactoryType, descriptor.OptionsType);
                 }
 
-                factory = (ICollectionRuleTriggerFactoryProxy)_serviceProvider.GetService(factoryWrapperType);
+                factory = (ICollectionRuleTriggerFactoryProxy)_serviceProvider.GetRequiredService(factoryWrapperType);
                 return true;
             }
 
@@ -71,14 +73,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
         /// <inheritdoc/>
         public bool TryCreateOptions(
             string triggerName,
-            out object options)
+            [NotNullWhen(true)] out object? options)
         {
             // Check that the trigger is registered and has options
-            if (_map.TryGetValue(triggerName, out ICollectionRuleTriggerDescriptor descriptor) &&
+            if (_map.TryGetValue(triggerName, out ICollectionRuleTriggerDescriptor? descriptor) &&
                 null != descriptor.OptionsType)
             {
                 options = Activator.CreateInstance(descriptor.OptionsType);
-                return true;
+                return options != null;
             }
 
             options = null;
@@ -93,7 +95,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
             ICollection<ValidationResult> results)
         {
             // Check that the trigger is registered
-            if (_map.TryGetValue(triggerName, out ICollectionRuleTriggerDescriptor descriptor))
+            if (_map.TryGetValue(triggerName, out ICollectionRuleTriggerDescriptor? descriptor))
             {
                 // If the trigger type does not have options, then skip validation of the options.
                 if (null != descriptor.OptionsType)

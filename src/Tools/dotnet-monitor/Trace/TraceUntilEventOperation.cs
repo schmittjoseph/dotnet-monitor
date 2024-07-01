@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         private readonly string _eventName;
         private readonly IDictionary<string, string> _payloadFilter;
 
-        private readonly TaskCompletionSource<object> _eventStreamAvailableCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<object> _stoppingEventHitSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _eventStreamAvailableCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _stoppingEventHitSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public TraceUntilEventOperation(
             IEndpointInfo endpointInfo,

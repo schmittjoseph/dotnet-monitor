@@ -25,13 +25,18 @@ namespace Microsoft.Diagnostics.Tools.Monitor.LibrarySharing
             TargetPath = targetPath;
         }
 
-        private static string ComputeTargetPath(IOptions<StorageOptions> options)
+        private static string? ComputeTargetPath(IOptions<StorageOptions> options)
         {
             string rootPath = options.Value.SharedLibraryPath;
             if (string.IsNullOrEmpty(rootPath))
                 return null;
 
-            string expectedVersion = Assembly.GetExecutingAssembly().GetInformationalVersionString();
+            string? expectedVersion = Assembly.GetExecutingAssembly().GetInformationalVersionString();
+            if (expectedVersion == null)
+            {
+                return null;
+            }
+
             // Remove '+' and commit hash from version string
             int hashSeparatorIndex = expectedVersion.IndexOf('+');
             if (hashSeparatorIndex > 0)

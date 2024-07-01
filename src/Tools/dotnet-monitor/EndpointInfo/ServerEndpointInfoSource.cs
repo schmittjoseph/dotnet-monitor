@@ -62,9 +62,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         public ServerEndpointInfoSource(
             IServiceScopeFactory scopeFactory,
             IOptions<DiagnosticPortOptions> portOptions,
-            IEnumerable<IEndpointInfoSourceCallbacks> callbacks = null,
-            OperationTrackerService operationTrackerService = null,
-            ILogger<ServerEndpointInfoSource> logger = null)
+            IEnumerable<IEndpointInfoSourceCallbacks> callbacks,
+            OperationTrackerService operationTrackerService,
+            ILogger<ServerEndpointInfoSource> logger)
         {
             _callbacks = callbacks ?? Enumerable.Empty<IEndpointInfoSourceCallbacks>();
             _operationTrackerService = operationTrackerService;
@@ -383,7 +383,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
         }
 
-        private async Task PruneEndpointsAsync(List<IEndpointInfo> validEndpoints, CancellationToken token)
+        private async Task PruneEndpointsAsync(List<IEndpointInfo>? validEndpoints, CancellationToken token)
         {
             // Prune connections that no longer have an active runtime instance before
             // returning the list of connections.
@@ -434,7 +434,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             // If a dump operation is in progress, the runtime is likely to not respond to
             // diagnostic requests. Do not check for responsiveness while the dump operation
             // is in progress.
-            if (_operationTrackerService?.IsExecutingOperation(info) == true)
+            if (_operationTrackerService.IsExecutingOperation(info))
             {
                 return true;
             }
@@ -450,7 +450,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
             catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested)
             {
-                _logger?.EndpointTimeout(info.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                _logger.EndpointTimeout(info.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 return false;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -461,7 +461,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             return true;
         }
 
-        private IDisposable SetupDiagnosticPortWatcher()
+        private IDisposable? SetupDiagnosticPortWatcher()
         {
             // If running on Windows, a named pipe is used so there is no need to watch it.
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -469,7 +469,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 return null;
             }
 
-            FileSystemWatcher watcher = null;
+            FileSystemWatcher? watcher = null;
             try
             {
                 watcher = new(Path.GetDirectoryName(_portOptions.EndpointName));

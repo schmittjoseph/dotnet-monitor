@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Configuration
         public static void BindActionSettings(IConfigurationSection actionSection, CollectionRuleActionOptions actionOptions, ICollectionRuleActionOperations actionOperations)
         {
             if (null != actionOptions &&
-                actionOperations.TryCreateOptions(actionOptions.Type, out object actionSettings))
+                actionOperations.TryCreateOptions(actionOptions.Type, out object? actionSettings))
             {
                 IConfigurationSection settingsSection = actionSection.GetSection(nameof(CollectionRuleActionOptions.Settings));
 
@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Configuration
         public static void BindTriggerSettings(IConfigurationSection triggerSection, CollectionRuleTriggerOptions triggerOptions, ICollectionRuleTriggerOperations triggerOperations)
         {
             if (null != triggerOptions &&
-                triggerOperations.TryCreateOptions(triggerOptions.Type, out object triggerSettings))
+                triggerOperations.TryCreateOptions(triggerOptions.Type, out object? triggerSettings))
             {
                 IConfigurationSection settingsSection = triggerSection.GetSection(nameof(CollectionRuleTriggerOptions.Settings));
 

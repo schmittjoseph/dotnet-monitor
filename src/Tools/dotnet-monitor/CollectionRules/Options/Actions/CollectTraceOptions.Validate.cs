@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Actions
             }
             else if (hasProviders)
             {
-                GlobalCounterOptions counterOptions = null;
+                GlobalCounterOptions? counterOptions = null;
 
                 try
                 {
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Actions
 
                     Validator.TryValidateObject(provider, providerContext, results, validateAllProperties: true);
 
-                    if (counterOptions != null && !CounterValidator.ValidateProvider(counterOptions, provider, out string errorMessage))
+                    if (counterOptions != null && !CounterValidator.ValidateProvider(counterOptions, provider, out string? errorMessage))
                     {
                         results.Add(new ValidationResult(errorMessage, new[] { nameof(EventPipeProvider.Arguments) }));
                     }

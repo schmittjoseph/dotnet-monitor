@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
         internal class OutputParser<TResult> : IDisposable where TResult : class, IExtensionResult
         {
             private readonly ILogger<EgressExtension> _logger;
-            private readonly TaskCompletionSource<TResult> _resultCompletionSource;
+            private readonly TaskCompletionSource<TResult?> _resultCompletionSource;
             private readonly EventWaitHandle _beginReadsHandle;
             private readonly Process _process;
             // We need to store the process ID for logging because we can't access it after the process exits
@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
             {
                 _process = process;
                 _logger = logger;
-                _resultCompletionSource = new TaskCompletionSource<TResult>();
+                _resultCompletionSource = new TaskCompletionSource<TResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 _beginReadsHandle = new EventWaitHandle(false, EventResetMode.AutoReset);
 
                 _process.OutputDataReceived += ParseStdOut;
@@ -66,8 +66,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
                     try
                     {
                         // Check if the object is a TResult
-                        TResult result = JsonSerializer.Deserialize<TResult>(eventArgs.Data);
-                        if (result.IsValid())
+                        TResult? result = JsonSerializer.Deserialize<TResult>(eventArgs.Data);
+                        if (result?.IsValid() == true)
                         {
                             _resultCompletionSource.TrySetResult(result);
                         }
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
                 }
             }
 
-            private void ProcExited(object sender, EventArgs e)
+            private void ProcExited(object? sender, EventArgs e)
             {
                 // We need to make sure we started reading in-order to be sure
                 // that output streams will be processed

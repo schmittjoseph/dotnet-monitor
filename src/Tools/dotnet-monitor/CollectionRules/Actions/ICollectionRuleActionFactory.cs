@@ -7,6 +7,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
 {
     internal interface ICollectionRuleActionFactory<TOptions>
     {
-        ICollectionRuleAction Create(IProcessInfo endpointInfo, TOptions options);
+        ICollectionRuleAction Create(IProcessInfo endpointInfo, TOptions? options);
     }
 }

@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
 {
@@ -17,7 +18,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
         /// </summary>
         bool TryCreateFactory(
             string triggerName,
-            out ICollectionRuleTriggerFactoryProxy factory);
+            [NotNullWhen(true)] out ICollectionRuleTriggerFactoryProxy? factory);
 
         /// <summary>
         /// Attempts to create an options instance of the options type
@@ -25,7 +26,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers
         /// </summary>
         bool TryCreateOptions(
             string triggerName,
-            out object options);
+            [NotNullWhen(true)] out object? options);
 
         /// <summary>
         /// Attempts to validate an options instance of the options type

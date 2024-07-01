@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Microsoft.Diagnostics.Tools.Monitor.Extensibility
 {
     internal abstract class ExtensionRepository
@@ -11,6 +13,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Extensibility
         /// <param name="extensionName"><see cref="string"/> moniker used to lookup the specified extension.</param>
         /// <param name="extension">The discovered <see cref="IExtension"/> is returned via this out parameter.</param>
         /// <returns>A <see cref="bool"/> <see langword="true"/> if the desired extension was found; <see langword="false"/> otherwise.</returns>
-        public abstract bool TryFindExtension(string extensionName, out IExtension extension);
+        public abstract bool TryFindExtension(string extensionName, [NotNullWhen(true)] out IExtension? extension);
     }
 }
