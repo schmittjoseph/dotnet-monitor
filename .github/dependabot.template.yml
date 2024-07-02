@@ -20,7 +20,9 @@ updates:
 #@ for branch in getBranches():
 #@ commit_prefix = "[" + branch + "] "
   - package-ecosystem: "nuget"
-    directory: "/eng/dependabot/independent"
+    directories:
+      - /eng/dependabot/independent
+      - /eng/dependabot/nuget.org
     schedule:
       interval: "daily"
     target-branch: #@ branch
@@ -41,7 +43,7 @@ updates:
           - "Microsoft.IdentityModel.*"
   - package-ecosystem: "nuget"
     directories:
-      - "/eng/dependabot/*"
+      - /eng/dependabot/net*
     schedule:
       interval: "daily"
     target-branch: #@ branch
