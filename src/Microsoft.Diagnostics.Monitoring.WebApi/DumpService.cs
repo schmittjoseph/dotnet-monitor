@@ -31,13 +31,18 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
         public async Task<Stream> DumpAsync(IEndpointInfo endpointInfo, Models.DumpType mode, CancellationToken token)
         {
+            StorageOptions options = _storageOptions.CurrentValue;
+            if (!options.IsValidated())
+            {
+                throw new InvalidOperationException();
+            }
+
             if (endpointInfo == null)
             {
                 throw new ArgumentNullException(nameof(endpointInfo));
             }
 
-            // Guaranteed to not be null by StoragePostConfigureOptions.PostConfigure.
-            string dumpTempFolder = _storageOptions.CurrentValue.DumpTempFolder!;
+            string dumpTempFolder = options.DumpTempFolder;
 
             // Ensure folder exists before issue command.
             if (!Directory.Exists(dumpTempFolder))
