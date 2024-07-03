@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Actions
         [Display(
             ResourceType = typeof(OptionsDisplayStrings),
             Description = nameof(OptionsDisplayStrings.DisplayAttributeDescription_CollectTraceOptions_Providers))]
-        public List<EventPipeProvider>? Providers { get; set; }
+        public List<EventPipeProvider> Providers { get; set; } = [];
 
         [Display(
             ResourceType = typeof(OptionsDisplayStrings),

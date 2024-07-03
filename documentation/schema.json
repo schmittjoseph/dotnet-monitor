@@ -2010,10 +2010,7 @@
           ]
         },
         "Providers": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "description": "A list of event providers and settings to capture in the trace.  Either Profile or Providers must be specified, but not both.",
           "items": {
             "$ref": "#/definitions/EventPipeProvider"
