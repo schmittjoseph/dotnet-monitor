@@ -87,7 +87,7 @@ jobs:
               for match in $ourFiles; do
                   git add -- "$match"
               done
-              GIT_MERGE_AUTOEDIT=no git merge --continue
+              git merge --continue -m "Merge $base_branch into $target_branch with manual resolution"
           fi
 
           for match in $ourFiles; do
