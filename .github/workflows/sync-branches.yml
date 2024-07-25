@@ -83,7 +83,7 @@ jobs:
           git merge "$base_branch" --strategy=ort --strategy-option=theirs || MERGE_RESULT=$?
 
           # If the merge failed it's likely do a (modify/delete) conflict. Try to auto-resolve it by accepting the results
-          if [ MERGE_RESULT -ne 0 ]; then
+          if [ $MERGE_RESULT -ne 0 ]; then
               for match in $ourFiles; do
                   git add -- "$match"
               done
