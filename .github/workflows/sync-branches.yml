@@ -87,7 +87,8 @@ jobs:
               for match in $ourFiles; do
                   git add -- "$match"
               done
-              GIT_EDITOR=/bin/true git merge --continue
+              git commit --no-edit
+              #GIT_EDITOR=/bin/true git merge --continue
           fi
 
           for match in $ourFiles; do
