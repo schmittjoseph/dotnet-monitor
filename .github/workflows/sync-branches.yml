@@ -80,14 +80,14 @@ jobs:
           git config merge.ours.driver true
           MERGE_RESULT=0
           # Don't fail if the automatic merge fails, we'll try to handle it later
-          git merge "$base_branch" --no-edit --strategy=ort --strategy-option=theirs || MERGE_RESULT=$?
+          git merge "$base_branch" --strategy=ort --strategy-option=theirs || MERGE_RESULT=$?
 
           # If the merge failed it's likely do a (modify/delete) conflict. Try to auto-resolve it by accepting the results
           if [ $MERGE_RESULT -ne 0 ]; then
               for match in $ourFiles; do
                   git add -- "$match"
               done
-              git merge --continue
+              GIT_MERGE_AUTOEDIT=no git merge --continue
           fi
 
           for match in $ourFiles; do
