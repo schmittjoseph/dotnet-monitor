@@ -64,6 +64,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             {
                 frameModel.MethodToken = functionData.MethodToken;
                 frameModel.ModuleName = NameFormatter.GetModuleName(cache, functionData.ModuleId);
+                frameModel.StackTraceHidden = frameModel.StackTraceHidden || functionData.StackTraceHidden;
 
                 if (cache.ModuleData.TryGetValue(functionData.ModuleId, out ModuleData? moduleData))
                 {
@@ -86,6 +87,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                     frameModel.SimpleParameterTypes = NameFormatter.GetTypeNames(cache, functionData.ParameterTypes, NameFormatter.TypeFormat.Simple);
                     frameModel.FullParameterTypes = NameFormatter.GetTypeNames(cache, functionData.ParameterTypes, NameFormatter.TypeFormat.Full);
                 }
+
 
                 builder.Clear();
                 NameFormatter.BuildTypeName(builder, cache, functionData);

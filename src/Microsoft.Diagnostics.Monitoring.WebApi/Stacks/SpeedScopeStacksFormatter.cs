@@ -71,6 +71,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
 
                 foreach (CallStackFrame frame in stack.Frames)
                 {
+                    // JSFIX, speedscope?
                     if (frame.FunctionId == 0)
                     {
                         profile.Events.Add(NativeProfileEvent);

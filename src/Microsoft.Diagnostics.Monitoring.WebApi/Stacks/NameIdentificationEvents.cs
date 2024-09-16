@@ -19,6 +19,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
             public const int Name = 5;
             public const int TypeArgs = 6;
             public const int ParameterTypes = 7;
+            public const int StackTraceHidden = 8;
         }
 
         public static class ClassDescPayloads
@@ -28,6 +29,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
             public const int Token = 2;
             public const int Flags = 3;
             public const int TypeArgs = 4;
+            public const int StackTraceHidden = 5;
         }
 
         public static class ModuleDescPayloads
@@ -44,6 +46,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
             public const int OuterToken = 2;
             public const int Name = 3;
             public const int Namespace = 4;
+            public const int StackTraceHidden = 5;
         }
     }
 }

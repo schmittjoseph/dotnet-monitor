@@ -205,6 +205,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                         writer.WriteString("typeName", frame.TypeName);
                         writer.WriteString("moduleName", frame.ModuleName);
                         writer.WriteString("moduleVersionId", frame.ModuleVersionId.ToString("D"));
+                        writer.WriteBoolean("stackTraceHidden", frame.StackTraceHidden);
 
                         writer.WriteEndObject();
                     }
@@ -311,11 +312,17 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             {
                 foreach (CallStackFrame frame in currentInstance.CallStack.Frames)
                 {
+                    if (frame.StackTraceHidden)
+                    {
+                        continue;
+                    }
+
                     await writer.WriteLineAsync();
                     await writer.WriteAsync("   at ");
                     await writer.WriteAsync(frame.TypeName);
                     await writer.WriteAsync(".");
                     await writer.WriteAsync(frame.MethodName);
+
 
                     NameFormatter.BuildGenericArgTypes(builder, frame.SimpleGenericArgTypes);
                     await writer.WriteAsync(builder);

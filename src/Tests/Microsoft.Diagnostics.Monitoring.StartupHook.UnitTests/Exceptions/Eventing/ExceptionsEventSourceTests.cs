@@ -143,8 +143,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
         }
 
         [Theory]
-        [InlineData(0, 0, 0, 0, 0, "", new ulong[0], new ulong[0])]
-        [InlineData(1, 100663639, 128, 256, 512, "ThrowObjectDisposedException", new ulong[1] { 1024 }, new ulong[2] { 2048, 4096 })]
+        [InlineData(0, 0, 0, 0, 0, "", new ulong[0], new ulong[0], true)]
+        [InlineData(1, 100663639, 128, 256, 512, "ThrowObjectDisposedException", new ulong[1] { 1024 }, new ulong[2] { 2048, 4096 }, false)]
         public void ExceptionsEventSource_WriteFunction_Event(
             ulong functionId,
             uint methodToken,
@@ -153,14 +153,15 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
             ulong moduleId,
             string name,
             ulong[] typeArgs,
-            ulong[] parameterTypes)
+            ulong[] parameterTypes,
+            bool stackTraceHidden)
         {
             using ExceptionsEventSource source = new();
 
             using ExceptionsEventListener listener = new();
             listener.EnableEvents(source, EventLevel.Informational);
 
-            source.FunctionDescription(functionId, methodToken, classId, classToken, moduleId, name, typeArgs, parameterTypes);
+            source.FunctionDescription(functionId, methodToken, classId, classToken, moduleId, name, typeArgs, parameterTypes, stackTraceHidden);
 
             Assert.True(listener.NameCache.FunctionData.TryGetValue(functionId, out FunctionData? function));
             Assert.Equal(methodToken, function.MethodToken);
