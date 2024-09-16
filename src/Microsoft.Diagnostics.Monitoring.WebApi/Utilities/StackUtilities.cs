@@ -88,6 +88,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                     frameModel.FullParameterTypes = NameFormatter.GetTypeNames(cache, functionData.ParameterTypes, NameFormatter.TypeFormat.Full);
                 }
 
+                // JSFIX: Will we **always** have this? If so we can remove it from class data
+                if (cache.TokenData.TryGetValue(new ModuleScopedToken(functionData.ModuleId, functionData.ParentClassToken), out TokenData? tokenData))
+                {
+                    frameModel.StackTraceHidden = frameModel.StackTraceHidden || tokenData.StackTraceHidden;
+                }
 
                 builder.Clear();
                 NameFormatter.BuildTypeName(builder, cache, functionData);
