@@ -71,7 +71,7 @@ public:
 };
 
 template<>
-class EventTypeMapping<bool>
+class EventTypeMapping<BOOL>
 {
 public:
     void GetType(COR_PRF_EVENTPIPE_PARAM_DESC& descriptor)
