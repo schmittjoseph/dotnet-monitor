@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             {
                 frameModel.MethodToken = functionData.MethodToken;
                 frameModel.ModuleName = NameFormatter.GetModuleName(cache, functionData.ModuleId);
-                frameModel.StackTraceHidden = frameModel.StackTraceHidden || functionData.StackTraceHidden;
+                frameModel.Hidden = ShouldHideFunctionFromStackTrace(cache, functionData);
 
                 if (cache.ModuleData.TryGetValue(functionData.ModuleId, out ModuleData? moduleData))
                 {
@@ -88,18 +88,38 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
                     frameModel.FullParameterTypes = NameFormatter.GetTypeNames(cache, functionData.ParameterTypes, NameFormatter.TypeFormat.Full);
                 }
 
-                // JSFIX: Will we **always** have this? If so we can remove it from class data
-                if (cache.TokenData.TryGetValue(new ModuleScopedToken(functionData.ModuleId, functionData.ParentClassToken), out TokenData? tokenData))
-                {
-                    frameModel.StackTraceHidden = frameModel.StackTraceHidden || tokenData.StackTraceHidden;
-                }
-
                 builder.Clear();
                 NameFormatter.BuildTypeName(builder, cache, functionData);
                 frameModel.TypeName = builder.ToString();
             }
 
             return frameModel;
+        }
+
+        public static bool ShouldHideFunctionFromStackTrace(NameCache cache, FunctionData functionData)
+        {
+            if (functionData.StackTraceHidden)
+            {
+                return true;
+            }
+
+            if (cache.ClassData.TryGetValue(functionData.ParentClass, out ClassData? classData))
+            {
+                if (classData.StackTraceHidden)
+                {
+                    return true;
+                }
+            }
+
+            if (cache.TokenData.TryGetValue(new ModuleScopedToken(functionData.ModuleId, functionData.ParentClassToken), out TokenData? tokenData))
+            {
+                if (tokenData.StackTraceHidden)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal static StacksFormatter CreateFormatter(StackFormat format, Stream outputStream) =>

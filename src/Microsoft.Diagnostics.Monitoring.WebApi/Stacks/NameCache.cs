@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
     /// <param name="ModuleId">The identifier of the module that contains the class.</param>
     /// <param name="Flags">The flags for the class.</param>
     /// <param name="TypeArgs">The class identifiers of the generic type arguments of the class.</param>
-    /// <param name="StackTraceHidden">JSFIX</param>
+    /// <param name="StackTraceHidden">If the class has <see cref="StackTraceHiddenAttribute"/>.</param>
     /// <remarks>
     /// The name of the class can be retrieved from the corresponding <see cref="TokenData"/>.
     /// </remarks>
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
     /// <param name="Name">The name of the token.</param>
     /// <param name="Namespace">The namespace of the Name.</param>
     /// <param name="OuterToken">The metadata token of the parent container.</param>
-    /// <param name="StackTraceHidden">JSFIX</param>
+    /// <param name="StackTraceHidden">If the token has <see cref="StackTraceHiddenAttribute"/>.</param>
     [DebuggerDisplay("{Name}")]
     internal sealed record class TokenData(string Name, string Namespace, uint OuterToken, bool StackTraceHidden);
 
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
     /// <param name="ModuleId">The identifier of the module that contains the function.</param>
     /// <param name="TypeArgs">The class identifiers of the generic type arguments of the function.</param>
     /// <param name="ParameterTypes">The class identifiers of the parameter types of the function.</param>
-    /// <param name="StackTraceHidden">JSFIX</param>
+    /// <param name="StackTraceHidden">If the function has <see cref="StackTraceHiddenAttribute"/>.</param>
     /// <remarks>
     /// If <paramref name="ParentClass"/> is 0, then use <paramref name="ParentClassToken"/>.
     /// </remarks>

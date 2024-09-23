@@ -24,8 +24,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Models
         [JsonPropertyName("moduleVersionId")]
         public Guid ModuleVersionId { get; set; }
 
-        [JsonPropertyName("stackTraceHidden")]
-        public bool StackTraceHidden { get; set; }
+        [JsonPropertyName("hidden")]
+        public bool Hidden { get; set; }
 
         [JsonIgnore]
         internal IList<string> SimpleGenericArgTypes { get; set; } = new List<string>();
