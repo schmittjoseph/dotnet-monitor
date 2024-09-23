@@ -323,7 +323,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                     await writer.WriteAsync(".");
                     await writer.WriteAsync(frame.MethodName);
 
-
                     NameFormatter.BuildGenericArgTypes(builder, frame.SimpleGenericArgTypes);
                     await writer.WriteAsync(builder);
                     builder.Clear();

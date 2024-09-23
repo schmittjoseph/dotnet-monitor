@@ -88,13 +88,12 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
                         CallStackFrame stackFrame = new CallStackFrame
                         {
                             FunctionId = functionIds[i],
-                            Offset = offsets[i],
+                            Offset = offsets[i]
                         };
 
                         if (_result.NameCache.FunctionData.TryGetValue(stackFrame.FunctionId, out FunctionData? functionData))
                         {
                             stackFrame.MethodToken = functionData.MethodToken;
-                            
                             if (_result.NameCache.ModuleData.TryGetValue(functionData.ModuleId, out ModuleData? moduleData))
                             {
                                 stackFrame.ModuleVersionId = moduleData.ModuleVersionId;
@@ -114,8 +113,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
                     action.GetPayload<ulong>(NameIdentificationEvents.FunctionDescPayloads.ClassId),
                     action.GetPayload<uint>(NameIdentificationEvents.FunctionDescPayloads.ClassToken),
                     action.GetPayload<ulong>(NameIdentificationEvents.FunctionDescPayloads.ModuleId),
-                    action.GetPayload<ulong[]>(NameIdentificationEvents.FunctionDescPayloads.TypeArgs),
-                    action.GetPayload<ulong[]>(NameIdentificationEvents.FunctionDescPayloads.ParameterTypes),
+                    action.GetPayload<ulong[]>(NameIdentificationEvents.FunctionDescPayloads.TypeArgs) ?? Array.Empty<ulong>(),
+                    action.GetPayload<ulong[]>(NameIdentificationEvents.FunctionDescPayloads.ParameterTypes) ?? Array.Empty<ulong>(),
                     action.GetPayload<bool>(NameIdentificationEvents.FunctionDescPayloads.StackTraceHidden)
                     );
 
@@ -128,7 +127,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Stacks
                     action.GetPayload<uint>(NameIdentificationEvents.ClassDescPayloads.Token),
                     action.GetPayload<ulong>(NameIdentificationEvents.ClassDescPayloads.ModuleId),
                     (ClassFlags)action.GetPayload<uint>(NameIdentificationEvents.ClassDescPayloads.Flags),
-                    action.GetPayload<ulong[]>(NameIdentificationEvents.ClassDescPayloads.TypeArgs),
+                    action.GetPayload<ulong[]>(NameIdentificationEvents.ClassDescPayloads.TypeArgs) ?? Array.Empty<ulong>(),
                     action.GetPayload<bool>(NameIdentificationEvents.ClassDescPayloads.StackTraceHidden)
                     );
 
