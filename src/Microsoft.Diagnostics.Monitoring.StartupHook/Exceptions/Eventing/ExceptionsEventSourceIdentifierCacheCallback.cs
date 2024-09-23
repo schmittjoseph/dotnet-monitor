@@ -22,8 +22,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
                 data.ModuleId,
                 data.Token,
                 (uint)data.Flags,
-                data.TypeArgs,
-                data.StackTraceHidden);
+                data.StackTraceHidden,
+                data.TypeArgs);
         }
 
         public override void OnExceptionGroupData(ulong groupId, ExceptionGroupData data)
@@ -43,10 +43,10 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
                 data.ParentClass,
                 data.ParentClassToken,
                 data.ModuleId,
+                data.StackTraceHidden,
                 data.Name,
                 data.TypeArgs,
-                data.ParameterTypes,
-                data.StackTraceHidden);
+                data.ParameterTypes);
         }
 
         public override void OnModuleData(ulong moduleId, ModuleData data)
@@ -71,9 +71,9 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
                 moduleId,
                 typeToken,
                 data.OuterToken,
+                data.StackTraceHidden,
                 data.Name,
-                data.Namespace,
-                data.StackTraceHidden);
+                data.Namespace);
         }
     }
 }
