@@ -748,6 +748,33 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 });
         }
 
+        [Theory]
+        [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
+        public async Task Exceptions_HideHiddenFrames(Architecture targetArchitecture)
+        {
+            await ScenarioRunner.SingleTarget(
+                _outputHelper,
+                _httpClientFactory,
+                DiagnosticPortConnectionMode.Listen,
+                TestAppScenarios.Exceptions.Name,
+                subScenarioName: TestAppScenarios.Exceptions.SubScenarios.HiddenFramesExceptionCommand,
+                appValidate: async (appRunner, apiClient) =>
+                {
+                    await GetExceptions(apiClient, appRunner, ExceptionFormat.PlainText);
+
+                    ValidateMultipleExceptionsText(2, new() { CustomGenericsException, SystemArgumentNullException });
+                },
+                configureApp: runner =>
+                {
+                    runner.Architecture = targetArchitecture;
+                    runner.EnableMonitorStartupHook = true;
+                },
+                configureTool: runner =>
+                {
+                    runner.ConfigurationFromEnvironment.EnableInProcessFeatures();
+                });
+        }
+
         private void ValidateMultipleExceptionsText(int exceptionsCount, List<string> exceptionTypes)
         {
             var exceptions = exceptionsResult.Split(new[] { FirstChanceExceptionMessage }, StringSplitOptions.RemoveEmptyEntries);
