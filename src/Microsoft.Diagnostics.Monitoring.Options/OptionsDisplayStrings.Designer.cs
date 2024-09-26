@@ -10,8 +10,8 @@
 
 namespace Microsoft.Diagnostics.Monitoring.WebApi {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class OptionsDisplayStrings {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal OptionsDisplayStrings() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of request paths to ignore. A request path must exactly match one of the items in the list to be ignored..
         /// </summary>
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestCountOptions_ExcludePaths", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of request paths to monitor. If not specified, all request paths are monitored.  A request path must exactly match one of the items in the list to be monitored. Request paths matching the ExcludePaths list will not be monitored..
         /// </summary>
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestCountOptions_IncludePaths", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold of the number of requests that start within the sliding window of time..
         /// </summary>
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestCountOptions_RequestCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The sliding time window in which the number of requests are counted..
         /// </summary>
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestCountOptions_SlidingWindowDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of request paths to ignore. A request path must exactly match one of the items in the list to be ignored..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestDurationOptions_ExcludePaths", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of request paths to monitor. If not specified, all request paths are monitored. A request path must exactly match one of the items in the list to be monitored. Request paths matching the ExcludePaths list will not be monitored..
         /// </summary>
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestDurationOptions_IncludePaths", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold of the number of slow requests that start within the sliding window of time..
         /// </summary>
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestDurationOptions_RequestCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold of the amount of time in which a request is considered to be slow..
         /// </summary>
@@ -131,7 +131,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestDurationOptions_RequestDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The sliding time window in which the the number of slow requests are counted..
         /// </summary>
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetRequestDurationOptions_SlidingWindowDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of request paths to ignore. A request path must exactly match one of the items in the list to be ignored..
         /// </summary>
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetResponseStatusOptions_ExcludePaths", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of request paths to monitor. If not specified, all request paths are monitored. A request path must exactly match one of the items in the list to be monitored. Request paths matching the ExcludePaths list will not be monitored..
         /// </summary>
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetResponseStatusOptions_IncludePaths", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold number of responses with matching status codes..
         /// </summary>
@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetResponseStatusOptions_ResponseCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The sliding time window in which the number of responses with matching status codes must occur..
         /// </summary>
@@ -176,7 +176,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetResponseStatusOptions_SlidingWindowDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of HTTP response status codes to monitor. Each item of the list can be a single code or a range of codes (e.g. &quot;400-499&quot;)..
         /// </summary>
@@ -185,7 +185,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AspNetResponseStatusOptions_StatusCodes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The parameters used to use configure authentication using Azure Active Directory..
         /// </summary>
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AuthenticationOptions_AzureAd", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The parameters used to validate MonitorApiKey JWT tokens..
         /// </summary>
@@ -203,7 +203,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AuthenticationOptions_MonitorApiKey", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The App ID URI of the app registration. Defaults to api://{ClientId} if not specified..
         /// </summary>
@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AzureAdOptions_AppIdUri", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The unique application (client) id assigned to the app registration in Azure Active Directory..
         /// </summary>
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AzureAdOptions_ClientId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Specifies the Azure cloud instance users are signing in from. Can be either the Azure public cloud or one of the national clouds..
         /// </summary>
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AzureAdOptions_Instance", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The role required to be able to authenticate..
         /// </summary>
@@ -239,16 +239,16 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_AzureAdOptions_RequiredRole", resourceCulture);
             }
         }
-        
+
         /// <summary>
-        ///   Looks up a localized string similar to The tenant id of the Azure Active Directory tenant, or its tenant domain..
+        ///   Looks up a localized string similar to The tenant id of the Azure Active Directory tenant.
         /// </summary>
         public static string DisplayAttributeDescription_AzureAdOptions_TenantId {
             get {
                 return ResourceManager.GetString("DisplayAttributeDescription_AzureAdOptions_TenantId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enables or disables the call stacks feature. By default, this feature is enabled if in-process features are enabled..
         /// </summary>
@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CallStacksOptions_Enabled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the generated artifact..
         /// </summary>
@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectArtifactOptions_ArtifactName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The duration of time in which the artifact is collected..
         /// </summary>
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectArtifactOptions_Duration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the egress provider to which the artifact is egressed..
         /// </summary>
@@ -284,7 +284,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectArtifactOptions_Egress", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The type of dump to collect from the target process..
         /// </summary>
@@ -293,7 +293,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectDumpOptions_Type", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The filters that determine which exceptions should be included/excluded when collecting exceptions..
         /// </summary>
@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectExceptionsOptions_Filters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The format used to display the exceptions..
         /// </summary>
@@ -311,7 +311,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectExceptionsOptions_Format", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the default Egress Provider..
         /// </summary>
@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleActionDefaultsOptions_Egress", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name used to refer to the action..
         /// </summary>
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleActionOptions_Name", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The settings to pass to the action when it is executed. Settings may be optional if the action doesn&apos;t require settings or its settings are all optional..
         /// </summary>
@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleActionOptions_Settings", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The type of action to execute..
         /// </summary>
@@ -347,7 +347,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleActionOptions_Type", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Wait for the current action to complete before starting the next action..
         /// </summary>
@@ -356,7 +356,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleActionOptions_WaitForCompletion", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Collection Rule Defaults that can be applied to actions..
         /// </summary>
@@ -365,7 +365,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleDefaultsOptions_Actions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Collection Rule Defaults that can be applied to limits..
         /// </summary>
@@ -374,7 +374,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleDefaultsOptions_Limits", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Collection Rule Defaults that can be applied to triggers..
         /// </summary>
@@ -383,7 +383,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleDefaultsOptions_Triggers", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default number of times the action list may be executed before being throttled..
         /// </summary>
@@ -392,7 +392,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleLimitsDefaultsOptions_ActionCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default sliding window of time to consider whether the action list should be throttled based on the number of times the action list was executed..
         /// </summary>
@@ -402,7 +402,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                         "gWindowDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default amount of time before the rule will stop monitoring a process after it has been applied to a process..
         /// </summary>
@@ -411,7 +411,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleLimitsDefaultsOptions_RuleDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The number of times the action list may be executed before being throttled..
         /// </summary>
@@ -420,7 +420,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleLimitsOptions_ActionCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The sliding window of time to consider whether the action list should be throttled based on the number of times the action list was executed. Executions that fall outside the window will not count toward the limit specified in the ActionCount setting..
         /// </summary>
@@ -430,7 +430,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                         "uration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The amount of time before the rule will stop monitoring a process after it has been applied to a process. If not specified, the rule will monitor the process with the trigger indefinitely..
         /// </summary>
@@ -439,7 +439,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleLimitsOptions_RuleDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The list of actions to be executed when the trigger raises its notification..
         /// </summary>
@@ -448,7 +448,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleOptions_Actions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Process filters used to determine to which process(es) the collection rule is applied. All filters must match. If no filters are specified, the rule is applied to all discovered processes..
         /// </summary>
@@ -457,7 +457,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleOptions_Filters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The set of limits to constrain the execution of the rule and its components..
         /// </summary>
@@ -466,7 +466,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleOptions_Limits", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The trigger to use to monitor for a condition in the target process..
         /// </summary>
@@ -475,7 +475,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleOptions_Trigger", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default threshold of the number of requests that start within the sliding window of time..
         /// </summary>
@@ -484,7 +484,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleTriggerDefaultsOptions_RequestCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default threshold number of responses with matching status codes..
         /// </summary>
@@ -493,7 +493,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleTriggerDefaultsOptions_ResponseCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default sliding window duration..
         /// </summary>
@@ -503,7 +503,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                         "ation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The settings to pass to the trigger when it is executed. Settings may be optional if the trigger doesn&apos;t require settings or its settings are all optional..
         /// </summary>
@@ -512,7 +512,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleTriggerOptions_Settings", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The type of trigger used to monitor for a condition in the target process..
         /// </summary>
@@ -521,7 +521,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectionRuleTriggerOptions_Type", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Determines if the default counter providers should be used..
         /// </summary>
@@ -530,7 +530,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLiveMetricsOptions_IncludeDefaultProviders", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The array of meters for metrics to collect..
         /// </summary>
@@ -539,7 +539,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLiveMetricsOptions_Meters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The array of providers for metrics to collect..
         /// </summary>
@@ -548,7 +548,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLiveMetricsOptions_Providers", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default log level at which logs are collected for entries in the FilterSpecs that do not have a specified LogLevel value..
         /// </summary>
@@ -557,7 +557,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLogsOptions_DefaultLevel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A custom mapping of logger categories to log levels that describes at what level a log statement that matches one of the given categories should be captured..
         /// </summary>
@@ -566,7 +566,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLogsOptions_FilterSpecs", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The format of the logs artifact..
         /// </summary>
@@ -575,7 +575,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLogsOptions_Format", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Specifies whether to capture log statements at the levels as specified in the application-defined filters..
         /// </summary>
@@ -584,7 +584,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectLogsOptions_UseAppFilters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The format used to display the call stacks..
         /// </summary>
@@ -593,7 +593,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectStacksOptions_Format", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The size of the event pipe buffer to use in the target process. If the event pipe buffer fills with too many events, newer events will be dropped until the buffer is drained to fit new events..
         /// </summary>
@@ -602,7 +602,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectTraceOptions_BufferSizeMegabytes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Use a predefined set of event providers and settings to capture in the trace. More than one profile may be specified at the same time. Either Profile or Providers must be specified, but not both..
         /// </summary>
@@ -611,7 +611,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectTraceOptions_Profile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A list of event providers and settings to capture in the trace.  Either Profile or Providers must be specified, but not both..
         /// </summary>
@@ -620,7 +620,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectTraceOptions_Providers", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Indicates that rundown information should be included in the trace..
         /// </summary>
@@ -629,7 +629,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectTraceOptions_RequestRundown", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The event to watch for while collecting the trace, and once observed the trace will be stopped..
         /// </summary>
@@ -638,7 +638,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CollectTraceOptions_StoppingEvent", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Buffer size used when copying data from an egress callback returning a stream to the egress callback that is provided a stream to which data is written..
         /// </summary>
@@ -647,7 +647,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CommonEgressProviderOptions_CopyBufferSize", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Gets or sets whether scopes should be included or not..
         /// </summary>
@@ -656,7 +656,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleFormatterOptions_IncludeScopes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Gets or sets the format string used to format the timestamp in logging messages. Defaults to null..
         /// </summary>
@@ -665,7 +665,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleFormatterOptions_TimestampFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Gets or sets whether or not UTC timezone should be used for timestamps in logging messages. Defaults to false..
         /// </summary>
@@ -674,7 +674,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleFormatterOptions_UseUtcTimestamp", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reserved name for Json console formatter..
         /// </summary>
@@ -683,7 +683,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerFormat_Json", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reserved name for simple console formatter..
         /// </summary>
@@ -692,7 +692,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerFormat_Simple", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reserved name for systemd console formatter..
         /// </summary>
@@ -701,7 +701,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerFormat_Systemd", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Name of the log message formatter to use. Defaults to &apos;Simple&apos;..
         /// </summary>
@@ -710,7 +710,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerOptions_FormatterName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Formatter options for the built-in console log formatter..
         /// </summary>
@@ -719,7 +719,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerOptions_FormatterOptions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A mapping of logger categories to log levels describing the threshold level at which messages are logged for each category; applies solely to ConsoleLoggerOptions..
         /// </summary>
@@ -728,7 +728,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerOptions_LogLevel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The minimum level of messages that are written to Console.Error..
         /// </summary>
@@ -737,7 +737,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ConsoleLoggerOptions_LogToStandardErrorThreshold", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to List of allowed CORS origins, separated by semicolons..
         /// </summary>
@@ -746,7 +746,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CorsConfiguration_AllowedOrigins", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level as a percentage that the counter must maintain (or higher) for the specified duration..
         /// </summary>
@@ -755,7 +755,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CPUUsageOptions_GreaterThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level as a percentage that the counter must maintain (or lower) for the specified duration. If LessThan is specified, the default value of GreaterThan becomes null..
         /// </summary>
@@ -764,7 +764,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_CPUUsageOptions_LessThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to In &apos;Connect&apos; mode, dotnet-monitor connects to the application for diagnostics. In &apos;Listen&apos; mode, the application connects to dotnet-monitor via EndpointName..
         /// </summary>
@@ -773,7 +773,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_DiagnosticPortOptions_ConnectionMode", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to In &apos;Listen&apos; connection mode, deletes the domain socket file used for diagnostic port communication..
         /// </summary>
@@ -782,7 +782,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_DiagnosticPortOptions_DeleteEndpointOnStartup", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to In &apos;Listen&apos; mode, specifies the name of the named pipe or unix domain socket to use for connecting to the diagnostic server..
         /// </summary>
@@ -791,7 +791,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_DiagnosticPortOptions_EndpointName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to In &apos;Listen&apos; mode, the maximum amount of connections to accept..
         /// </summary>
@@ -800,7 +800,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_DiagnosticPortOptions_MaxConnections", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Mapping of file system egress provider names to their options..
         /// </summary>
@@ -809,7 +809,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EgressOptions_FileSystem", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Additional properties, such as secrets, that can be referenced by the provider definitions..
         /// </summary>
@@ -818,7 +818,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EgressOptions_Properties", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the counter to monitor..
         /// </summary>
@@ -827,7 +827,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventCounterOptions_CounterName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level the counter must maintain (or higher) for the specified duration. Either GreaterThan or LessThan (or both) must be specified..
         /// </summary>
@@ -836,7 +836,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventCounterOptions_GreaterThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level the counter must maintain (or lower) for the specified duration. Either GreaterThan or LessThan (or both) must be specified..
         /// </summary>
@@ -845,7 +845,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventCounterOptions_LessThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the event source that provides the counter information..
         /// </summary>
@@ -854,7 +854,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventCounterOptions_ProviderName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The sliding time window in which the counter must maintain its value as specified by the threshold levels in GreaterThan and LessThan..
         /// </summary>
@@ -863,7 +863,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventCounterOptions_SlidingWindowDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level the instrument must maintain (or higher) for the specified duration. Either GreaterThan or LessThan (or both) must be specified..
         /// </summary>
@@ -872,7 +872,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_GreaterThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to When monitoring a histogram, this dictates which percentile to compare against using the value in GreaterThan/LessThan - by default, the percentile can be 50, 95, or 99..
         /// </summary>
@@ -881,7 +881,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_HistogramPercentile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the instrument to monitor..
         /// </summary>
@@ -890,7 +890,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_InstrumentName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level the instrument must maintain (or lower) for the specified duration. Either GreaterThan or LessThan (or both) must be specified..
         /// </summary>
@@ -899,7 +899,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_LessThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the meter that provides the instrument information..
         /// </summary>
@@ -908,7 +908,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_MeterName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The sliding time window in which the instrument must maintain its value as specified by the threshold levels in GreaterThan and LessThan..
         /// </summary>
@@ -917,7 +917,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_EventMeterOptions_SlidingWindowDuration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The filters that determine which exceptions should be included/excluded when collecting exceptions..
         /// </summary>
@@ -926,7 +926,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ExceptionsOptions_CollectionFilters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enables or disables the exceptions feature. By default, this feature is enabled if in-process features are enabled..
         /// </summary>
@@ -935,7 +935,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ExceptionsOptions_Enabled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The number of top-level exceptions to keep in the cache before automatically removing older exceptions. A top-level exception is one that is not an inner exception of another exception..
         /// </summary>
@@ -944,7 +944,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ExceptionsOptions_TopLevelLimit", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The arguments to pass to the executable..
         /// </summary>
@@ -953,7 +953,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ExecuteOptions_Arguments", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The path of the executable to start..
         /// </summary>
@@ -962,7 +962,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ExecuteOptions_Path", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The directory path to which the stream data will be egressed..
         /// </summary>
@@ -971,7 +971,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_FileSystemEgressProviderOptions_DirectoryPath", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The directory path to which the stream data will initially be written, if specified; the file will then be moved/renamed to the directory specified in DirectoryPath..
         /// </summary>
@@ -981,7 +981,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                         "Path", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level in MBs that the counter must maintain (or higher) for the specified duration..
         /// </summary>
@@ -990,7 +990,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_GCHeapSizeOptions_GreaterThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level in MBs that the counter must maintain (or lower) for the specified duration. If LessThan is specified, the default value of GreaterThan becomes null..
         /// </summary>
@@ -999,7 +999,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_GCHeapSizeOptions_LessThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the environment variable to get..
         /// </summary>
@@ -1008,7 +1008,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_GetEnvironmentVariableOptions_Name", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Determines the metrics interval for all dotnet-monitor scenarios. This includes prometheus metrics, live metrics, triggers, and traces..
         /// </summary>
@@ -1017,7 +1017,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_GlobalCounterOptions_IntervalSeconds", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Dictionary of provider names and their global configuration..
         /// </summary>
@@ -1026,7 +1026,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_GlobalCounterOptions_Providers", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Options for the in-process call stacks feature..
         /// </summary>
@@ -1035,7 +1035,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_InProcessFeaturesOptions_CallStacks", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Allows features that require diagnostic components to be loaded into target processes to be enabled. These features may have minimal performance impact on target processes..
         /// </summary>
@@ -1044,7 +1044,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_InProcessFeaturesOptions_Enabled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Options for the in-process exceptions feature..
         /// </summary>
@@ -1053,7 +1053,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_InProcessFeaturesOptions_Exceptions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Options for the in-process parameter capturing feature..
         /// </summary>
@@ -1062,7 +1062,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_InProcessFeaturesOptions_ParameterCapturing", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Gets or sets JsonWriterOptions..
         /// </summary>
@@ -1071,7 +1071,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_JsonConsoleFormatterOptions_WriterOptions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The class identifier (or CLSID, typically a GUID) of the ICorProfilerCallback implementation. This is typically the same value that would be set as the CORECLR_PROFILER environment variable..
         /// </summary>
@@ -1080,7 +1080,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoadProfilerOptions_Clsid", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The path of the profiler library to be loaded. This is typically the same value that would be set as the CORECLR_PROFILER_PATH environment variable..
         /// </summary>
@@ -1089,7 +1089,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoadProfilerOptions_Path", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Gets or sets whether logging scopes are being captured. Defaults to true..
         /// </summary>
@@ -1098,7 +1098,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoggingOptions_CaptureScopes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Logging options for the Console provider..
         /// </summary>
@@ -1107,7 +1107,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoggingOptions_Console", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Logging options for the Debug provider..
         /// </summary>
@@ -1116,7 +1116,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoggingOptions_Debug", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Logging options for the EventLog provider..
         /// </summary>
@@ -1125,7 +1125,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoggingOptions_EventLog", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Logging options for the EventSource provider..
         /// </summary>
@@ -1134,7 +1134,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoggingOptions_EventSource", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A mapping of logger categories to log levels describing the threshold level at which messages are logged for each category; applies to no specific provider..
         /// </summary>
@@ -1143,7 +1143,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LoggingOptions_LogLevel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A mapping of logger categories to log levels describing the threshold level at which messages are logged for each category; applies to the specified provider..
         /// </summary>
@@ -1152,7 +1152,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_LogLevelOptions_LogLevel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Names of the custom instruments..
         /// </summary>
@@ -1161,7 +1161,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MeterConfiguration_InstrumentNames", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Name of the custom meter..
         /// </summary>
@@ -1170,7 +1170,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MeterConfiguration_MeterName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Name of custom metrics counters..
         /// </summary>
@@ -1179,7 +1179,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricProvider_CounterNames", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the custom metrics provider..
         /// </summary>
@@ -1188,7 +1188,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricProvider_ProviderName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enable or disable metrics collection..
         /// </summary>
@@ -1197,7 +1197,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_Enabled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Endpoints that expose prometheus metrics. Defaults to http://localhost:52325..
         /// </summary>
@@ -1206,7 +1206,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_Endpoints", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Include default providers: System.Runtime, Microsoft.AspNetCore.Hosting, and Grpc.AspNetCore.Server..
         /// </summary>
@@ -1215,7 +1215,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_IncludeDefaultProviders", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The maximum number of histograms that can be tracked. Each unique combination of provider name, histogram name, and dimension values counts as one histogram. Tracking more histograms uses more memory in the target process so this bound guards against unintentional high memory use..
         /// </summary>
@@ -1224,7 +1224,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_MaxHistograms", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The maximum number of time series that can be tracked. Each unique combination of provider name, metric name, and dimension values counts as one time series. Tracking more time series uses more memory in the target process so this bound guards against unintentional high memory use..
         /// </summary>
@@ -1233,7 +1233,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_MaxTimeSeries", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Names of meters to collect from the System.Diagnostics.Metrics provider..
         /// </summary>
@@ -1242,7 +1242,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_Meters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Amount of data points to store per metric..
         /// </summary>
@@ -1251,7 +1251,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_MetricCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Providers for custom metrics..
         /// </summary>
@@ -1260,7 +1260,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MetricsOptions_Providers", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The expected value of the &apos;iss&apos; or Issuer field in the JWT (JSON Web Token)..
         /// </summary>
@@ -1269,7 +1269,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MonitorApiKeyOptions_Issuer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The public key used to sign the JWT (JSON Web Token) used for authentication. This field is a JSON Web Key serialized as JSON encoded with base64Url encoding. The JWK must have a kty field of RSA or EC and should not have the private key information..
         /// </summary>
@@ -1278,7 +1278,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MonitorApiKeyOptions_PublicKey", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The value of the &apos;sub&apos; or Subject field in the JWT (JSON Web Token)..
         /// </summary>
@@ -1287,7 +1287,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_MonitorApiKeyOptions_Subject", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enables or disables the parameter capturing feature. By default, this feature is not enabled..
         /// </summary>
@@ -1296,7 +1296,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ParameterCapturingOptions_Enabled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a match based on the contents of the command passed to launch the process on the system; this typically includes the executable path and arguments to the process..
         /// </summary>
@@ -1305,7 +1305,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterDescriptor_CommandLine", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The criteria used to compare against the target process..
         /// </summary>
@@ -1314,7 +1314,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterDescriptor_Key", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Type of match to use against the process criteria..
         /// </summary>
@@ -1323,7 +1323,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterDescriptor_MatchType", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a match based on the numerical ID of a process on the system..
         /// </summary>
@@ -1332,7 +1332,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterDescriptor_ProcessId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a match based on the name of a process on the system..
         /// </summary>
@@ -1341,7 +1341,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterDescriptor_ProcessName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The value of the criteria used to compare against the target process..
         /// </summary>
@@ -1350,7 +1350,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterDescriptor_Value", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a match based on the contents of the command passed to launch the process on the system; this typically includes the executable path and arguments to the process..
         /// </summary>
@@ -1359,7 +1359,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterKey_CommandLine", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a match based on the numerical ID of a process on the system..
         /// </summary>
@@ -1368,7 +1368,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterKey_ProcessId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a match based on the name of a process on the system..
         /// </summary>
@@ -1377,7 +1377,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterKey_ProcessName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Process filters used to determine which process to use if one is not explicitly specified. All filters must match..
         /// </summary>
@@ -1386,7 +1386,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterOptions_Filters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a case-insensitive substring search..
         /// </summary>
@@ -1395,7 +1395,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterType_Contains", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Performs a case-insensitive string comparison..
         /// </summary>
@@ -1404,7 +1404,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ProcessFilterType_Exact", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the environment variable to set..
         /// </summary>
@@ -1413,7 +1413,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_SetEnvironmentVariableOptions_Name", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The value of the environment variable to set..
         /// </summary>
@@ -1422,7 +1422,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_SetEnvironmentVariableOptions_Value", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Determines when to use color when logging messages..
         /// </summary>
@@ -1431,7 +1431,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_SimpleConsoleFormatterOptions_ColorBehavior", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to When false, the entire message gets logged in a single line..
         /// </summary>
@@ -1440,7 +1440,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_SimpleConsoleFormatterOptions_SingleLine", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The default path where assets will be shared between dotnet-monitor and target processes. Dumps are temporarily stored under this path or in a sub folder unless DumpTempFolder is specified. Shared libraries are stored under this path or in a sub folder unless SharedLibraryPath is specified. On non-Windows platforms, a server diagnostic port is created with the name of &apos;dotnet-monitor.sock&apos; immediately under this path if running in listen mode unless the diagnostic port is specified on the command line or th [rest of string was truncated]&quot;;.
         /// </summary>
@@ -1449,7 +1449,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_StorageOptions_DefaultSharedPath", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The location for temporary dump files. Defaults to the temp folder..
         /// </summary>
@@ -1458,7 +1458,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_StorageOptions_DumpTempFolder", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The location to which libraries shared with target processes will be copied at startup..
         /// </summary>
@@ -1467,7 +1467,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_StorageOptions_SharedLibraryPath", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level the counter must maintain (or higher) for the specified duration..
         /// </summary>
@@ -1476,7 +1476,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ThreadpoolQueueLengthOptions_GreaterThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The threshold level the counter must maintain (or lower) for the specified duration. If LessThan is specified, the default value of GreaterThan becomes null..
         /// </summary>
@@ -1485,7 +1485,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_ThreadpoolQueueLengthOptions_LessThan", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the event, which is a concatenation of the task name and opcode name, if any. The task and opcode names are separated by a &apos;/&apos;. If the event has no opcode, then the event name is just the task name..
         /// </summary>
@@ -1494,7 +1494,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_TraceEventFilter_EventName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A mapping of event payload field names to their expected value. A subset of the payload fields may be specified..
         /// </summary>
@@ -1503,7 +1503,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_TraceEventFilter_PayloadFilter", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The event provider that will produce the specified event..
         /// </summary>
@@ -1512,7 +1512,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("DisplayAttributeDescription_TraceEventFilter_ProviderName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The {0} field, {1} field, {2} field, or {3} field is required..
         /// </summary>
@@ -1521,7 +1521,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_CredentialsMissing", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A value is required for the process filter..
         /// </summary>
@@ -1530,7 +1530,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_FilterValueMissing", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Multiple authentication modes were configured. Only one may be set..
         /// </summary>
@@ -1539,7 +1539,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_MultipleAuthenticationModesSpecified", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provider &apos;{0}&apos; validation error: &apos;{1}&apos;.
         /// </summary>
@@ -1548,7 +1548,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_NestedProviderValidationError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to An egress provider must be specified if there is no default egress provider..
         /// </summary>
@@ -1557,7 +1557,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_NoDefaultEgressProvider", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A request count must be specified if there is no default request count..
         /// </summary>
@@ -1566,7 +1566,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_NoDefaultRequestCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A response count must be specified if there is no default response count..
         /// </summary>
@@ -1575,7 +1575,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi {
                 return ResourceManager.GetString("ErrorMessage_NoDefaultResponseCount", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The field {0} must be a status code or status code range between 1xx and 5xx. E.g. 200, 400-500..
         /// </summary>
