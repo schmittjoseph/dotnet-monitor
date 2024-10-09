@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Generate artifacts
         run: |
-          trimmed_comment=$(echo "$COMMENT_BODY" | sed 's|/TODO ||I')
+          trimmed_comment=$(echo "$COMMENT_BODY_2" | sed 's|/TODO ||I')
           mkdir -p ./issue
           echo -n "$trimmed_comment" > ./issue/issue-title
           echo -n "$COMMENT_URL" > ./issue/issue-url
