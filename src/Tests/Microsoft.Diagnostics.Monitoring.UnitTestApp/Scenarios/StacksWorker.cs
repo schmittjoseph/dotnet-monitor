@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Threading;
 
@@ -9,6 +10,36 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
 {
     internal sealed class StacksWorker : IDisposable
     {
+        [StackTraceHidden]
+        private static void WaitForHandleWithHiddenMethodFrames(WaitHandle waitHandle)
+        {
+            PartiallyVisibleClass partiallyVisibleClass = new();
+            partiallyVisibleClass.WaitForHandle(waitHandle);
+        }
+
+        [StackTraceHidden]
+        private abstract class BaseHiddenClass
+        {
+#pragma warning disable CA1822 // Mark members as static
+            public void WaitForHandleFromBaseClass(WaitHandle waitHandle)
+#pragma warning restore CA1822 // Mark members as static
+            {
+                using EventSource eventSource = new EventSource("StackScenario");
+                using EventCounter eventCounter = new EventCounter("Ready", eventSource);
+                eventCounter.WriteMetric(1.0);
+                waitHandle.WaitOne();
+            }
+        }
+
+        private class PartiallyVisibleClass : BaseHiddenClass
+        {
+            // StackTraceHidden attributes are not inherited
+            public void WaitForHandle(WaitHandle waitHandle)
+            {
+                WaitForHandleFromBaseClass(waitHandle);
+            }
+        }
+
         private EventWaitHandle _eventWaitHandle = new ManualResetEvent(false);
 
         public sealed class StacksWorkerNested<T>
@@ -23,10 +54,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
 
             public void Callback()
             {
-                using EventSource eventSource = new EventSource("StackScenario");
-                using EventCounter eventCounter = new EventCounter("Ready", eventSource);
-                eventCounter.WriteMetric(1.0);
-                _handle.WaitOne();
+                WaitForHandleWithHiddenMethodFrames(_handle);
             }
         }
 
