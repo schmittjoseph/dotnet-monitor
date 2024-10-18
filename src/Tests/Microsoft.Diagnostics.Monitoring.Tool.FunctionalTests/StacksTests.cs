@@ -8,6 +8,7 @@ using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Fixtures;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners;
 using Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios;
+using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -41,13 +42,19 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
         private const string NativeFrame = "[NativeFrame]";
         private const string ExpectedThreadName = "TestThread";
 
-        private static MethodInfo GetMethodInfo(string methodName)
+        private static MethodInfo GetMethodInfo(string typeName, string methodName)
         {
-            // Strip off any generic type information.
-            if (methodName.Contains('['))
+            static void removeGenericInformation(ref string name)
             {
-                methodName = methodName[..methodName.IndexOf('[')];
+                if (name.Contains('['))
+                {
+                    name = name[..name.IndexOf('[')];
+                }
             }
+
+            // Strip off any generic type information.
+            removeGenericInformation(ref typeName);
+            removeGenericInformation(ref methodName);
 
             // Return null on pseudo frames (e.g. [NativeFrame])
             if (methodName.Length == 0)
@@ -55,7 +62,10 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 return null;
             }
 
-            return typeof(Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios.StacksWorker.StacksWorkerNested<int>).GetMethod(methodName);
+            Type typeMatch = typeof(StacksWorker).Module.GetType(typeName);
+            Assert.NotNull(typeMatch);
+
+            return typeMatch.GetMethod(methodName);
         }
 
         public StacksTests(ITestOutputHelper outputHelper, ServiceProviderFixture serviceProviderFixture)
@@ -475,7 +485,12 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 
         private static bool AreFramesEqual(WebApi.Models.CallStackFrame expected, WebApi.Models.CallStackFrame actual)
         {
-            MethodInfo expectedMethodInfo = GetMethodInfo(expected.MethodName);
+            if (expected.MethodName != actual.MethodName)
+            {
+                return false;
+            }
+
+            MethodInfo expectedMethodInfo = GetMethodInfo(expected.TypeName, expected.MethodName);
 
             return (expected.ModuleName == actual.ModuleName) &&
                 (expected.TypeName == actual.TypeName) &&
@@ -521,23 +536,19 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 
         private static (WebApi.Models.CallStack, IList<WebApi.Models.CallStackFrame>) GetActualFrames(WebApi.Models.CallStackResult result, WebApi.Models.CallStackFrame expectedFirstFrame, int expectedFrameCount)
         {
-            var actualFrames = new List<WebApi.Models.CallStackFrame>();
             foreach (WebApi.Models.CallStack stack in result.Stacks)
             {
-                actualFrames.Clear();
-                foreach (var frame in stack.Frames)
+                for (int i = 0; i < stack.Frames.Count - expectedFrameCount; i++)
                 {
-                    if (AreFramesEqual(expectedFirstFrame, frame) || actualFrames.Count > 0)
+                    // We have a distinctive sentinel frame, check for it and return the rest. It's up to the caller to validate they all match
+                    CallStackFrame frame = stack.Frames[i];
+                    if (AreFramesEqual(expectedFirstFrame, frame))
                     {
-                        actualFrames.Add(frame);
-                        if (actualFrames.Count == expectedFrameCount)
-                        {
-                            return (stack, actualFrames);
-                        }
+                        return (stack, stack.Frames.ToList().GetRange(i, expectedFrameCount));
                     }
                 }
             }
-            return (null, actualFrames);
+            return (null, []);
         }
 
         private static WebApi.Models.ProfileEvent[] ExpectedSpeedscopeFrames(int topFrameIndex, int bottomFrameIndex) => new WebApi.Models.ProfileEvent[]
