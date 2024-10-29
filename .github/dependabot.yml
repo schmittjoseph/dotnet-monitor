@@ -121,8 +121,6 @@ updates:
   target-branch: feature/9.x
   ignore:
   - dependency-name: '*'
-    update-types:
-    - version-update:semver-major
   commit-message:
     prefix: '[feature/9.x] '
   groups:
